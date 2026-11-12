@@ -8,12 +8,12 @@ os.makedirs(os.path.join(root, 'img'), exist_ok=True)
 KAI = 'C:/Windows/Fonts/kaiu.ttf'; JH = 'C:/Windows/Fonts/msjhbd.ttc'
 
 def cover():
-    im = Image.open(S('c1.png')).convert('RGB')
+    im = Image.open(os.path.join(root, 'art_src', 'title_ukiyoe.jfif')).convert('RGB')
     w, h = im.size; th = int(w * 630 / 1200)
-    y0 = max(0, (h - th) // 2 - 40); im = im.crop((0, y0, w, y0 + th)).resize((1200, 630), Image.LANCZOS)
+    y0 = max(0, (h - th) // 2); im = im.crop((0, y0, w, y0 + th)).resize((1200, 630), Image.LANCZOS)
     ov = Image.new('RGBA', im.size, (0, 0, 0, 0)); d = ImageDraw.Draw(ov)
     for y in range(630):  # 上方漸層讓字清楚
-        a = int(150 * max(0, 1 - y / 330)); d.line([(0, y), (1200, y)], fill=(20, 10, 30, a))
+        a = int(120 * max(0, 1 - y / 300)); d.line([(0, y), (1200, y)], fill=(20, 10, 30, a))
     im = Image.alpha_composite(im.convert('RGBA'), ov)
     d = ImageDraw.Draw(im)
     f1 = ImageFont.truetype(KAI, 150); f2 = ImageFont.truetype(JH, 38); f3 = ImageFont.truetype(JH, 30)

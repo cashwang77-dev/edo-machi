@@ -9,6 +9,8 @@ import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS } from './chara.
 import { SHOPS, FORTUNE } from './shops.js';
 import { Net } from './net.js';
 import { cleanText } from './filter.js';
+import { SND } from './audio.js';
+import * as TX from './tex.js';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -70,7 +72,7 @@ const sfx = (() => { let ac; return (f = 660, d = .12, type = 'sine', v = .08) =
 const keys = {}; const joy = { x: 0, y: 0, mag: 0, id: null };
 const typing = () => ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName);
 addEventListener('keydown', e => {
-  if (typing()) { if (e.key === 'Enter' && document.activeElement.id === 'chatIn') sendChat(); if (e.key === 'Escape') document.activeElement.blur(); return; }
+  if (typing()) { if (e.key === 'Enter' && document.activeElement.id === 'chatIn') sendChat(); if (e.key === 'Escape') { document.activeElement.blur(); closeChat(); } return; }
   keys[e.code] = true;
   if (G.mode === 'title') return;
   if (e.code === 'KeyE') act();
@@ -126,7 +128,7 @@ function updCount() { $('#online').textContent = G.online ? `👥 ${G.remotes.si
 
 // NPC 町人（人少時代替玩家逛街、吃東西、聊天）、掌櫃
 const NPCS = []; const keepers = {};
-const NPC_NAMES = ['八っつぁん', '熊さん', 'お花', 'ご隠居', '与太郎', 'お菊', '源さん', 'お松', '辰五郎', 'おみつ', '金太', 'お竹', '新吉', 'お梅', '平助', 'お雪'];
+const NPC_NAMES = ['八五郎', '熊吉', '阿花', '老隱居', '與太郎', '阿菊', '源三', '阿松', '辰五郎', '阿光', '金太', '阿竹', '新吉', '阿梅', '平助', '阿雪'];
 const NPC_PAIRS = [['今天的蕎麥麵真好吃', '對吧！信濃屋是老字號'], ['要不要一起去泡湯？', '好啊，過了日本橋就到了'], ['聽說最近有人開了糰子店', '真的嗎？等等去看看'], ['夕陽真美呢', '富士山也看得好清楚'], ['你的和服好好看', '謝謝，是在丸屋買的'], ['最近生意如何？', '託您的福，還不錯'], ['浮世繪店可以畫肖像喔', '我也想畫一張！'], ['晚上河邊有螢火蟲', '那晚點一起去吧'], ['神社的櫻花開了', '去參拜順便賞花吧'], ['肚子餓了～', '去吃鰻魚飯吧！']];
 function spawnNPCs() {
   const r = Math.random;
@@ -190,7 +192,7 @@ function updNPCs(dt) {
     const p = n.ch.root.position; n.t += dt;
     let anim = 0, sp = 0;
     if (n.five > 0) { n.five -= dt; n.ch.play(16); n.ch.update(dt, 0); continue; }
-    if (n.eatT > 0) { n.eatT -= dt; anim = n.st === 'sit' ? 5 : 15; if (n.eatT <= 0) { npcSetFood(n, ''); n.ch.say(['うまい！', '好吃～', 'ごちそうさま'][Math.floor(Math.random() * 3)], 3); } }
+    if (n.eatT > 0) { n.eatT -= dt; anim = n.st === 'sit' ? 5 : 15; if (n.eatT <= 0) { npcSetFood(n, ''); n.ch.say(['好好吃！', '好吃～', '吃飽了～'][Math.floor(Math.random() * 3)], 3); } }
     if (n.st === 'talk') { if (!anim) anim = n.t < 1 ? 7 : 0; if (n.t > 4.5) { n.st = 'idle'; n.wait = 1; } }
     else if (n.st === 'sit') {
       if (!anim) anim = 3;
@@ -200,7 +202,7 @@ function updNPCs(dt) {
         if (!n.ordered) { n.ordered = 1; const items = g.shop.def.menu.filter(m => m.dish); n.food = g.shop.def.id + ':' + items[Math.floor(Math.random() * items.length)].id; if (k) k.cookT = 3; }
         if (n.t > 3 && n.ordered === 1) { n.ordered = 2; npcSetFood(n, n.food); }
         if (n.t > 5 && n.ordered === 2) { n.ordered = 3; n.eatT = 4; }
-      } else if (n.t > 4 && !n.saidView && Math.random() < .002) { n.saidView = 1; n.ch.say(['風景真好～', 'いい眺めだ', '好想睡午覺…'][Math.floor(Math.random() * 3)], 4); }
+      } else if (n.t > 4 && !n.saidView && Math.random() < .002) { n.saidView = 1; n.ch.say(['風景真好～', '景色真美', '好想睡午覺…'][Math.floor(Math.random() * 3)], 4); }
       if (n.t > n.sitFor && !(n.eatT > 0)) { const s = n.seat; n.seat = null; n.goal = null; n.ordered = 0; n.saidView = 0; n.st = 'idle'; n.wait = .5; p.x -= Math.sin(s.r) * .9; p.z -= Math.cos(s.r) * .9; if (n.ch.look.f) npcSetFood(n, ''); }
     }
     else if (n.st === 'chatwait') {
@@ -354,7 +356,7 @@ function cancelOrder(msg) {
 function grade(q) { return q >= 85 ? ['極上', '#c8322a'] : q >= 60 ? ['上', '#b07a1a'] : ['並', '#5a5a5a']; }
 function served(s, item, q, from) {
   G.order = null; const [gname] = grade(q);
-  const lines = ['うまい！', '好吃！', '真是極品～', '這味道太棒了', 'ごちそうさま！'];
+  const lines = ['好好吃！', '好吃！', '真是極品～', '這味道太棒了', '吃飽了，謝謝招待！'];
   if (item.dish) {
     setHeld(s.def.id + ':' + item.id);
     toast(`拿到「${item.n}」！品質：${gname}　按 🍡 吃掉，或帶著走、送給別人`, 3500);
@@ -369,7 +371,7 @@ function served(s, item, q, from) {
   } else if (item.art) { show('#panel', false); setTimeout(() => ukiyoe(item.art, s), 300); }
   else if (item.bath) {
     const seat = W.bath.find(b => seatFree(b)) || W.bath[0]; closePanels();
-    toast('前往對岸的露天風呂～'); sitAt(seat, 'bath'); setTimeout(() => G.me.say('ふぅ～極樂極樂～'), 1200);
+    toast('前往對岸的露天風呂～'); sitAt(seat, 'bath'); setTimeout(() => G.me.say('呼～好舒服～'), 1200);
   }
 }
 
@@ -462,7 +464,7 @@ function finishMG() {
   if (o.npc) {
     const c = o.npc; if (o.item.dish) placeDish(o.item, c.seat.dish, c.seat.r, 6); c.ch.play(o.item.dish ? 5 : 3);
     if (o.item.look) { c.ch.setLook({ ...c.ch.look, ...o.item.look }); }
-    setTimeout(() => c.ch.say(['うまい！', '好吃！', '好手藝！', '下次再來！'][Math.floor(Math.random() * 4)], 3), 2500);
+    setTimeout(() => c.ch.say(['好好吃！', '好吃！', '好手藝！', '下次再來！'][Math.floor(Math.random() * 4)], 3), 2500);
     setTimeout(() => { scene.remove(c.ch.root); G.npcCust = G.npcCust.filter(x => x !== c); }, 7000);
   } else {
     net.send({ t: 'serve', to: o.from, oid: o.oid, item: o.item.id, q: Math.round(q), s: G.shop.def.id });
@@ -497,7 +499,7 @@ function eatHeld() {
   G.eatT = 4; G.eatItem = it; $('#held').classList.add('hide');
 }
 function finishEat() {
-  const it = G.eatItem; setHeld(''); const lines = ['うまい！', '好吃！', '真是極品～', '這味道太棒了', 'ごちそうさま！'];
+  const it = G.eatItem; setHeld(''); const lines = ['好好吃！', '好吃！', '真是極品～', '這味道太棒了', '吃飽了，謝謝招待！'];
   G.me.say(lines[Math.floor(Math.random() * lines.length)]); G.me.emoji('😋'); net.send({ t: 'emote', e: '😋' });
   if (G.shop && G.mode === 'seat') openMenu(G.shop);
 }
@@ -531,8 +533,8 @@ function openCard(c) {
     const k = b.dataset.k, p = tp(), dist = Math.hypot(p.x - G.pos.x, p.z - G.pos.z); el.classList.add('hide');
     if ((k === 'five' || k === 'food') && dist > 3.5) return toast('靠近一點才能' + (k === 'five' ? '擊掌' : '遞食物'));
     if (G.mode === 'walk') faceTo(p);
-    if (k === 'hi') { emote(7, 2); if (isN) { npcTalk(c.npc, ['こんにちは！', '你好呀～', 'いい天気だね！'][Math.floor(Math.random() * 3)]); c.npc.ch.emoji('👋'); } else net.send({ t: 'act', to: c.id, k: 'hi' }); }
-    if (k === 'five') { emote(16, 1.6); if (isN) { npcTalk(c.npc, 'イェーイ！'); c.npc.ch.play(16); c.npc.five = 1.6; } else net.send({ t: 'act', to: c.id, k: 'five' }); sfx(1200, .08, 'square', .05); }
+    if (k === 'hi') { emote(7, 2); if (isN) { npcTalk(c.npc, ['你好！', '你好呀～', '今天天氣真好！'][Math.floor(Math.random() * 3)]); c.npc.ch.emoji('👋'); } else net.send({ t: 'act', to: c.id, k: 'hi' }); }
+    if (k === 'five') { emote(16, 1.6); if (isN) { npcTalk(c.npc, '耶～！'); c.npc.ch.play(16); c.npc.five = 1.6; } else net.send({ t: 'act', to: c.id, k: 'five' }); sfx(1200, .08, 'square', .05); }
     if (k === 'talk') npcTalk(c.npc);
     if (k === 'g10' || k === 'g50') { const v = k === 'g10' ? 10 : 50; if (!afford(v)) return toast('錢不夠'); addMoney(-v, '送給 ' + name); net.send({ t: 'act', to: c.id, k: 'gift', v }); }
     if (k === 'food') { const it = itemById(G.look.f); const f = G.look.f; setHeld(''); if (isN) { npcTalk(c.npc, `謝謝你的${it.n}！`); npcEat(c.npc, f); } else { net.send({ t: 'act', to: c.id, k: 'food', v: f }); toast(`把「${it.n}」送給 ${name}`); } }
@@ -560,6 +562,29 @@ function openGM() {
   $('#gmAnnB').onclick = () => { const v = $('#gmAnn').value.trim(); if (v) net.send({ t: 'chat', s: '/公告 ' + v }); $('#gmAnn').value = ''; };
   el.querySelectorAll('[data-t]').forEach(b => b.onclick = () => net.send({ t: 'chat', s: '/時間 ' + b.dataset.t }));
   el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => net.send({ t: 'chat', s: `/${b.dataset.c} ${b.dataset.n}` }));
+}
+
+// ---------- 掌櫃叫賣 ----------
+const CALLS = {
+  soba: ['そば〜、あったかいそばはいかが〜', '熱騰騰的蕎麥麵喔～'], chaya: ['いらっしゃい、お茶でも一服どうぞ〜', '進來喝杯茶歇歇腳吧～'],
+  sushi: ['へい、らっしゃい！握りたてだよ！', '現捏的壽司喔！'], tempura: ['揚げたての天ぷら、いかがっすか〜', '剛炸好的天婦羅～'],
+  unagi: ['うなぎの蒲焼、いい匂いだよ〜', '烤鰻魚，香噴噴喔～'], izakaya: ['熱燗あるよ〜、寄ってきな', '有熱清酒，進來坐坐～'],
+  dango: ['だんご〜、おいしいだんご〜', '好吃的糰子喔～'], wagashi: ['甘いお菓子はいかがですか〜', '甜甜的和菓子～'],
+  gofuku: ['新しい反物、入りましたよ〜', '新布料到貨囉～'], kamiyui: ['髪結い、いかがですか〜', '要不要整理一下頭髮～'],
+  komamono: ['かんざし、扇子、なんでもあるよ〜', '髮簪扇子應有盡有～'], ukiyoe: ['錦絵、新作入りました〜', '新出的浮世繪喔～'],
+  ekisha: ['当たるも八卦、当たらぬも八卦〜', '來算個命吧～'], yuya: ['いい湯だよ〜、寄ってらっしゃい', '熱呼呼的好湯喔～'],
+};
+const callCD = {}; let callT = 3, callGlobal = 0;
+function callTick(dt) {
+  callT -= dt; callGlobal -= dt; if (callT > 0) return; callT = 1;
+  if (callGlobal > 0) return;
+  const cands = W.shops.filter(s => !G.owners[s.def.id] && CALLS[s.def.id] && (callCD[s.def.id] || 0) < performance.now() / 1000)
+    .map(s => [s, Math.hypot(s.front.x - G.pos.x, s.front.z - G.pos.z)]).filter(([, d]) => d < 18).sort((a, b) => a[1] - b[1]);
+  if (!cands.length || Math.random() < .35) return;
+  const [s, d] = cands[Math.floor(Math.random() * Math.min(2, cands.length))]; const [ja, zh] = CALLS[s.def.id];
+  callCD[s.def.id] = performance.now() / 1000 + 25 + Math.random() * 25; callGlobal = 7 + Math.random() * 6;
+  const k = keepers[s.def.id]; if (k) { k.say(zh, 3.5); k.play(7); setTimeout(() => k.play(0), 1200); }
+  SND.call(ja, zh, 1 - d / 20, .9 + (s.def.x % 7) / 30);
 }
 
 // ---------- 浮世繪 ----------
@@ -605,9 +630,10 @@ function ukiyoe(kind, s) {
 }
 
 // ---------- 聊天、表情、看風景 ----------
-function openChat() { show('#chatBox'); $('#chatIn').focus(); }
+function openChat() { show('#chatBox'); document.body.classList.add('chatting'); $('#chatIn').focus(); }
+function closeChat() { document.body.classList.remove('chatting'); show('#chatBox', false); }
 function sendChat() {
-  const v = $('#chatIn').value.trim(); $('#chatIn').value = ''; $('#chatIn').blur(); if (!isTouch) show('#chatBox', false);
+  const v = $('#chatIn').value.trim(); $('#chatIn').value = ''; $('#chatIn').blur(); closeChat();
   $('#chatIn').placeholder = '說點什麼…（Enter 送出）';
   const w = G.whisper; G.whisper = null;
   if (!v) return;
@@ -621,19 +647,19 @@ function onChat(id, s) {
   r.ch.say(s);
   const log = $('#log'); const li = document.createElement('div'); li.innerHTML = `<b>${esc(r.n)}</b>：${esc(s)}`; log.appendChild(li); while (log.children.length > 8) log.firstChild.remove();
   setTimeout(() => li.classList.add('old'), 15000);
-  if (id === G.myId) { const p = G.pos; const cand = NPCS.filter(n => Math.hypot(n.ch.root.position.x - p.x, n.ch.root.position.z - p.z) < 7); if (cand.length && Math.random() < .55) { const n = cand[Math.floor(Math.random() * cand.length)]; setTimeout(() => npcTalk(n, /[?？嗎]/.test(s) ? ['嗯…我也不太清楚呢。', 'ほう、いい質問だ。', '去問問掌櫃吧！'][Math.floor(Math.random() * 3)] : /好吃|うま|美味/.test(s) ? '對吧！這家店是老字號了。' : /こんにち|你好|哈囉|嗨/.test(s) ? 'こんにちは！旅人さん。' : npcLine('reply')), 900); } }
+  if (id === G.myId) { const p = G.pos; const cand = NPCS.filter(n => Math.hypot(n.ch.root.position.x - p.x, n.ch.root.position.z - p.z) < 7); if (cand.length && Math.random() < .55) { const n = cand[Math.floor(Math.random() * cand.length)]; setTimeout(() => npcTalk(n, /[?？嗎]/.test(s) ? ['嗯…我也不太清楚呢。', '嗯，好問題。', '去問問掌櫃吧！'][Math.floor(Math.random() * 3)] : /好吃|うま|美味/.test(s) ? '對吧！這家店是老字號了。' : /こんにち|你好|哈囉|嗨/.test(s) ? '你好啊，旅人！' : npcLine('reply')), 900); } }
 }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ACTIONS = [[7, '👋', '揮手', 2.2], [6, '🙇', '鞠躬', 2], [9, '👏', '拍手', 2.4], [14, '😆', '大笑', 2.4], [11, '🙌', '萬歲', 2.6], [13, '👉', '指路', 2.5], [10, '💃', '跳舞', 1e9], [12, '🧘', '坐在地上', 1e9]];
 const EMOJIS = ['😊', '😂', '😍', '😮', '😢', '😡', '😴', '🤔', '👍', '❤️', '🎉', '🍵', '🍜', '🌸', '🏮', '💰'];
-const PHRASES = ['こんにちは！', 'いらっしゃい！', 'ありがとう！', '好吃嗎？', '一起逛街吧', '要不要來我店裡？', '你的和服好漂亮', '去看富士山吧', 'またね～'];
+const PHRASES = ['你好！', '歡迎光臨！', '謝謝！', '好吃嗎？', '一起逛街吧', '要不要來我店裡？', '你的和服好漂亮', '去看富士山吧', '下次見～'];
 function emote(a, dur = 2.2) { if (G.mode !== 'walk') { if (a !== 6) toast('站著的時候才能做動作喔'); return; } G.emote = a; G.emoteT = dur; G.me.play(a); }
 function sendEmoji(e) { G.me.emoji(e); net.send({ t: 'emote', e }); }
 const NPC_LINES = {
   day: ['今天天氣真好啊。', '聽說信濃屋的蕎麥麵很好吃。', '過了日本橋有露天風呂喔。', '神社的櫻花開得正美。', '我正要去買糰子。', '吳服屋進了新的布料呢。', '最近浮世繪很流行。'],
-  dusk: ['夕陽下的富士山真美…', '該回家吃晚飯了。', '燈籠要點起來囉。', '暮れ六つの鐘が鳴るぞ。'],
+  dusk: ['夕陽下的富士山真美…', '該回家吃晚飯了。', '燈籠要點起來囉。', '黃昏的鐘聲要響囉。'],
   night: ['晚上河邊有螢火蟲。', '居酒屋千鳥的熱燗最暖了。', '夜路要小心喔。', '泡個湯再睡吧～'],
-  reply: ['へぇ～', 'そうだねぇ', '哈哈，說得好！', '原來如此。', 'ほう？', '真的嗎？', '江戶人最愛熱鬧了！'],
+  reply: ['喔～', '說得也是', '哈哈，說得好！', '原來如此。', '是喔？', '真的嗎？', '江戶人最愛熱鬧了！'],
 };
 function npcLine(kind) { const t = tday(); const k = kind || (t > .3 && t < .72 ? 'day' : t < .8 && t >= .72 ? 'dusk' : 'night'); const a = NPC_LINES[k]; return a[Math.floor(Math.random() * a.length)]; }
 function npcTalk(n, line) { const p = n.ch.root.position; if (n.st !== 'sit') { n.ch.root.rotation.y = Math.atan2(G.pos.x - p.x, G.pos.z - p.z); if (n.st !== 'chatwait') { n.st = 'talk'; n.t = 0; n.goal = null; } } n.ch.say(line || npcLine(), 4.5); if (Math.random() < .4) n.ch.emoji(['😊', '🌸', '🍵', '😄'][Math.floor(Math.random() * 4)]); }
@@ -667,10 +693,11 @@ async function start() {
   if (SERVER) for (let i = 1; i <= 5; i++) { r = await net.connect({ n, lk: G.look, x: G.pos.x, z: G.pos.z, k: store.get('gmk', '') }, 'edo' + i); if (r !== 'full') { G.room = i; break; } }
   G.online = r === 'ok';
   show('#title', false); show('#hud'); document.body.classList.add('playing');
+  SND.start();
   G.mode = 'walk'; cam.yaw = PI / 2 - .25; cam.pitch = .3; cam.dist = 6.5;
   updCount(); toast(G.online ? `歡迎來到江戶町${['一', '二', '三', '四', '五'][G.room - 1]}丁目！` : '目前為單人模式（伺服器未連線），NPC 會陪你玩', 3500);
   updHeld();
-  if (!store.get('helped', false) && !G.shot) { show('#help'); store.set('helped', true); }
+  if (!store.get('helped', false) && !G.shot && !QS.has('nohelp')) { show('#help'); store.set('helped', true); }
   sfx(660, .3); setTimeout(() => sfx(990, .4), 180);
 }
 
@@ -783,6 +810,11 @@ function update(dt) {
   }
   for (const c of G.npcCust) c.ch.update(dt, 0);
   updNPCs(dt);
+  if (G.mode !== 'title' && W) {
+    const near = [...G.remotes.values()].filter(r => r.ch.root.position.distanceTo(G.pos) < 15).length + NPCS.filter(n => n.ch.root.visible && n.ch.root.position.distanceTo(G.pos) < 15).length;
+    SND.update(dt, tday(), W.night || 0, Math.max(0, Math.abs(G.pos.x - 125) - 13), near, Math.abs(G.pos.z) < 12 && G.pos.x > -100 && G.pos.x < 104);
+    callTick(dt);
+  }
   W.update(dt, time, tday(), G.me ? G.me.root.position : new THREE.Vector3(), camera.position, quality);
   if (bloom) bloom.strength = .18 + W.night * .55;
 }
@@ -814,6 +846,7 @@ function drawMini() {
 mini.onclick = () => { const big = mini.classList.toggle('big'); mini.width = big ? 520 : 240; mini.height = big ? 260 : 120; drawMini(); };
 
 // ---------- UI 綁定 ----------
+addEventListener('pointerdown', () => { if (SND.ac && SND.ac.state !== 'running') SND.ac.resume(); });
 $('#act').onclick = act;
 $('#bChat').onclick = openChat;
 $('#chatSend').onclick = sendChat;
@@ -829,6 +862,9 @@ $('#bView').onclick = toggleView;
 $('#bGM').onclick = openGM;
 $('#bHelp').onclick = () => show('#help');
 $('#bSet').onclick = () => { show('#settings'); document.querySelectorAll('#settings [data-q]').forEach(b => b.classList.toggle('on', +b.dataset.q === quality)); };
+const sndBtns = () => document.querySelectorAll('#settings [data-snd]').forEach(b => b.classList.toggle('on', !!SND.on[b.dataset.snd]));
+document.querySelectorAll('#settings [data-snd]').forEach(b => b.onclick = () => { SND.start(); SND.setOn(b.dataset.snd, !SND.on[b.dataset.snd]); sndBtns(); });
+sndBtns();
 document.querySelectorAll('#settings [data-q]').forEach(b => b.onclick = () => { quality = +b.dataset.q; store.set('q', quality); applyQuality(); document.querySelectorAll('#settings [data-q]').forEach(x => x.classList.toggle('on', +x.dataset.q === quality)); });
 document.querySelectorAll('.modal').forEach(m => m.addEventListener('pointerdown', e => { if (e.target === m) m.classList.add('hide'); }));
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('.modal').classList.add('hide'));
@@ -837,6 +873,9 @@ if (isTouch) document.body.classList.add('touch');
 // ---------- 啟動 ----------
 (async () => {
   try { await Promise.race([document.fonts.load('700 64px "Yuji Syuku"'), new Promise(r => setTimeout(r, 3000))]); } catch (e) {}
+  const loadImg = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
+  const art = await Promise.all(['roof', 'plaster', 'wood', 'dirt'].map(k => loadImg('img/tex/' + k + '.jpg')).concat([...Array(11).keys()].map(i => loadImg('img/tex/kanban' + i + '.png'))));
+  ['roof', 'plaster', 'wood', 'dirt'].forEach((k, i) => TX.IMG[k] = art[i]); TX.IMG.kanban = art.slice(4);
   W = buildWorld(scene);
   W.sunLight = scene.children.find(o => o.isDirectionalLight);
   setupPost(); applyQuality();
@@ -844,6 +883,7 @@ if (isTouch) document.body.classList.add('touch');
   $('#loading').classList.add('hide');
   if (QS.has('cam')) { G.shot = QS.get('cam').split(',').map(Number); show('#title', false); }
   if (QS.has('auto')) { $('#nameIn').value = QS.get('auto') || '測試'; start(); }
+  if (QS.has('chat')) setTimeout(() => { openChat(); onChat(G.myId, '你好！一起去吃糰子吧'); }, 1500);
   loop();
 })();
 
@@ -897,4 +937,4 @@ async function runTest() {
   const d = document.createElement('pre'); d.style.cssText = 'position:fixed;left:8px;top:50px;z-index:99;background:rgba(255,255,255,.92);font-size:15px;padding:8px;margin:0'; d.textContent = (fail ? 'FAIL\n' : 'PASS\n') + log.join('\n'); document.body.appendChild(d);
 }
 if (QS.get('test') === 'flow') { store.set('helped', true); setTimeout(runTest, 1500); }
-window.EDO = { openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };
+window.EDO = { SND, openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };

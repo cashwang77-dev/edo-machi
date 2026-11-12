@@ -2,6 +2,8 @@
 import * as THREE from 'three';
 export const FONT = '"Yuji Syuku","Noto Serif JP","Yu Mincho","MS Mincho",serif';
 const cache = {};
+export const IMG = {};
+function fromImg(img, tint, alpha = 1, rep = [1, 1]) { const [c, g] = cv(512, 512); g.drawImage(img, 0, 0, 512, 512); if (tint) { g.globalCompositeOperation = 'multiply'; g.globalAlpha = alpha; g.fillStyle = tint; g.fillRect(0, 0, 512, 512); } return mk(c, rep); }
 function cv(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; }
 function mk(c, rep = [1, 1], srgb = true) {
   const t = new THREE.CanvasTexture(c);
@@ -15,6 +17,7 @@ function noise(g, w, h, amt, r, n = 4000, size = 2) {
 }
 export function roof(key = 'roof', base = '#525a66') {
   if (cache[key]) return cache[key];
+  if (IMG.roof) { const t = fromImg(IMG.roof, key === 'roof' ? null : '#7fb39a', .85); t.repeat.set(.4, .4); return cache[key] = t; }
   const [c, g] = cv(256, 256); const r = rnd(7);
   g.fillStyle = base; g.fillRect(0, 0, 256, 256);
   const cols = 8, rows = 8, cw = 256 / cols, rh = 256 / rows;
@@ -31,6 +34,7 @@ export function roof(key = 'roof', base = '#525a66') {
 }
 export function plaster(key = 'plaster', base = '#e9e2d0') {
   if (cache[key]) return cache[key];
+  if (IMG.plaster) return cache[key] = fromImg(IMG.plaster, base, 1);
   const [c, g] = cv(256, 256); const r = rnd(11);
   g.fillStyle = base; g.fillRect(0, 0, 256, 256);
   noise(g, 256, 256, .06, r, 6000, 3);
@@ -39,6 +43,7 @@ export function plaster(key = 'plaster', base = '#e9e2d0') {
 }
 export function wood(key = 'wood', base = '#5b3d27', rep = [1, 1]) {
   const k = key + rep; if (cache[k]) return cache[k];
+  if (IMG.wood && (key === 'wood' || key === 'woodD')) return cache[k] = fromImg(IMG.wood, key === 'woodD' ? '#7a7a7a' : '#d8c8b8', 1, rep);
   const [c, g] = cv(128, 256); const r = rnd(key.length * 13 + 5);
   g.fillStyle = base; g.fillRect(0, 0, 128, 256);
   for (let i = 0; i < 60; i++) { g.strokeStyle = `rgba(${r() > .5 ? '0,0,0' : '255,230,200'},${.04 + r() * .08})`; g.lineWidth = 1 + r() * 2; g.beginPath(); let x = r() * 128; g.moveTo(x, 0); for (let y = 0; y <= 256; y += 32) { x += (r() - .5) * 4; g.lineTo(x, y); } g.stroke(); }
@@ -66,6 +71,7 @@ export function shoji(key = 'shoji') {
 }
 export function ground(key = 'ground') {
   if (cache[key]) return cache[key];
+  if (IMG.dirt && key === 'dirt') return cache[key] = fromImg(IMG.dirt, '#d8cfc0', .5);
   const [c, g] = cv(512, 512); const r = rnd(21);
   g.fillStyle = '#9a8566'; g.fillRect(0, 0, 512, 512);
   for (let i = 0; i < 30; i++) { g.fillStyle = `rgba(${r() > .5 ? '80,60,40' : '190,170,140'},${.06 + r() * .06})`; g.beginPath(); g.ellipse(r() * 512, r() * 512, 30 + r() * 90, 20 + r() * 60, r() * 3, 0, 7); g.fill(); }
@@ -131,4 +137,20 @@ export function radial(key, inner, outer) {
   const [c, g] = cv(64, 64); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
   gr.addColorStop(0, inner); gr.addColorStop(1, outer); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return cache[key] = t;
+}
+
+// Gemini 畫的木招牌＋書法店名
+export function kanban(name, idx) {
+  const k = 'K' + name + idx; if (cache[k]) return cache[k];
+  const img = IMG.kanban && IMG.kanban[idx]; if (!img) return null;
+  const W = 600, H = Math.round(600 * img.height / img.width); const [c, g] = cv(W, H);
+  g.drawImage(img, 0, 0, W, H);
+  const light = [1, 4, 8].includes(idx);
+  g.fillStyle = light ? '#1e140c' : idx === 2 ? '#f6e3a8' : idx === 5 || idx === 9 ? '#f4efe4' : '#e8c56a';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const ch = [...name]; const fs = Math.min(H * .52, (W * .7) / ch.length);
+  g.font = `700 ${fs}px ${FONT}`; g.shadowColor = light ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.6)'; g.shadowBlur = 4; g.shadowOffsetY = 2;
+  const sp = Math.min(fs * .25, (W * .72 - fs * ch.length) / Math.max(1, ch.length - 1));
+  const tw = fs * ch.length + sp * (ch.length - 1); ch.forEach((x, i) => g.fillText(x, W / 2 - tw / 2 + fs / 2 + i * (fs + sp), H / 2 + fs * .04));
+  const t = mk(c); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; t.userData = { ratio: W / H }; return cache[k] = t;
 }

@@ -175,8 +175,11 @@ function shopHouse(def, rand) {
   if (def.rope) for (let x = -w / 2 + 1; x < w / 2 - 1; x += .12) g.add(M(new THREE.CylinderGeometry(.015, .015, .8, 4), std('rope', { color: '#7a6040' }), x, 2.45, -.05));
   else g.add(M(new THREE.PlaneGeometry(w - 1.2, .75), nm, 0, 2.47, .03));
   // 招牌
-  const kan = std('kan' + def.id, { map: TX.text(def.name, { w: 512, h: 160, bg: '#2a1d14', fg: '#e8c56a', vertical: false, grain: true, border: '#7a5a3a' }) });
-  if (info.signY) g.add(M(new THREE.BoxGeometry(Math.min(w * .5, 5), .9, .08), [wd, wd, wd, wd, kan, wd], 0, info.signY, info.signZ));
+  const KB = { soba: 0, chaya: 4, gofuku: 6, sushi: 1, ukiyoe: 10, unagi: 3, izakaya: 1, dango: 5, tempura: 8, kamiyui: 9, wagashi: 2, komamono: 0, ekisha: 6, yuya: 5 };
+  const kt = TX.kanban(def.name, KB[def.id] ?? 0);
+  const kan = std('kan' + def.id, kt ? { map: kt, transparent: true, alphaTest: .4 } : { map: TX.text(def.name, { w: 512, h: 160, bg: '#2a1d14', fg: '#e8c56a', vertical: false, grain: true, border: '#7a5a3a' }) });
+  if (info.signY) { const sh = 1.05, sw = kt ? sh * kt.userData.ratio : Math.min(w * .5, 5); g.add(M(new THREE.PlaneGeometry(sw, sh), kan, 0, info.signY, info.signZ + .03)); }
+  else if (kt) { const sh = .56, sw = sh * kt.userData.ratio; g.add(M(new THREE.PlaneGeometry(sw, sh), kan, 0, 3.3, .12)); }
   const tate = std('tate' + def.id, { map: TX.text(def.sign, { w: 128, h: 384, bg: '#efe6d0', fg: '#1a1410', grain: true }) });
   g.add(M(new THREE.BoxGeometry(.55, 1.8, .1), [wd, wd, wd, wd, tate, tate], w / 2 - .45, 1.0, 1.15));
   g.add(M(boxG(.75, .1, .4), wd, w / 2 - .45, .05, 1.15));
@@ -369,7 +372,7 @@ export function buildWorld(scene) {
   const gmat = std('grass', { map: TX.ground('g2'), color: '#a8a383' }); gmat.map = TX.ground('g2').clone(); gmat.map.repeat.set(160, 300); gmat.map.needsUpdate = true;
   const gW = new THREE.Mesh(new THREE.PlaneGeometry(912, 1600), gmat); gW.rotation.x = -PI / 2; gW.position.set(-344, 0, 0); gW.receiveShadow = true; scene.add(gW);
   const gE = new THREE.Mesh(new THREE.PlaneGeometry(662, 1600), gmat); gE.rotation.x = -PI / 2; gE.position.set(469, 0, 0); gE.receiveShadow = true; scene.add(gE);
-  const dmat = std('dirt', { map: TX.ground('dirt').clone() }); dmat.map.repeat.set(26, 3); dmat.map.needsUpdate = true;
+  const dmat = std('dirt', { map: TX.ground('dirt').clone() }); dmat.map.repeat.set(TX.IMG.dirt ? 60 : 26, TX.IMG.dirt ? 5 : 3); dmat.map.needsUpdate = true;
   const street = new THREE.Mesh(new THREE.PlaneGeometry(212, 18), dmat); street.rotation.x = -PI / 2; street.position.set(3, .015, 0); street.receiveShadow = true; scene.add(street);
   for (const [x, w] of [[106, 12], [160, 44]]) { const emat = new THREE.MeshStandardMaterial({ roughness: .88, map: TX.ground('dirt').clone() }); emat.map.repeat.set(w / 8, 10); emat.map.needsUpdate = true; const p = new THREE.Mesh(new THREE.PlaneGeometry(w, 80), emat); p.rotation.x = -PI / 2; p.position.set(x, .012, 0); p.receiveShadow = true; scene.add(p); }
   const gv = std('gravel', { map: TX.gravel().clone() }); gv.map.repeat.set(14, 14); gv.map.needsUpdate = true;
