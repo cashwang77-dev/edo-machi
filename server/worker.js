@@ -66,6 +66,13 @@ export class Town {
     }
     return '未知指令';
   }
+  async whoList(p) { // 人力車用：五條街玩家的名字與位置
+    const rooms = {}; const me = this.room || 'edo1'; rooms[me] = this.roster().map(q => ({ id: q.id, n: q.n, x: q.x, z: q.z, gm: q.gm }));
+    await Promise.all([1, 2, 3, 4, 5].map(i => 'edo' + i).filter(r => r !== me).map(async r => {
+      try { const res = await this.env.TOWN.get(this.env.TOWN.idFromName(r)).fetch(new Request('https://x/roster')); rooms[r] = (await res.json()).map(q => ({ id: q.id, n: q.n, x: q.x, z: q.z, gm: q.gm })); } catch (e) { rooms[r] = []; }
+    }));
+    this.send(p.ws, { t: 'who', room: me, rooms });
+  }
   async gmList(p) {
     const rooms = {}; rooms[this.room || 'edo1'] = this.roster();
     await Promise.all([1, 2, 3, 4, 5].map(i => 'edo' + i).filter(r => r !== (this.room || 'edo1')).map(async r => {
@@ -176,6 +183,8 @@ export class Town {
         this.send(q.ws, { t: 'w', from: id, n: p.n, s }); this.send(p.ws, { t: 'w', from: id, to: m.to, n: p.n, s, self: 1 }); break;
       }
       case 'gml': if (p.gm) this.gmList(p); break;
+      case 'who': { const now = Date.now(); if (now - (p.whoT || 0) < 1500) break; p.whoT = now; this.whoList(p); break; }
+      case 'ride': this.bcast({ t: 'ride', id, on: m.on ? 1 : 0 }, id); break;
       case 'gma': if (p.gm) this.gmAct(p, m); break;
       case 'emote': this.bcast({ t: 'emote', id, e: String(m.e || '').slice(0, 10) }, id); break;
       case 'look': p.lk = m.lk || {}; this.bcast({ t: 'look', id, lk: p.lk }, id); break;

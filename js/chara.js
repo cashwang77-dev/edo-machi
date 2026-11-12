@@ -28,6 +28,7 @@ function exTex(n, ex) { const k = n + '_' + ex; if (!H3T[k]) { const t = H3T[k] 
 const H3 = {}; const gltf = new GLTFLoader();
 function loadHead(n) { return H3[n] || (H3[n] = gltf.loadAsync(`img/${n}.glb?v=2`).then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material.roughness = .6; o.material.metalness = 0; } }); return g.scene; }).catch(() => null)); }
 const PI = Math.PI;
+export const RIDE_Y = .7; // 坐在人力車上時角色根部的高度
 
 export function randomLook(r = Math.random) {
   const pick = n => Math.floor(r() * n);
@@ -457,6 +458,40 @@ export class Chara {
     this.emo.renderOrder = 12; this.emo.position.set(.6, 1.9, 0); this.root.add(this.emo); this.emoT = 0;
   }
   play(a) { if (this.anim !== a) { this.anim = a; this.t = 0; } }
+  // ---- 人力車：黑漆車身、朱紅坐墊、大木輪、折起的車篷，前方車夫拉車 ----
+  setRide(on, Puller) {
+    if (this.kuruma) { this.root.remove(this.kuruma); this.kuruma = null; this.puller = null; }
+    if (!on) return;
+    const K = this.kuruma = new THREE.Group(); K.position.y = -RIDE_Y; this.root.add(K);
+    const lac = mat('#16100e', { roughness: .25, metalness: .1 }), red = mat('#a8232e', { roughness: .6 }), wood = mat('#6a4a2e', { roughness: .7 }), brass = mat('#c9a24a', { metalness: .7, roughness: .3 }), hood = mat('#1e1a24', { roughness: .8, side: THREE.DoubleSide });
+    const box = (w, h, d, m, x, y, z, rx = 0) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.rotation.x = rx; o.castShadow = true; K.add(o); return o; };
+    box(.66, .08, .62, lac, 0, .66, -.02); box(.6, .1, .5, red, 0, .73, -.02); box(.66, .46, .07, lac, 0, .94, -.33, -.18); box(.6, .38, .03, red, 0, .95, -.29, -.18);
+    for (const s of [-1, 1]) { box(.05, .26, .58, lac, s * .33, .8, -.02); box(.05, .05, .5, brass, s * .33, .94, -.02); }
+    box(.5, .05, .3, lac, 0, .36, .34, -.5); box(.46, .03, .22, red, 0, .4, .36, -.5); // 踏板
+    // 車篷（折起在椅背後）
+    const hd = new THREE.Mesh(new THREE.CylinderGeometry(.42, .42, .64, 16, 1, true, -PI / 2, PI), hood); hd.rotation.z = PI / 2; hd.rotation.y = PI / 2; hd.scale.set(1, 1, .55); hd.position.set(0, 1.08, -.42); K.add(hd);
+    // 大木輪
+    this.wheels = [];
+    for (const s of [-1, 1]) {
+      const w = new THREE.Group(); w.position.set(s * .42, .5, -.05); K.add(w); this.wheels.push(w);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(.48, .025, 6, 32), lac); rim.rotation.y = PI / 2; w.add(rim);
+      const tire = new THREE.Mesh(new THREE.TorusGeometry(.5, .018, 6, 32), mat('#2a2a2a', { roughness: .9 })); tire.rotation.y = PI / 2; w.add(tire);
+      for (let i = 0; i < 12; i++) { const sp = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .94, 4), wood); sp.rotation.x = i / 12 * PI; w.add(sp); }
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .1, 10), brass); hub.rotation.z = PI / 2; w.add(hub);
+    }
+    box(.86, .03, .03, lac, 0, .5, -.05);
+    // 拉桿與橫木
+    for (const s of [-1, 1]) { const sh = new THREE.Mesh(new THREE.CylinderGeometry(.018, .015, 1.7, 6), lac); sh.rotation.x = PI / 2 - .14; sh.position.set(s * .3, .78, .95); K.add(sh); }
+    box(.66, .03, .03, wood, 0, .9, 1.8);
+    // 提燈（車側）
+    const lan = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .12, 10), mat('#f4ead0', { emissive: '#ffb050', emissiveIntensity: .8 })); lan.position.set(.38, .98, .2); K.add(lan);
+    if (Puller) { const p = this.puller = new Puller({ k: 0, p: 1, o: 3, h: 0, s: 1, hat: 3, ey: 3, br: 1, mo: 0, ck: 0, fc: 1 }, ''); p.root.position.set(0, 0, 2.0); K.add(p.root); }
+  }
+  updRide(dt, speed) {
+    if (!this.kuruma) return;
+    for (const w of this.wheels) w.rotation.x += speed * dt / .5;
+    if (this.puller) { this.puller.play(speed > .3 ? 2 : 0); this.puller.update(dt, speed); const A = this.puller.arms; if (A) for (const a of A) a.rotation.x = -.35; }
+  }
   // ---- 表情：表情符號、動作、說話、吃東西、眨眼都會讓臉變化 ----
   expr(k, dur = 2.6) { this.exK = k; this.exT = dur; }
   updFace3d(dt) {

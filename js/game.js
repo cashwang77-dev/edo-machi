@@ -5,6 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { buildWorld, walkable, heightAt } from './world.js';
+import { RIDE_Y } from './chara.js';
 import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES } from './chara.js';
 import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js';
 import { Net } from './net.js';
@@ -710,6 +711,62 @@ async function switchRoom(i, x, z) {
   G.online = true; G.room = i; if (x != null) { G.pos.set(x, heightAt(x, z), z); } updCount(); toast(`已到江戶町${ROOM_ZH['edo' + i]}`);
 }
 
+// ---------- 人力車：選一位真人玩家，車夫拉你過去（別條街也行）----------
+const RIDE = { fare: 20, fare2: 40 };
+function openRide() {
+  if (!G.online) return toast('人力車要連上伺服器才能找其他玩家喔');
+  if (G.mode !== 'walk') return toast('先起身再叫人力車吧');
+  RIDE.rooms = null; drawRide(); net.send({ t: 'who' });
+}
+function drawRide() {
+  const p = $('#panel'); const myRoom = 'edo' + G.room;
+  const all = RIDE.rooms ? Object.entries(RIDE.rooms).sort().flatMap(([r, l]) => l.filter(q => !(q.id === G.myId && r === myRoom)).map(q => ({ ...q, room: r }))) : null;
+  p.innerHTML = `<h2>🛺 人力車<small>車夫拉你到玩家身邊</small></h2>
+  <p class="sub">同一條街 ${G.gm ? '免費' : RIDE.fare + ' 文'}・到別條街 ${G.gm ? '免費' : RIDE.fare2 + ' 文'}　身上：<b>${G.gm ? '∞' : G.money}</b> 文</p>
+  <div class="rlist">${!all ? '<p class="sub">車夫正在打聽大家在哪裡…</p>' : all.length ? all.map(q => { const same = q.room === myRoom, fee = same ? RIDE.fare : RIDE.fare2;
+    return `<button class="rp" data-id="${q.id}" data-room="${q.room}" ${afford(fee) ? '' : 'disabled'}><b>${q.gm ? '👑 ' : ''}${esc(q.n)}</b><small>${ROOM_ZH[q.room] || q.room}・${placeName(q.x, q.z)}</small><span>${G.gm ? '乘車' : fee + ' 文'}</span></button>`; }).join('') : '<p class="sub">現在沒有其他真人玩家在線，晚點再來吧！</p>'}</div>
+  <div class="btns"><button id="rX">算了</button></div>`;
+  show('#panel'); $('#rX').onclick = closePanels;
+  p.querySelectorAll('.rp').forEach(b => b.onclick = () => { const q = all.find(x => x.id === b.dataset.id && x.room === b.dataset.room); startRide(q); });
+}
+net.on('who', m => { RIDE.rooms = m.rooms; if (!$('#panel').classList.contains('hide') && $('#panel .rlist')) drawRide(); });
+function startRide(q) {
+  const same = q.room === 'edo' + G.room, fee = same ? RIDE.fare : RIDE.fare2;
+  if (!afford(fee)) return toast('錢不夠喔');
+  addMoney(-fee, '人力車'); closePanels(); G.follow = null;
+  G.mode = 'ride'; G.me.setRide(true, Chara); net.send({ t: 'ride', on: 1 });
+  G.pos.y = RIDE_Y; const from = { x: G.pos.x, z: G.pos.z };
+  // 路線：先拉到大街中央，沿著大街跑，再轉進目的地
+  const tgt = () => { const R = same && G.remotes.get(q.id); return R ? { x: R.ch.root.position.x, z: R.ch.root.position.z } : { x: q.x, z: q.z }; };
+  const onStreet = (x, z) => x > -100 && x < 106 && Math.abs(z) < 30;
+  const t0 = tgt(); const pts = [from];
+  if (same && onStreet(from.x, from.z) && onStreet(t0.x, t0.z)) { pts.push({ x: from.x, z: 0 }, { x: t0.x, z: 0 }); }
+  RIDE.cur = { pts, i: 1, q, same, tgt, sp: 0, end: !same ? 2.6 : 0, t: 0 };
+  G.me.say(same ? `麻煩載我去找「${q.n}」！` : `麻煩載我去${ROOM_ZH[q.room]}找「${q.n}」！`); sfx(520, .15);
+  closeup(2.2, { dist: 4.2, h: 1.6, ang: .9, look: .9, spin: .25 });
+}
+async function arriveOther(q) {
+  const x = q.x + 1.6, z = q.z; G.me.setRide(false); G.mode = 'walk'; G.pos.y = 0; net.send({ t: 'ride', on: 0 });
+  await switchRoom(+q.room.replace('edo', ''), x, z);
+}
+function updRide(dt) {
+  const C = RIDE.cur; if (G.mode !== 'ride' || !C) return 0;
+  C.t += dt;
+  if (!C.same && C.t > C.end) { RIDE.cur = null; arriveOther(C.q); return 0; }
+  const T = C.tgt(); const stop = { x: T.x + 1.4 * Math.sign(G.pos.x - T.x || 1), z: T.z + .6 };
+  const goal = C.same ? (C.i < C.pts.length ? C.pts[C.i] : stop) : { x: G.pos.x + Math.sin(G.ry) * 10, z: G.pos.z + Math.cos(G.ry) * 10 };
+  const dx = goal.x - G.pos.x, dz = goal.z - G.pos.z, d = Math.hypot(dx, dz);
+  const last = C.same && C.i >= C.pts.length;
+  C.sp = Math.min(13, C.sp + dt * 9); if (last) C.sp = Math.min(C.sp, Math.max(1.5, d * 2.2));
+  const step = Math.min(d, C.sp * dt);
+  if (d > .05) { G.pos.x += dx / d * step; G.pos.z += dz / d * step; G.ry = angLerp(G.ry, Math.atan2(dx, dz), Math.min(1, dt * 6)); }
+  if (d < .35) { if (!last) C.i++; else { // 到了
+    RIDE.cur = null; G.me.setRide(false); G.mode = 'walk'; G.pos.y = heightAt(G.pos.x, G.pos.z); net.send({ t: 'ride', on: 0 });
+    const R = G.remotes.get(C.q.id); if (R) faceTo(R.ch.root.position); toast(`🛺 到了！「${C.q.n}」就在旁邊`); G.me.say('謝謝車夫！'); sfx(660, .2); return 0; } }
+  G.pos.y = RIDE_Y; return C.sp;
+}
+net.on('ride', m => { const R = G.remotes.get(m.id); if (R) { R.ch.setRide(!!m.on, Chara); R.riding = !!m.on; } });
+
 // ---------- 東光寺：參拜・投幣・搖鈴・撞鐘 ----------
 const TEMPLE_WISH = ['心願成就', '身體健康', '開運招福', '學業進步', '生意興隆', '闔家平安', '良緣到來', '旅途平安'];
 function openTemple() {
@@ -1173,13 +1230,14 @@ function update(dt) {
       G.ry = angLerp(G.ry, Math.atan2(dx, dz), Math.min(1, dt * 10)); anim = run ? 2 : 1; G.emoteT = 0;
     }
     if (G.mode === 'walk') G.pos.y = heightAt(G.pos.x, G.pos.z);
+    const rideSp = updRide(dt); if (G.mode === 'ride') anim = 3;
     if (G.emoteT > 0) { G.emoteT -= dt; anim = G.emote; }
     if (G.mode === 'seat') anim = 3;
     if (G.eatT > 0) { const fd = G.me.foodG.children[0]; if (fd && fd.userData.bites) { const b = fd.userData.bites, k = Math.floor((1 - G.eatT / 4) * (b.length + .5)); b.forEach((m, i) => m.visible = i >= k); }
       G.eatT -= dt; anim = G.mode === 'walk' ? (speed > 0 ? anim : 15) : 5; if (G.eatT <= 0) finishEat(); }
     if (G.mode === 'bath') anim = 8;
     if (G.mode === 'owner') anim = MG.on ? 4 : 0;
-    G.me.play(anim); G.me.root.position.copy(G.pos); G.me.root.rotation.y = G.ry; G.me.update(dt, speed);
+    G.me.play(anim); G.me.root.position.copy(G.pos); G.me.root.rotation.y = G.ry; G.me.update(dt, speed); G.me.updRide(dt, rideSp);
     // 鏡頭
     const tgt = new THREE.Vector3(G.pos.x, G.pos.y + 1.45, G.pos.z);
     if (cam.auto) { cam.yaw += dt * .06; cam.pitch += (.18 - cam.pitch) * dt * .5; }
@@ -1206,7 +1264,7 @@ function update(dt) {
     const p = R.ch.root.position; const ox = p.x, oz = p.z;
     p.x += (R.tx - p.x) * k; p.z += (R.tz - p.z) * k; p.y += (R.ty - p.y) * k;
     R.ch.root.rotation.y = angLerp(R.ch.root.rotation.y, R.tr, k);
-    if (R.ovT > 0) { R.ovT -= dt; R.ch.play(R.ov); } else R.ch.play(R.a); R.ch.update(dt, Math.hypot(p.x - ox, p.z - oz) / Math.max(dt, .001));
+    if (R.ovT > 0) { R.ovT -= dt; R.ch.play(R.ov); } else R.ch.play(R.a); { const sp = Math.hypot(p.x - ox, p.z - oz) / Math.max(dt, .001); R.ch.update(dt, sp); R.ch.updRide(dt, sp); }
   }
   for (const c of G.npcCust) c.ch.update(dt, 0);
   updNPCs(dt); updDeer(dt); updRetinue(dt);
@@ -1272,6 +1330,7 @@ document.querySelectorAll('#phr button').forEach(b => b.onclick = () => { $('#ch
 $('#bAct').onclick = () => pop('#actMenu'); $('#bEmo').onclick = () => pop('#emoMenu');
 $('#bView').onclick = toggleView;
 $('#bInv').onclick = () => { pop(null); openInv(); };
+$('#bRide').onclick = () => { pop(null); openRide(); };
 $('#bGM').onclick = openGM;
 $('#bHelp').onclick = () => show('#help');
 $('#bFS').onclick = toggleFS;
@@ -1310,6 +1369,7 @@ if (isTouch) document.body.classList.add('touch');
     if (d === 'menu') { const sh = W.shops.find(x => x.def.id === 'soba'); G.pos.set(sh.front.x, 0, sh.front.z); openShop(sh); $('#bCust').click(); }
     if (d === 'sit') { const sh = W.shops.find(x => x.def.id === 'soba'); G.pos.set(sh.front.x, 0, sh.front.z); openShop(sh); $('#bCust').click(); closePanels(); cam.yaw = sh.rot + 2.1; cam.pitch = .12; cam.dist = 3.2; }
     if (d === 'bench') { const sh = W.shops.find(x => x.def.id === 'chaya'); const seat = sh.seats[0]; sitAt(seat); cam.yaw = seat.r + 1.6; cam.pitch = .1; cam.dist = 3; }
+    if (d === 'ride') { G.pos.set(20, RIDE_Y, 2); G.ry = PI / 2; G.mode = 'ride'; G.me.setRide(true, Chara); setTimeout(() => { const p = G.me.root.position; G.shot = [p.x + 2.2, 1.7, p.z + 4.2, p.x + .6, .8, p.z]; }, 1500); }
     if (d === 'face') { G.look = { ...G.look, h: +(QS.get('h') || 1), fc: +(QS.get('fc') || 0), k: +(QS.get('k') || 1), p: +(QS.get('p') || 5), hat: 0, m: 0, hs: 0, c: 0 }; G.me.setLook(G.look); G.pos.set(20, 0, 0); G.ry = 0;
       setTimeout(() => { G.me.expr(QS.get('ex') || '', 999); const p = G.me.root.position, y = G.me.headG.getWorldPosition(p.clone()).y, z = +(QS.get('z') || .65); G.shot = [p.x + z * .2, y + .05, p.z + z, p.x, y - (z > 1 ? .4 : 0), p.z]; }, 2500); }
     if (d === 'eat') { G.pos.set(-40, 0, 1); G.ry = -PI / 2; setHeld('dango:sanshoku'); setTimeout(eatHeld, 300); }
@@ -1379,4 +1439,4 @@ async function runTest() {
   const d = document.createElement('pre'); d.style.cssText = 'position:fixed;left:8px;top:50px;z-index:99;background:rgba(255,255,255,.92);font-size:15px;padding:8px;margin:0'; d.textContent = (fail ? 'FAIL\n' : 'PASS\n') + log.join('\n'); document.body.appendChild(d);
 }
 if (QS.get('test') === 'flow') { store.set('helped', true); setTimeout(runTest, 1500); }
-window.EDO = { step: n => { for (let i = 0; i < n; i++) update(1 / 30); render(); }, SND, openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };
+window.EDO = { RIDE, switchRoom, startRide, step: n => { for (let i = 0; i < n; i++) update(1 / 30); render(); }, SND, openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };
