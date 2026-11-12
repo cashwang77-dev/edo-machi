@@ -22,10 +22,11 @@ export function randomLook(r = Math.random) {
 const V2 = a => a.map(p => new THREE.Vector2(p[0], p[1]));
 // ---------- 共用幾何 ----------
 const G = {
-  torso: new THREE.LatheGeometry(V2([[0, 0], [.19, 0], [.185, .12], [.165, .27], [.18, .44], [.175, .52], [.12, .6], [.05, .63], [0, .635]]), 20),
-  skirt: new THREE.LatheGeometry(V2([[.19, 0], [.2, -.12], [.205, -.28], [.215, -.42], [.2, -.44], [0, -.44]]), 20),
-  thigh: new THREE.CylinderGeometry(.06, .055, .25, 8),
-  shin: new THREE.CylinderGeometry(.045, .04, .17, 8),
+  torso: new THREE.LatheGeometry(V2([[0, 0], [.186, 0], [.19, .05], [.182, .14], [.166, .26], [.17, .36], [.178, .44], [.172, .5], [.145, .56], [.1, .6], [.06, .622], [.035, .632], [0, .635]]), 30),
+  skirt: new THREE.LatheGeometry(V2([[0, -.44], [.19, -.44], [.21, -.43], [.212, -.4], [.205, -.3], [.2, -.18], [.194, -.08], [.188, 0]]), 30),
+  skirtLow: new THREE.LatheGeometry(V2([[0, -.2], [.16, -.2], [.175, -.19], [.17, -.14], [.165, -.06], [.16, .02]]), 26),
+  thigh: new THREE.CylinderGeometry(.062, .054, .25, 14),
+  shin: new THREE.CylinderGeometry(.042, .036, .17, 14),
   tabi: new THREE.BoxGeometry(.07, .05, .13),
   geta: new THREE.BoxGeometry(.085, .025, .19),
   tooth: new THREE.BoxGeometry(.08, .04, .025),
@@ -34,8 +35,12 @@ const G = {
   cord: new THREE.TorusGeometry(.19, .008, 4, 24),
   taiko: new THREE.BoxGeometry(.24, .17, .07),
   knotB: new THREE.BoxGeometry(.12, .07, .05),
-  sleeve: new THREE.CapsuleGeometry(.1, .2, 6, 12),
-  hand: new THREE.SphereGeometry(.04, 10, 8),
+  sleeve: (() => { const sh = new THREE.Shape(), w = .21, h = .35, r = .07, x = -w / 2, y = -h;
+    sh.moveTo(x, y + r); sh.lineTo(x, 0); sh.lineTo(x + w, 0); sh.lineTo(x + w, y + r); sh.quadraticCurveTo(x + w, y, x + w - r, y); sh.lineTo(x + r, y); sh.quadraticCurveTo(x, y, x, y + r);
+    const g = new THREE.ExtrudeGeometry(sh, { depth: .05, bevelEnabled: true, bevelThickness: .012, bevelSize: .012, bevelSegments: 3, curveSegments: 8 });
+    g.translate(0, 0, -.025); g.rotateY(PI / 2); return g; })(),
+  arm: new THREE.CylinderGeometry(.04, .036, .26, 12),
+  hand: new THREE.CapsuleGeometry(.026, .04, 4, 10),
   neck: new THREE.CylinderGeometry(.045, .05, .08, 10),
   head: new THREE.SphereGeometry(.125, 24, 18),
   ear: new THREE.SphereGeometry(.024, 8, 6),
@@ -91,6 +96,7 @@ export class Chara {
     this.torsoM = mesh(G.torso, mat('#888'), this.upper);
     this.skirtG = new THREE.Group(); this.upper.add(this.skirtG);
     this.skirtM = mesh(G.skirt, mat('#888'), this.skirtG);
+    this.lowG = new THREE.Group(); this.upper.add(this.lowG); this.skirtLowM = mesh(G.skirtLow, mat('#888'), this.lowG); this.lowG.visible = false;
     this.obiM = mesh(G.obi, mat('#888'), this.upper, 0, .22, 0);
     this.cordM = mesh(G.cord, mat('#c8322a'), this.upper, 0, .2, 0, PI / 2, 0, 0, 1, 1, 1, false);
     this.bowM = mesh(G.taiko, mat('#888'), this.upper, 0, .25, -.2);
@@ -103,9 +109,10 @@ export class Chara {
     this.arms = [];
     for (const s of [-1, 1]) {
       const a = new THREE.Group(); a.position.set(s * .2, .56, 0);
-      const sl = mesh(G.sleeve, mat('#888'), a, s * .01, -.17, 0, 0, 0, 0, .48, 1, 1.15);
-      const h = mesh(G.hand, mat('#f1d2b6'), a, 0, -.31, .07, 0, 0, 0, .9, 1.1, .8);
-      a.userData = { sl, h }; this.upper.add(a); this.arms.push(a);
+      const arm = mesh(G.arm, mat('#888'), a, 0, -.14, .03, .12, 0, 0);
+      const sl = mesh(G.sleeve, mat('#888'), a, s * .012, -.015, -.02, 0, 0, 0, 1, 1, 1);
+      const h = mesh(G.hand, mat('#f1d2b6'), a, 0, -.29, .08, .35, 0, 0, .9, 1, .75);
+      a.userData = { sl, h, arm }; this.upper.add(a); this.arms.push(a);
     }
     // 頭
     this.headG = new THREE.Group(); this.headG.position.y = .78; this.upper.add(this.headG);
@@ -135,7 +142,7 @@ export class Chara {
     this.look = lk;
     const km = fabricMat(lk), skin = mat(SKINS[lk.s % 3], { roughness: .6 }), obi = mat(OBI[lk.o % OBI.length], { roughness: .55 });
     this.torsoM.material = this.skirtM.material = km; this.legs.forEach(l => { l.userData.th.material = km; l.userData.sh.material = skin; l.userData.geta.material = mat('#7a5634'); l.userData.geta.scale.y = 1; l.userData.teeth.forEach((t, i) => { t.material = mat('#5a3e26'); t.scale.set(1, 1, 1); t.position.y = -.06; t.visible = true; }); });
-    this.collarC.forEach(c => c.material = km); this.arms.forEach(a => { a.userData.sl.material = km; a.userData.sl.scale.set(.48, 1, 1.15); a.userData.h.material = skin; });
+    this.collarC.forEach(c => c.material = km); this.skirtLowM.material = km; this.arms.forEach(a => { a.userData.sl.material = km; a.userData.arm.material = km; a.userData.sl.scale.set(1, 1, 1); a.userData.h.material = skin; });
     this.obiM.material = obi; this.bowM.material = obi; this.headM.material = skin; this.skinParts.forEach(p => p.material = skin);
     this.cordM.material = mat(['#c8322a', '#e8c56a', '#3a6a8a', '#f4f0e4', '#8a3a6a', '#2f6a4a'][(lk.o + 2) % 6]);
     this.mouthM.material = mat('#a5463a'); this.mouthM.scale.set(1, 1, 1);
@@ -186,15 +193,15 @@ export class Chara {
     const skin = mat('#f8f4ef', { roughness: .4 });
     this.torsoM.material = this.skirtM.material = inner; this.collarC.forEach(c => c.material = redM);
     this.legs.forEach(l => { l.userData.th.material = inner; l.userData.sh.material = skin; });
-    this.arms.forEach(a => { a.userData.sl.material = robe; a.userData.sl.scale.set(.62, 1.35, 1.75); a.userData.h.material = skin; });
+    this.skirtLowM.material = inner; this.arms.forEach(a => { a.userData.sl.material = robe; a.userData.arm.material = robe; a.userData.sl.scale.set(1.3, 1.45, 1.45); a.userData.h.material = skin; });
     this.headM.material = skin; this.skinParts.forEach(p => p.material = skin);
     this.obiM.material = goldM; this.bowM.material = goldM; this.bowM.geometry = G.knotB; this.cordM.material = redM;
     // 袖口多層衣緣
-    for (const a of this.arms) [['#c21f32', 1], ['#e8bf4e', 2]].forEach(([c, n]) => mesh(G.sleeve, mat(c, c === '#e8bf4e' ? { metalness: .8, roughness: .3 } : {}), a, 0, -.17 - n * .018, -.004 * n, 0, 0, 0, .58, 1.35, 1.7));
+    for (const a of this.arms) [['#c21f32', 1], ['#e8bf4e', 2]].forEach(([c, n]) => mesh(G.sleeve, mat(c, c === '#e8bf4e' ? { metalness: .8, roughness: .3 } : {}), a, .002 * n, -.015 - n * .016, -.02 - .004 * n, 0, 0, 0, 1.24, 1.45, 1.45));
     // 打掛：拖地外罩（前開）＋紅色厚下襬（ふき）＋後襬
     const pts = V2([[.0, -.52], [.4, -.52], [.37, -.3], [.3, .05], [.27, .4], [.24, .58], [.16, .66], [0, .67]]);
     P(new THREE.LatheGeometry(pts, 28, PI * .3, PI * 1.4), robe, 0, 0, -.02, 0, 0, 0, 1, 1, 1.18);
-    P(new THREE.TorusGeometry(.4, .045, 8, 28, PI * 1.4), redM, 0, -.5, -.02, PI / 2, 0, PI * .3, 1, 1.18, 1);
+    P(new THREE.TorusGeometry(.395, .022, 8, 32, PI * 1.4), redM, 0, -.51, -.02, PI / 2, 0, PI * .3, 1, 1.18, 1);
     P(new THREE.CircleGeometry(.48, 24, PI * .1, PI * .8), robe, 0, -.515, -.32, -PI / 2, 0, PI, 1, 1, 1);
     // 前結帶：大蝴蝶結＋長垂帶＋流蘇
     const obiTex = new THREE.MeshStandardMaterial({ map: TX.oiranTex('obi'), metalness: .55, roughness: .3 });
@@ -284,7 +291,7 @@ export class Chara {
       alx = -s * amp * .6; arx = s * amp * .6; up = Math.abs(Math.cos(this.phase)) * (a === 2 ? .05 : .025); bend = a === 2 ? .1 : 0; lap = -Math.abs(s) * .08;
       if (this.gm) { twist = Math.sin(this.phase) * .12; side = Math.sin(this.phase) * .04; }
     } else if (a === 3 || a === 5 || a === 8) {
-      lx = rx = -1.45; lk = rk = 1.45; sitY = -.42; lap = -1.3;
+      lx = rx = -1.45; lk = rk = 1.45; sitY = -.42; lap = -1.3; alx = arx = -.62; alz = -.16; arz = .16; bend = .04;
       if (a === 5) { const e = (Math.sin(t * 3) + 1) / 2; arx = -1.1 - e * .8; alx = -1.0; headX = .08 + e * .1; }
       if (a === 8) { alx = arx = -.3; headX = -.15; }
     } else if (a === 12) { lx = rx = -1.5; lk = rk = .1; sitY = -.42; lap = -1.35; alx = arx = -.5; bend = -.05; }
@@ -309,7 +316,8 @@ export class Chara {
     A[0].rotation.x = lr(A[0].rotation.x, alx); A[1].rotation.x = lr(A[1].rotation.x, arx);
     A[0].rotation.z = lr(A[0].rotation.z, -alz); A[1].rotation.z = lr(A[1].rotation.z, -arz);
     this.upper.rotation.x = lr(this.upper.rotation.x, bend); this.upper.rotation.y = lr(this.upper.rotation.y, twist); this.upper.rotation.z = lr(this.upper.rotation.z, side);
-    this.skirtG.rotation.x = lr(this.skirtG.rotation.x, lap - bend); this.skirtG.scale.y = lr(this.skirtG.scale.y, lap < -1 ? .62 : 1);
+    this.skirtG.rotation.x = lr(this.skirtG.rotation.x, lap - bend); this.skirtG.scale.y = lr(this.skirtG.scale.y, lap < -1 ? .6 : 1);
+    { const th = this.skirtG.rotation.x, Lk = .44 * this.skirtG.scale.y; this.lowG.position.set(0, -Lk * Math.cos(th), -Lk * Math.sin(th)); this.lowG.rotation.x = -this.upper.rotation.x; this.lowG.visible = th < -.8; }
     this.headG.rotation.x = lr(this.headG.rotation.x, headX);
     this.offY = lr(this.offY || 0, sitY);
     const y0 = .5 + this.lift + this.offY;
