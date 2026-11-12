@@ -61,4 +61,14 @@ def textures():
         Image.fromarray(out.clip(0, 255).astype('uint8')).save(A('img', 'tex', k + '.jpg'), quality=86)
     print('textures', ry, cx)
 
+def oiran():
+    for k in ('out', 'in'):
+        im = Image.open(A('art_src', f'oiran_{k}.jfif')).convert('RGB'); w, h = im.size; p = 30
+        c = im.crop((p, p, w - p, h - p)).resize((512, 512), Image.LANCZOS)
+        arr = np.asarray(c).astype(float); n = 512
+        rolled = np.roll(np.roll(arr, n // 2, axis=0), n // 2, axis=1)
+        x = np.sin(np.pi * (np.arange(n) + .5) / n) ** 1.2; m = np.outer(x, x)[..., None]
+        Image.fromarray((arr * m + rolled * (1 - m)).clip(0, 255).astype('uint8')).save(A('img', 'tex', f'oiran_{k}.jpg'), quality=88)
+    print('oiran ok')
+
 for f in sys.argv[2:] or ['kanban', 'title', 'textures']: globals()[f]()

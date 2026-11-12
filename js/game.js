@@ -975,6 +975,7 @@ function update(dt) {
   }
   for (const c of G.npcCust) c.ch.update(dt, 0);
   updNPCs(dt); updDeer(dt);
+  if ((lodT = (lodT || 0) - dt) < 0) { lodT = .3; const cp = camera.position; const all = [G.me, ...[...G.remotes.values()].map(r => r.ch), ...NPCS.map(n => n.ch), ...Object.values(keepers), ...G.npcCust.map(c => c.ch)]; for (const ch of all) if (ch && ch.lod) ch.lod(ch.root.position.distanceTo(cp)); }
   if (G.mode !== 'title' && W) {
     const near = [...G.remotes.values()].filter(r => r.ch.root.position.distanceTo(G.pos) < 15).length + NPCS.filter(n => n.ch.root.visible && n.ch.root.position.distanceTo(G.pos) < 15).length;
     SND.update(dt, tday(), W.night || 0, Math.max(0, Math.abs(G.pos.x - 125) - 13), near, Math.abs(G.pos.z) < 12 && G.pos.x > -100 && G.pos.x < 104);
@@ -994,7 +995,7 @@ function updViewOffset() {
   if (viewOff > 1) camera.setViewOffset(innerWidth, innerHeight, 0, viewOff, innerWidth, innerHeight); else if (camera.view && camera.view.enabled) camera.clearViewOffset();
 }
 function render() { updViewOffset(); if (G.shot) { const v = G.shot; camera.position.set(v[0], v[1], v[2]); camera.lookAt(v[3], v[4], v[5]); } if (quality === 2 && composer) composer.render(); else renderer.render(scene, camera); }
-let miniT = 0;
+let miniT = 0, lodT = 0;
 let frameN = 0;
 function loop() {
   if (QS.has('test')) { update(1 / 30); if (frameN++ % 15 === 0) render(); setTimeout(loop, 33); return; }
@@ -1054,6 +1055,7 @@ if (isTouch) document.body.classList.add('touch');
   const loadImg = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
   const art = await Promise.all(['roof', 'plaster', 'wood', 'dirt'].map(k => loadImg('img/tex/' + k + '.jpg')).concat([...Array(11).keys()].map(i => loadImg('img/tex/kanban' + i + '.png'))));
   ['roof', 'plaster', 'wood', 'dirt'].forEach((k, i) => TX.IMG[k] = art[i]); TX.IMG.kanban = art.slice(4);
+  [TX.IMG.oiranOut, TX.IMG.oiranIn] = await Promise.all([loadImg('img/tex/oiran_out.jpg'), loadImg('img/tex/oiran_in.jpg')]);
   W = buildWorld(scene);
   W.sunLight = scene.children.find(o => o.isDirectionalLight);
   setupPost(); applyQuality();
@@ -1066,6 +1068,8 @@ if (isTouch) document.body.classList.add('touch');
   if (QS.has('demo')) setTimeout(() => {
     const d = QS.get('demo');
     if (d === 'menu') { const sh = W.shops.find(x => x.def.id === 'soba'); G.pos.set(sh.front.x, 0, sh.front.z); openShop(sh); $('#bCust').click(); }
+    if (d === 'sit') { const sh = W.shops.find(x => x.def.id === 'soba'); G.pos.set(sh.front.x, 0, sh.front.z); openShop(sh); $('#bCust').click(); closePanels(); cam.yaw = sh.rot + 2.1; cam.pitch = .12; cam.dist = 3.2; }
+    if (d === 'bench') { const sh = W.shops.find(x => x.def.id === 'chaya'); const seat = sh.seats[0]; sitAt(seat); cam.yaw = seat.r + 1.6; cam.pitch = .1; cam.dist = 3; }
     if (d === 'eat') { G.pos.set(-40, 0, 1); G.ry = -PI / 2; setHeld('dango:sanshoku'); setTimeout(eatHeld, 300); }
     if (d === 'pray') { G.pos.set(178, 0, -72.3); G.ry = PI; doWish('願大家平安喜樂', 17); }
     if (d === 'wish') { G.pos.set(178, 0, -72.3); G.ry = PI; cam.yaw = .5; cam.pitch = .22; cam.dist = 4.8; openTemple(); $('#tp').click(); }

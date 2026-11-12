@@ -179,3 +179,20 @@ export function oiran(kind) {
   for (let i = 0; i < 260; i++) { g.fillStyle = gold(.4 + r() * .6); g.fillRect(r() * 256, r() * 256, 1 + r() * 2, 1 + r() * 2); }
   const t = mk(c, [2, 2]); return cache[k] = t;
 }
+
+// 一般和服布料：底色＋細織紋
+export function fabric(color) {
+  const k = 'FAB' + color; if (cache[k]) return cache[k];
+  const [c, g] = cv(128, 128); const r = rnd(color.length * 17 + 3);
+  g.fillStyle = color; g.fillRect(0, 0, 128, 128);
+  for (let y = 0; y < 128; y += 2) { g.fillStyle = `rgba(255,255,255,${.025 + r() * .02})`; g.fillRect(0, y, 128, 1); }
+  for (let x = 0; x < 128; x += 2) { g.fillStyle = `rgba(0,0,0,${.03 + r() * .03})`; g.fillRect(x, 0, 1, 128); }
+  noise(g, 128, 128, .05, r, 900, 1);
+  return cache[k] = mk(c, [2, 2]);
+}
+// 花魁布料：有 Gemini 刺繡圖就用，否則程式產生
+export function oiranTex(kind) {
+  const key = kind === 'out' ? 'oiranOut' : kind === 'in' ? 'oiranIn' : null;
+  if (key && IMG[key]) { const k = 'OIX' + kind; if (cache[k]) return cache[k]; const [c, g] = cv(512, 512); g.drawImage(IMG[key], 0, 0, 512, 512); return cache[k] = mk(c, kind === 'out' ? [1.4, 1.4] : [1.6, 1.6]); }
+  return oiran(kind);
+}
