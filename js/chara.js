@@ -1,6 +1,7 @@
 // 江戶人物（程式建模 v2）：有膝蓋的雙腿、上身＋下襬、細緻臉部、和服袖、足袋木屐、髮型、配件、花魁
 import * as THREE from 'three';
 import * as TX from './tex.js';
+import { GLTFLoader } from '../vendor/addons/loaders/GLTFLoader.js';
 
 export const KIMONO = [
   ['藍', '#2a4b7c'], ['紅梅', '#c24a62'], ['若竹', '#5c9a68'], ['墨', '#2f2e35'], ['山吹', '#dba23a'],
@@ -18,6 +19,11 @@ export const BROWS = ['細眉', '粗眉', '麻呂眉', '劍眉'];
 export const MOUTHS = ['微笑', '開口笑', '小O嘴', '一字嘴'];
 export const CHEEKS = ['無', '淡', '濃'];
 export const MOLES = ['無', '淚痣'];
+export const FACES = ['精緻', 'Q版'];
+// 精緻臉：3D 生成的真人頭部（依髮型對應）；沒有對應模型的髮型維持原本做法
+export const HEAD3D = { 1: 'head_bijin' };
+const H3 = {}; const gltf = new GLTFLoader();
+function loadHead(n) { return H3[n] || (H3[n] = gltf.loadAsync(`img/${n}.glb?v=1`).then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material.roughness = .6; o.material.metalness = 0; } }); return g.scene; }).catch(() => null)); }
 const PI = Math.PI;
 
 export function randomLook(r = Math.random) {
@@ -161,7 +167,7 @@ export class Chara {
     this.obiageM.material = mat(['#e8889a', '#f2d27a', '#8ab4d8', '#f4f0e4', '#c8a0d8', '#a8d8b0'][(lk.o + 3) % 6], { roughness: .7 });
     this.torsoM.material = this.skirtM.material = km; this.legs.forEach(l => { l.userData.th.material = km; l.userData.sh.material = skin; l.userData.geta.material = mat('#7a5634'); l.userData.geta.scale.y = 1; l.userData.teeth.forEach((t, i) => { t.material = mat('#5a3e26'); t.scale.set(1, 1, 1); t.position.y = -.06; t.visible = true; }); });
     this.collarC.forEach(c => c.material = km); this.skirtLowM.material = km; this.arms.forEach(a => { a.userData.sl.material = km; a.userData.arm.material = km; a.userData.sl.scale.set(1, 1, 1); a.userData.h.material = a.userData.th.material = skin; a.userData.lin.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4]); a.userData.lin.visible = true; });
-    this.obiM.material = obi; this.bowM.material = obi; this.headM.material = skin; this.buildFace(lk, skin);
+    this.obiM.material = obi; this.bowM.material = obi; this.headM.material = skin; this.buildFace(lk, skin); this.apply3d(lk);
     this.cordM.material = mat(['#c8322a', '#e8c56a', '#3a6a8a', '#f4f0e4', '#8a3a6a', '#2f6a4a'][(lk.o + 2) % 6]);
     const female = lk.h === 1 || lk.h === 4;
     this.bowM.geometry = female ? G.taiko : G.knotB; this.bowM.position.set(0, female ? .27 : .22, -.2);
@@ -348,7 +354,15 @@ export class Chara {
     if (this.name) this.setName(this.name);
   }
   // 遠處省略細節（效能）
-  lod(d) { const near = d < 16; this.faceG.visible = d < 13; this.detailG.visible = near; this.legs.forEach(l => { l.userData.teeth.forEach(t => t.visible = near); }); }
+  apply3d(lk) {
+    if (this.h3) { this.headG.remove(this.h3); this.h3 = null; }
+    const n = !this.gm && lk.fc !== 1 && HEAD3D[lk.h % HAIRS.length];
+    const show = v => { this.headM.visible = this.hairG.visible = v; this.faceG.visible = v; };
+    show(true); if (!n) return;
+    const tok = this.h3tok = {};
+    loadHead(n).then(sc => { if (!sc || this.h3tok !== tok) return; this.h3 = sc.clone(); this.h3.scale.setScalar(.44); this.h3.position.set(0, .005, .006); this.headG.add(this.h3); show(false); });
+  }
+  lod(d) { const near = d < 16; this.faceG.visible = d < 13 && !this.h3; this.detailG.visible = near; this.legs.forEach(l => { l.userData.teeth.forEach(t => t.visible = near); }); }
   setName(n, npc) {
     if (this.tag) { this.root.remove(this.tag); this.tag.material.map.dispose(); }
     this.name = n;
