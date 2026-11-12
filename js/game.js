@@ -1134,7 +1134,7 @@ function render() { updViewOffset(); if (G.shot) { const v = G.shot; camera.posi
 let miniT = 0, lodT = 0;
 let frameN = 0;
 function loop() {
-  if (QS.has('test')) { update(1 / 30); if (frameN++ % 15 === 0) render(); setTimeout(loop, 33); return; }
+  if (QS.has('test')) { const now = performance.now(), tdt = Math.min(.25, Math.max(1 / 30, (now - (loop.lt || now)) / 1000)); loop.lt = now; let left = tdt; while (left > 1e-4) { const st = Math.min(1 / 20, left); update(st); left -= st; } if (frameN++ % 15 === 0) render(); setTimeout(loop, 33); return; }
   const dt = Math.min(.05, clock.getDelta()); update(dt); render(); requestAnimationFrame(loop);
 }
 
@@ -1232,9 +1232,9 @@ async function runTest() {
     ok(!$('#held').classList.contains('hide'), '手持食物列');
     eatHeld(); ok(await until(() => G.me.anim === 5), '坐著吃'); ok(await until(() => !G.look.f), '吃完手上清空');
     standUp();
-    const ko = W.shops.find(s => s.def.id === 'komamono'); openShop(ko); $('#bCust').click(); order(ko, ko.def.menu.find(m => m.id === 'kitsune'));
-    ok(await until(() => G.look.m === 1 && G.me.accG.children.length > 0), '狐狸面具戴在頭上'); ok(invGet().includes('kitsune'), '飾品收進持ち物'); openInv(); ok(!!document.querySelector('.inv'), '持ち物面板'); closePanels(); order(ko, ko.def.menu.find(m => m.id === 'inro')); ok(await until(() => G.look.w === 1 && G.me.waistG.children.length > 0), '印籠掛腰間'); standUp();
-    const dg = W.shops.find(s => s.def.id === 'dango'); openShop(dg); $('#bCust').click(); order(dg, dg.def.menu[1]); ok(await until(() => G.look.f === 'dango:sanshoku'), '買糰子'); standUp();
+    const om = W.shops.find(s => s.def.id === 'omenya'); openShop(om); $('#bCust').click(); order(om, om.def.menu.find(m => m.id === 'kitsune'));
+    ok(await until(() => G.look.m === 1 && G.me.accG.children.length > 0), '狐狸面具戴在頭上'); ok(invGet().includes('kitsune'), '飾品收進持ち物'); openInv(); ok(!!document.querySelector('.inv'), '持ち物面板'); closePanels(); standUp(); const ko = W.shops.find(s => s.def.id === 'komamono'); openShop(ko); $('#bCust').click(); order(ko, ko.def.menu.find(m => m.id === 'inro')); ok(await until(() => G.look.w === 1 && G.me.waistG.children.length > 0), '印籠掛腰間'); standUp();
+    const dg = W.shops.find(s => s.def.id === 'dango'); openShop(dg); $('#bCust').click(); order(dg, dg.def.menu[1]); ok(await until(() => G.look.f === 'dango:sanshoku'), '買糰子'); ok((G.me.foodG.children[0]?.userData.bites || []).length === 3, '糰子拿在手上是一串三顆'); standUp();
     G.pos.set(dg.front.x, 0, dg.front.z - 2); eatHeld(); ok(await until(() => G.me.anim === 15), '邊走邊吃（站著吃）'); ok(await until(() => !G.look.f), '吃完');
     ok(cleanText('幹你娘').bad && cleanText('他媽的').bad && cleanText('f u c k').bad && !cleanText('幹部開會').bad && !cleanText('你好，一起去吃糰子').bad, '髒話過濾（幹部不誤判）'); ok(G.mode === 'walk', '起身');
     const go = W.shops.find(s => s.def.id === 'gofuku'); openShop(go); $('#bCust').click(); order(go, go.def.menu.find(m => m.id === 'k7'));
@@ -1258,6 +1258,7 @@ async function runTest() {
     G.pos.set(30, 0, 3); const n = NPCS[0]; n.ch.root.position.set(31, 0, 3); n.st = 'idle'; n.goal = null; n.wait = 20;
     ok(await until(() => near && near.type === 'npc'), 'NPC 互動提示'); act(); ok(!!n.ch.bub, 'NPC 回話');
     G.me.bub = null; onChat(G.myId, '你好'); ok(!!G.me.bub, '聊天泡泡');
+    { const kg = W.shops.find(s => s.def.id === 'kingyosukui'); openShop(kg); ok(!!$('#bPlay'), '金魚攤可以玩'); closePanels(); }
     G.pos.set(-128, 0, 0); ok(await until(() => near && near.type === 'pray'), '神社參拜點');
     G.pos.set(125, 0, 0); ok(okAt(125, 0) && !okAt(125, 5), '橋可走、河不可走');
     G.pos.set(178, 0, -40); ok(okAt(178, -40) && okAt(178, -47) && !okAt(171, -47) && okAt(178, -70), '寺院可從南大門走進去、兩側被擋');

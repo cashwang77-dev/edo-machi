@@ -217,6 +217,34 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
   .menu{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
 }
 @media (max-height:500px){ #title .card{max-height:62vh;overflow:auto} #title .logo h1{font-size:44px} #title .logo{top:2vh} }
+
+/* ---- iPhone 瀏海／狀態列／底部橫條：安全區域 ---- */
+:root{--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px)}
+#topbar{top:calc(10px + var(--st));left:calc(10px + var(--sl))}
+#mini{top:calc(10px + var(--st));right:calc(10px + var(--sr))}
+#log{top:calc(50px + var(--st));left:calc(10px + var(--sl))}
+body.touch #log{top:calc(44px + var(--st))}
+#banner{top:calc(56px + var(--st))}
+#toast{top:calc(18% + var(--st))}
+#owner{top:calc(140px + var(--st));right:calc(10px + var(--sr))}
+#tools{right:calc(10px + var(--sr));bottom:calc(12px + var(--sb))}
+body.touch #tools{right:calc(8px + var(--sr))}
+#joy{left:calc(22px + var(--sl));bottom:calc(26px + var(--sb))}
+#act{bottom:calc(14px + var(--sb))}
+body.touch #act{left:calc(168px + var(--sl));bottom:calc(44px + var(--sb))}
+#held{left:calc(14px + var(--sl));bottom:calc(64px + var(--sb))}
+body.touch #held{left:calc(12px + var(--sl));bottom:calc(168px + var(--sb))}
+#panel,#mg,#pcard{right:calc(14px + var(--sr))}
+#title .logo{top:calc(5vh + var(--st))}
+/* ---- 建立人物面板可上下捲動 ---- */
+#title .card{max-height:calc(100vh - 40px - var(--st) - var(--sb));max-height:calc(100dvh - 40px - var(--st) - var(--sb));overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;margin-bottom:calc(4vh + var(--sb))}
+#title .card *{touch-action:pan-y}
+@media (max-width:700px){
+  #owner{top:calc(96px + var(--st))}
+  #panel,#mg,#pcard{right:auto;bottom:calc(10px + var(--sb))}
+  #title .card{max-height:calc(100vh - 130px - var(--st) - var(--sb));max-height:calc(100dvh - 130px - var(--st) - var(--sb));margin-bottom:calc(2vh + var(--sb))}
+}
+@media (max-height:500px){ #title .card{max-height:calc(100dvh - 20px - var(--st) - var(--sb))} #title .logo{display:none} }
 </style>
 </head>
 <body>
@@ -290,6 +318,6 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
 </div></div>
 <div id="toast"></div>
 <script>addEventListener("error",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+e.message+" @"+(e.filename||"").split("/").pop()+":"+e.lineno});addEventListener("unhandledrejection",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+(e.reason&&e.reason.stack||e.reason)})</script>
-<script type="module" src="js/game.js"></script>
+<script type="module" src="js/game.js?v=20261113a"></script>
 </body>
 </html>
