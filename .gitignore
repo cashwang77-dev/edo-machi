@@ -1,0 +1,4 @@
+shots/
+tools/patch*.py
+node_modules/
+server/.wrangler/

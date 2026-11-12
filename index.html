@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>江戶町 — 江戶時代多人小鎮</title>
+<meta name="description" content="3D 多人線上江戶小鎮：開蕎麥麵店、當客人、換和服、泡湯、逛街看風景。最多 80 人同時上線。">
+<meta property="og:title" content="江戶町 — 江戶時代多人小鎮">
+<meta property="og:description" content="在江戶的街上開店、點餐、換和服、泡湯、看夕陽下的富士山。">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Noto+Sans+TC:wght@400;600;700&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
+<script src="config.js"></script>
+<style>
+:root{--paper:#f3ead6;--paper2:#e9dcc0;--ink:#2a1d12;--sub:#6a5440;--red:#b8302a;--ai:#24406e;--line:rgba(42,29,18,.35)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#1a1420;font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;color:var(--ink);touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block}
+button,a.big{font:inherit;cursor:pointer;border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:8px;padding:8px 14px;text-decoration:none;display:inline-block}
+button:disabled{opacity:.4;cursor:default}
+button:not(:disabled):active{transform:translateY(1px)}
+.hide{display:none!important}
+.jpf{font-family:"Yuji Syuku",serif}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:#15111c;color:#f3ead6;z-index:50;font-family:"Yuji Syuku",serif;font-size:28px;letter-spacing:.3em}
+/* 標題 */
+#title{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:flex-start;pointer-events:none}
+#title .logo{white-space:nowrap;position:fixed;top:5vh;left:50%;transform:translateX(-50%);text-align:center;color:#fff8e8;text-shadow:0 2px 18px rgba(0,0,0,.6);pointer-events:none}
+#title .logo h1{white-space:nowrap;font-family:"Yuji Syuku",serif;font-size:min(14vw,92px);margin:0;letter-spacing:.15em;font-weight:400}
+#title .logo p{margin:.2em 0 0;font-size:15px;letter-spacing:.2em;opacity:.9}
+.card{pointer-events:auto;background:var(--paper);border:2px solid var(--ink);border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.35),inset 0 0 0 4px var(--paper),inset 0 0 0 5px var(--line);padding:18px 20px}
+#title .card{margin:0 0 4vh 4vw;width:min(440px,92vw)}
+.card h3{margin:0 0 10px;font-family:"Yuji Syuku",serif;font-weight:400;font-size:22px}
+#nameIn,#chatIn{font:inherit;font-size:17px;width:100%;padding:10px 12px;border:1.5px solid var(--ink);border-radius:8px;background:#fffaf0;color:var(--ink)}
+.lr{display:flex;align-items:center;gap:10px;margin:8px 0}
+.lr>span{width:3em;flex:none;font-size:14px;color:var(--sub)}
+.lr>div{display:flex;flex-wrap:wrap;gap:5px;flex:1;min-width:0}
+.sw{width:26px;height:26px;padding:0;border-radius:50%;border:2px solid rgba(0,0,0,.25)}
+.sw.on{outline:3px solid var(--red);outline-offset:1px}
+.tx{padding:3px 9px;font-size:13px;border-radius:14px;border-width:1px}
+.tx.on{background:var(--ink);color:var(--paper)}
+.row{display:flex;gap:8px;margin-top:12px}
+#go{flex:1;background:var(--red);color:#fff8e8;border-color:#7a1f1a;font-size:18px;font-weight:700;padding:11px}
+/* HUD */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+#hud>*{pointer-events:auto}
+#topbar{position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap;max-width:60vw}
+.chip{background:rgba(243,234,214,.92);border:1.5px solid var(--ink);border-radius:20px;padding:4px 12px;font-size:14px;white-space:nowrap}
+.chip b{color:var(--red)}
+#mini{position:absolute;top:10px;right:10px;width:240px;height:120px;border:2px solid var(--ink);border-radius:8px;cursor:pointer}
+#mini.big{width:min(520px,94vw);height:min(260px,47vw)}
+#log{position:absolute;left:10px;top:50px;width:min(360px,70vw);font-size:14px;pointer-events:none}
+#log>div{background:rgba(20,14,10,.5);color:#fff6e0;padding:3px 9px;border-radius:6px;margin-bottom:3px;width:fit-content;max-width:100%;transition:opacity 1s}
+#log>div.old{opacity:0}
+#act{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:17px;padding:11px 22px;border-radius:30px;box-shadow:0 4px 16px rgba(0,0,0,.35);white-space:nowrap}
+#tools{position:absolute;right:10px;bottom:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:70vw}
+#tools button{background:rgba(243,234,214,.93);font-size:15px;padding:7px 11px}
+#chatBox{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);width:min(520px,92vw);display:flex;gap:6px}
+#chatBox{flex-wrap:wrap}
+#chatBox input{flex:1;min-width:0}
+#chatBox button{flex:none}
+#phr{display:flex;gap:5px;overflow-x:auto;width:100%;padding-bottom:2px;scrollbar-width:none}
+#phr button{flex:none;font-size:13px;padding:4px 10px;border-radius:14px;border-width:1px;background:rgba(243,234,214,.95)}
+.pop{position:absolute;right:10px;bottom:62px;background:rgba(243,234,214,.97);border:2px solid var(--ink);border-radius:12px;padding:8px;display:grid;gap:6px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+#actMenu{grid-template-columns:repeat(4,1fr)}
+#actMenu button{display:flex;flex-direction:column;align-items:center;font-size:13px;padding:6px 8px;position:relative}
+#actMenu button span{font-size:24px}
+#actMenu kbd{position:absolute;top:2px;right:4px;font-size:10px;color:var(--sub)}
+#emoMenu{grid-template-columns:repeat(8,1fr)}
+#emoMenu button{font-size:24px;padding:4px 6px;border:none;background:transparent}
+#emoMenu button:hover{background:rgba(0,0,0,.08)}
+body.touch .pop{bottom:70px}
+#toast{position:fixed;left:50%;top:18%;transform:translate(-50%,-10px);background:rgba(42,29,18,.9);color:#fff6e0;padding:10px 20px;border-radius:24px;font-size:16px;opacity:0;transition:.3s;pointer-events:none;z-index:40;max-width:90vw;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.coin{position:absolute;left:50%;top:32%;transform:translateX(-50%);color:#ffe28a;font-weight:700;font-size:22px;text-shadow:0 2px 6px #000;animation:up 1.8s forwards;pointer-events:none}
+@keyframes up{to{transform:translate(-50%,-60px);opacity:0}}
+/* 面板 */
+#panel{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);width:min(560px,94vw);z-index:15;max-height:62vh;overflow:auto}
+#panel h2{margin:0 26px 4px 0;font-family:"Yuji Syuku",serif;font-weight:400;font-size:26px}
+#panel h2 small{font-family:"Noto Sans TC",sans-serif;font-size:14px;color:var(--sub);margin-left:10px}
+.sub{margin:0 0 10px;color:var(--sub);font-size:14px}
+.sub b{color:var(--red)}
+.wait::after{content:'';display:inline-block;width:1em;animation:dots 1.2s steps(4) infinite;overflow:hidden;vertical-align:bottom}
+@keyframes dots{0%{width:0}100%{width:1.2em}}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.big{font-size:17px;padding:11px 16px;font-weight:600}
+.alt{background:var(--red);color:#fff8e8;border-color:#7a1f1a}
+.close{position:absolute;top:10px;right:10px;padding:2px 9px;border-width:1px}
+.menu{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px}
+.mi{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:8px 11px;background:#fffaf0}
+.mi .jp{font-family:"Yuji Syuku",serif;font-size:19px}
+.mi .zh{font-size:13px;color:var(--sub)}
+.mi .pr{font-size:14px;color:var(--red);font-weight:700;margin-top:2px}
+/* 店主 */
+#owner{position:absolute;right:10px;top:140px;width:min(300px,60vw);background:rgba(243,234,214,.95);border:2px solid var(--ink);border-radius:10px;padding:10px}
+.oh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.oh button{padding:4px 10px;font-size:14px;background:var(--ink);color:var(--paper)}
+.oq{display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow:auto}
+.oi{display:grid;grid-template-columns:1fr auto;text-align:left;background:#fffaf0;animation:pulse 1.6s infinite}
+.oi b{font-family:"Yuji Syuku",serif;font-size:18px;font-weight:400}
+.oi small{grid-column:2;grid-row:1;color:var(--red)}
+@keyframes pulse{50%{box-shadow:0 0 0 3px rgba(184,48,42,.35)}}
+/* 小遊戲 */
+#mg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);width:min(560px,94vw);z-index:16;text-align:center}
+#mgItem{font-family:"Yuji Syuku",serif;font-size:20px}
+#mgStep{font-size:16px;margin:4px 0 10px}
+#mgStep b{font-family:"Yuji Syuku",serif;font-size:24px;font-weight:400;color:var(--red)}
+.mgbar{position:relative;height:30px;border:2px solid var(--ink);border-radius:15px;background:#fffaf0;overflow:hidden}
+#mgZone{position:absolute;top:0;bottom:0;border:3px solid var(--red);background:rgba(184,48,42,.15);border-radius:6px}
+#mgFill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#d8b06a,#b8302a);opacity:.55}
+#mgNeedle{position:absolute;top:-3px;bottom:-3px;width:5px;margin-left:-2px;background:var(--ink);border-radius:3px}
+#mgHint{font-size:14px;color:var(--sub);margin:8px 0}
+#mgBtn{width:100%;font-size:22px;font-weight:700;padding:16px;background:var(--red);color:#fff8e8;border-color:#7a1f1a;touch-action:none}
+#mgFlash{position:absolute;left:50%;top:-50px;transform:translateX(-50%);font-family:"Yuji Syuku",serif;font-size:44px;opacity:0;text-shadow:0 0 8px #fff,0 0 2px #fff}
+#mgFlash.pop{animation:pop .7s}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}30%{opacity:1;transform:translate(-50%,0) scale(1.15)}100%{opacity:0;transform:translate(-50%,-14px)}}
+/* 彈窗 */
+.modal{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:rgba(10,6,4,.45);padding:16px}
+.modal .card{max-width:560px;width:100%;max-height:86vh;overflow:auto;position:relative}
+#help h3{font-size:26px}
+#help dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:8px 0;font-size:15px}
+#help dt{font-weight:700;color:var(--red)}
+#help dd{margin:0}
+.kuji{background:#fffaf0;border:2px solid var(--ink);border-radius:10px;padding:26px 30px;text-align:center;width:min(320px,86vw);box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.kt{font-family:"Yuji Syuku",serif;font-size:64px;color:var(--red);writing-mode:vertical-rl;margin:0 auto 10px;height:2.4em}
+.uk{text-align:center}
+.uk img{max-height:72vh;max-width:90vw;border-radius:4px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+#settings .card{max-width:380px}
+#settings button.on{background:var(--ink);color:var(--paper)}
+/* 搖桿 */
+#joy{position:absolute;left:22px;bottom:26px;width:130px;height:130px;border-radius:50%;background:rgba(243,234,214,.22);border:2px solid rgba(243,234,214,.6);display:none;touch-action:none}
+#joyK{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px;border-radius:50%;background:rgba(243,234,214,.85);border:2px solid var(--ink)}
+body.touch #joy{display:block}
+body.touch #act{bottom:170px}
+body.touch #tools{bottom:20px;max-width:56vw}
+body.touch #chatBox{bottom:auto;top:56px}
+body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
+@media (max-width:640px){
+  #mini{width:150px;height:75px}
+  #topbar .chip{font-size:12px;padding:3px 9px}
+  #owner{top:96px;width:52vw;font-size:13px}
+  #title .card{margin:0 auto 2vh;padding:12px;width:94vw}
+  .sw{width:24px;height:24px}
+  .tx{padding:2px 7px}
+  #title{justify-content:center}
+  .lr{margin:5px 0}
+  #tools button{font-size:13px;padding:6px 8px}
+  #panel h2{font-size:22px}
+}
+@media (max-height:500px){ #title .card{max-height:62vh;overflow:auto} #title .logo h1{font-size:44px} #title .logo{top:2vh} }
+</style>
+</head>
+<body>
+<div id="loading">江戸町 準備中…</div>
+<div id="title">
+  <div class="logo"><h1>江戸町</h1><p>開一家店，或只是走走看看</p></div>
+  <div class="card">
+    <h3>旅人の名</h3>
+    <input id="nameIn" maxlength="12" placeholder="取一個暱稱（最多 12 字）" autocomplete="off">
+    <div id="looks"></div>
+    <div class="row"><button id="rnd">🎲 隨機</button><button id="go">入町 ▶</button></div>
+  </div>
+</div>
+<div id="hud" class="hide">
+  <div id="topbar"><span class="chip" id="clock"></span><span class="chip">💰 <b id="mon">0</b> 文</span><span class="chip" id="online"></span></div>
+  <canvas id="mini" width="240" height="120"></canvas>
+  <div id="log"></div>
+  <button id="act" class="hide"></button>
+  <div id="chatBox" class="hide"><div id="phr"></div><input id="chatIn" maxlength="80" placeholder="說點什麼…（Enter 送出）" autocomplete="off"><button id="chatSend">送出</button></div>
+  <div id="tools"><button id="bChat">💬</button><button id="bAct">🎭 動作</button><button id="bEmo">😊 表情</button><button id="bView">🌅 看風景</button><button id="bHelp">❔</button><button id="bSet">⚙</button></div>
+  <div id="actMenu" class="pop hide"></div><div id="emoMenu" class="pop hide"></div>
+  <div id="joy"><div id="joyK"></div></div>
+  <div id="owner" class="hide"></div>
+</div>
+<div id="panel" class="card hide"></div>
+<div id="mg" class="card hide"><div id="mgFlash"></div><div id="mgItem"></div><div id="mgStep"></div><div class="mgbar"><div id="mgFill"></div><div id="mgZone"></div><div id="mgNeedle"></div></div><div id="mgHint"></div><button id="mgBtn">！</button></div>
+<div id="help" class="modal hide"><div class="card">
+  <button class="close" data-close>✕</button>
+  <h3>江戸町 御触書（遊戲說明）</h3>
+  <dl>
+    <dt>移動</dt><dd>電腦：WASD／方向鍵，Shift 跑步；拖曳滑鼠轉視角、滾輪縮放<br>手機：左下搖桿（推到底會跑），拖曳畫面轉視角、雙指縮放</dd>
+    <dt>互動</dt><dd>走近店門口或長椅，按 <b>E</b> 或點畫面下方按鈕</dd>
+    <dt>當客人</dt><dd>坐下 → 看菜單點餐 → 等老闆做好 → 享用！吳服店換和服、髮結床換髮型、小間物買飾品、浮世繪店畫你的畫像、湯屋泡湯</dd>
+    <dt>當老闆</dt><dd>沒有玩家老闆的店都能「開店」。客人點餐後，點訂單開始做菜：看準時機按、連打、按住放開。做得越好，賺的獎金越多</dd>
+    <dt>聊天</dt><dd>按 Enter 或 💬 打字（也有快捷短語），頭上會冒出對話框。走近 NPC 町人可以跟他們聊天，附近的 NPC 也會回應你說的話</dd>
+    <dt>動作・表情</dt><dd>🎭 動作：揮手、鞠躬、拍手、大笑、萬歲、指路、跳舞、坐在地上（電腦可按 1～8）<br>😊 表情：頭上冒出表情符號，大家都看得到</dd>
+    <dt>看風景</dt><dd>🌅 會隱藏介面、慢慢轉動視角。江戶町的一天是 30 分鐘，黃昏的富士山和夜晚的燈籠特別漂亮</dd>
+    <dt>景點</dt><dd>西邊的神社可以參拜；東邊過了日本橋是露天風呂；河邊的長椅可以坐著看小船</dd>
+  </dl>
+  <div class="btns"><button class="big alt" data-close>知道了，出發！</button></div>
+</div></div>
+<div id="fortune" class="modal hide"></div>
+<div id="ukiyo" class="modal hide"></div>
+<div id="settings" class="modal hide"><div class="card">
+  <button class="close" data-close>✕</button>
+  <h3>設定・畫質</h3>
+  <p class="sub">手機若卡頓，請調成「流暢」。</p>
+  <div class="btns"><button data-q="2">✨ 精緻（光暈＋陰影）</button><button data-q="1">⚖ 標準</button><button data-q="0">🚀 流暢</button></div>
+</div></div>
+<div id="toast"></div>
+<script>addEventListener("error",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+e.message+" @"+(e.filename||"").split("/").pop()+":"+e.lineno});addEventListener("unhandledrejection",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+(e.reason&&e.reason.stack||e.reason)})</script>
+<script type="module" src="js/game.js"></script>
+</body>
+</html>
