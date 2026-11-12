@@ -62,6 +62,9 @@ export const SHOPS = [
       { id: 'k7', n: '江戸紫の麻の葉', zh: '江戶紫麻葉', p: 160, look: { k: 7, p: 4 }, steps: GOFUKU },
       { id: 'k5', n: '桜色の花柄', zh: '櫻色花紋', p: 160, look: { k: 5, p: 5 }, steps: GOFUKU },
       { id: 'k8', n: '浅葱', zh: '淺蔥色', p: 100, look: { k: 8, p: 0 }, steps: GOFUKU },
+      { id: 'k10', n: '藍の龜甲', zh: '藍色龜甲紋', p: 150, look: { k: 0, p: 10 }, steps: GOFUKU },
+      { id: 'k11', n: '紅梅の梅', zh: '紅底白梅', p: 150, look: { k: 1, p: 11 }, steps: GOFUKU },
+      { id: 'k12', n: '墨の菊', zh: '黑底金菊', p: 180, look: { k: 3, p: 12 }, steps: GOFUKU },
     ] },
   { id: 'sushi', name: '辰巳鮨', kind: '壽司屋台', sign: 'すし', noren: '#3b6a5a', w: 9, floors: 1, side: -1, x: 0, wall: '#e6dcc4', stall: true,
     menu: [

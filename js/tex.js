@@ -123,6 +123,14 @@ export function text(str, o = {}) {
 // 和服花紋
 export function pattern(kind, color, alt = '#f4efe2') {
   const k = 'P' + kind + color + alt; if (cache[k]) return cache[k];
+  if (IMG.motifs && MOTIF[kind] && IMG.motifs[MOTIF[kind][0]]) {
+    const [mi, mcol] = MOTIF[kind]; const [c, g] = cv(256, 256);
+    g.fillStyle = color; g.fillRect(0, 0, 256, 256);
+    const t = document.createElement('canvas'); t.width = t.height = 256; const tg = t.getContext('2d');
+    tg.drawImage(motifAlpha(mi), 0, 0); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = mcol || alt; tg.fillRect(0, 0, 256, 256);
+    g.globalAlpha = .92; g.drawImage(t, 0, 0); g.globalAlpha = 1; silk(g, 256);
+    return cache[k] = mk(c, [2, 2]);
+  }
   const [c, g] = cv(128, 128); g.fillStyle = color; g.fillRect(0, 0, 128, 128);
   g.fillStyle = alt; g.strokeStyle = alt;
   if (kind === 1) { for (let i = 0; i < 128; i += 16) g.fillRect(i, 0, 5, 128); }
@@ -191,7 +199,7 @@ export function fabric(color) {
   g.fillStyle = color; g.fillRect(0, 0, 128, 128);
   for (let y = 0; y < 128; y += 2) { g.fillStyle = `rgba(255,255,255,${.025 + r() * .02})`; g.fillRect(0, y, 128, 1); }
   for (let x = 0; x < 128; x += 2) { g.fillStyle = `rgba(0,0,0,${.03 + r() * .03})`; g.fillRect(x, 0, 1, 128); }
-  noise(g, 128, 128, .05, r, 900, 1);
+  noise(g, 128, 128, .05, r, 900, 1); silk(g, 128);
   return cache[k] = mk(c, [2, 2]);
 }
 // 花魁布料：有 Gemini 刺繡圖就用，否則程式產生
@@ -225,10 +233,40 @@ export function hairTex() {
 // 腰帶：底色＋織紋（依編號換花樣）
 export function obiTex(color, i) {
   const k = 'OBT' + color + i; if (cache[k]) return cache[k];
+  if (IMG.obi && IMG.obi[i]) { const [c, g] = cv(256, 256); g.drawImage(IMG.obi[i], 0, 0, 256, 256); return cache[k] = mk(c, [3, .6]); }
   const [c, g] = cv(128, 64); g.fillStyle = color; g.fillRect(0, 0, 128, 64);
   g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = 1; for (let y = 4; y < 64; y += 4) { g.beginPath(); g.moveTo(0, y); g.lineTo(128, y); g.stroke(); }
   g.fillStyle = i % 2 ? 'rgba(232,197,106,.55)' : 'rgba(255,255,255,.28)';
   for (let x = 0; x < 128; x += 16) { g.beginPath(); g.moveTo(x + 8, 22); g.lineTo(x + 14, 32); g.lineTo(x + 8, 42); g.lineTo(x + 2, 32); g.fill(); }
   g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, 0, 128, 3); g.fillRect(0, 61, 128, 3);
   return cache[k] = mk(c, [3, 1]);
+}
+
+// ---- Gemini 花紋遮罩：圖案編號 → [遮罩序號, 花紋顏色]（null＝用預設對比色）----
+const MOTIF = { 4: [0, null], 5: [1, '#f8dbe3'], 9: [2, null], 10: [3, null], 11: [4, '#f8f2ea'], 6: [5, '#8a7ae0'], 7: [6, '#f26a30'], 8: [7, '#f2d27a'], 12: [8, '#f2d27a'] };
+function motifAlpha(i) {
+  const k = 'MA' + i; if (cache[k]) return cache[k];
+  const [c, g] = cv(256, 256); g.drawImage(IMG.motifs[i], 0, 0, 256, 256);
+  const d = g.getImageData(0, 0, 256, 256), p = d.data;
+  for (let j = 0; j < p.length; j += 4) { const l = (p[j] * .3 + p[j + 1] * .59 + p[j + 2] * .11); p[j] = p[j + 1] = p[j + 2] = 255; p[j + 3] = Math.max(0, Math.min(255, (l - 40) * 1.4)); }
+  g.putImageData(d, 0, 0); return cache[k] = c;
+}
+// 絲綢光澤：斜向的柔光與細織紋
+function silk(g, n) {
+  const gr = g.createLinearGradient(0, 0, n, n); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.45, 'rgba(255,255,255,.07)'); gr.addColorStop(.55, 'rgba(255,255,255,.1)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, n, n);
+  for (let y = 0; y < n; y += 2) { g.fillStyle = 'rgba(0,0,0,.035)'; g.fillRect(0, y, n, 1); }
+}
+// 臉部貼花：把 Gemini 畫的眼、眉、嘴＋腮紅、痣畫在透明畫布上
+export function faceTex(ey, br, mo, ck, mk) {
+  const k = `FACE${ey}_${br}_${mo}_${ck}_${mk}`; if (cache[k]) return cache[k];
+  const F = IMG.face; const [c, g] = cv(512, 448);
+  g.translate(512, 0); g.scale(-1, 1);
+  const put = (img, cx, cy, w) => { if (!img) return; const h = w * img.height / img.width; g.drawImage(img, cx - w / 2, cy - h / 2, w, h); };
+  if (ck) for (const x of [150, 362]) { const gr = g.createRadialGradient(x, 270, 2, x, 270, ck === 2 ? 44 : 34); gr.addColorStop(0, `rgba(240,110,120,${ck === 2 ? .5 : .32})`); gr.addColorStop(1, 'rgba(240,110,120,0)'); g.fillStyle = gr; g.fillRect(x - 50, 220, 100, 100); }
+  put(F.eyes[ey], 256, 192, ey === 0 ? 270 : 290);
+  put(F.brows[br], 256, br === 2 ? 98 : 112, br === 2 ? 200 : 300);
+  put(F.mouths[mo], 256, 322, mo === 3 ? 96 : mo === 1 ? 70 : 78);
+  if (mk) { g.fillStyle = '#3a2418'; g.beginPath(); g.arc(358, 238, 4, 0, 7); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return cache[k] = t;
 }

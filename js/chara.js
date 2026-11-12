@@ -7,7 +7,7 @@ export const KIMONO = [
   ['桜', '#e7b3c0'], ['茶', '#7a5236'], ['江戸紫', '#6a4a8a'], ['浅葱', '#3f97ad'], ['白鼠', '#c9c4ba']
 ];
 export const OBI = ['#8a2f2f', '#2b2b2b', '#c9a24a', '#e8e2d2', '#355d8a', '#6b3f6b'];
-export const PATTERNS = ['無地', '縞', '水玉', '市松', '麻の葉', '桜', '朝顔', '金魚', '花火', '青海波'];
+export const PATTERNS = ['無地', '縞', '水玉', '市松', '麻の葉', '桜', '朝顔', '金魚', '花火', '青海波', '龜甲', '梅', '菊'];
 export const HAIRS = ['丁髷', '島田髷', '総髪', '坊主', '唐輪'];
 export const HATS = ['なし', '菅笠', '簪', '鉢巻', '狐面'];
 export const WAIST = ['なし', '印籠', '巾着'];
@@ -22,7 +22,7 @@ const PI = Math.PI;
 
 export function randomLook(r = Math.random) {
   const pick = n => Math.floor(r() * n);
-  return { k: pick(KIMONO.length), p: pick(4), o: pick(OBI.length), h: pick(HAIRS.length), s: pick(3), hat: r() < .15 ? 1 : 0, c: r() < .1 ? pick(3) : 0, ey: pick(5), br: pick(4), mo: pick(4), ck: pick(3), mk: r() < .2 ? 1 : 0 };
+  return { k: pick(KIMONO.length), p: [0, 0, 1, 2, 3, 4, 5, 9, 10, 11, 12][pick(11)], o: pick(OBI.length), h: pick(HAIRS.length), s: pick(3), hat: r() < .15 ? 1 : 0, c: r() < .1 ? pick(3) : 0, ey: pick(5), br: pick(4), mo: pick(4), ck: pick(3), mk: r() < .2 ? 1 : 0 };
 }
 const V2 = a => a.map(p => new THREE.Vector2(p[0], p[1]));
 // ---------- 共用幾何 ----------
@@ -48,6 +48,7 @@ const G = {
   hand: new THREE.CapsuleGeometry(.026, .04, 4, 10),
   neck: new THREE.CylinderGeometry(.045, .05, .08, 10),
   head: new THREE.SphereGeometry(.125, 24, 18),
+  decal: new THREE.SphereGeometry(.1262, 40, 32, PI / 2 - .9, 1.8, PI * .28, PI * .5),
   ear: new THREE.SphereGeometry(.024, 8, 6),
   nose: new THREE.SphereGeometry(.013, 8, 6),
   eye: new THREE.SphereGeometry(.018, 10, 8),
@@ -186,7 +187,14 @@ export class Chara {
   }
   // ---------- 五官 ----------
   buildFace(lk, skin) {
-    const F = this.faceG; F.clear(); this.skinParts = [];
+    const F = this.faceG; F.clear(); this.skinParts = []; this.decal = null;
+    if (TX.IMG.face) {
+      for (const s of [-1, 1]) this.skinParts.push(mesh(G.ear, skin, F, s * .118, -.01, -.005, 0, 0, 0, .55, 1, .8, false));
+      this.noseM = mesh(G.nose, skin, F, 0, -.024, .119, 0, 0, 0, .8, .7, .65, false);
+      const tex = TX.faceTex((lk.ey || 0) % 5, (lk.br || 0) % 4, (lk.mo || 0) % 4, lk.ck == null ? 1 : lk.ck % 3, lk.mk ? 1 : 0);
+      this.decal = mesh(G.decal, new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: .5, polygonOffset: true, polygonOffsetFactor: -2 }), F, 0, 0, 0, 0, 0, 0, .95, 1.05, .98, false);
+      this.mouthM = this.noseM; return;
+    }
     const dark = mat('#1a1210', { roughness: .3 }), hl = mat('#ffffff', { emissive: '#ffffff', emissiveIntensity: .4 });
     const ey = (lk.ey || 0) % 5, br = (lk.br || 0) % 4, mo = (lk.mo || 0) % 4, ck = lk.ck == null ? 1 : lk.ck % 3;
     for (const s of [-1, 1]) {
@@ -293,7 +301,7 @@ export class Chara {
     this.legs.forEach(l => { const u = l.userData; u.geta.material = mat('#141012', { roughness: .2, metalness: .25 }); u.geta.scale.y = 1.6; u.teeth.forEach(t => { t.material = mat('#141012', { roughness: .2, metalness: .25 }); t.scale.set(1, 4.2, 1.2); t.position.y = -.125; }); });
     this.lift = .16;
     // 妝：白粉、紅唇、眼尾紅、細眉
-    this.mouthM.material = redM; this.mouthM.scale.set(.8, .8, 1);
+    if (!this.decal) { this.mouthM.material = redM; this.mouthM.scale.set(.8, .8, 1); }
     P(new THREE.SphereGeometry(.012, 8, 6), redM, 0, -.05, .114, 0, 0, 0, 1.5, .7, .6, this.faceG);
     for (const s of [-1, 1]) P(new THREE.BoxGeometry(.03, .008, .006), redM, s * .066, .012, .108, 0, s * .45, s * -.35, 1, 1, 1, this.faceG);
     // 橫兵庫髷：巨大的左右髷翼、頂髷、後髷

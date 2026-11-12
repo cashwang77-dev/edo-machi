@@ -71,4 +71,55 @@ def oiran():
         Image.fromarray((arr * m + rolled * (1 - m)).clip(0, 255).astype('uint8')).save(A('img', 'tex', f'oiran_{k}.jpg'), quality=88)
     print('oiran ok')
 
+def face():
+    for name, n in (('eyes', 5), ('brows', 4), ('mouths', 4)):
+        im = Image.open(A('art_src', f'face_{name}.jfif')).convert('RGB'); a = np.asarray(im).astype(float)
+        ink = (255 - a.min(axis=2)); mask = ink > 40
+        cols = np.where(mask.any(axis=0))[0]; rows = np.where(mask.any(axis=1))[0]
+        # 找出每個獨立部件（膨脹後連通），依 x 排序；眼睛、眉毛兩兩配對
+        lab, m = ndimage.label(ndimage.binary_dilation(mask, iterations=7)); objs = ndimage.find_objects(lab)
+        parts = sorted([o for o in objs if (o[1].stop - o[1].start) > 12], key=lambda o: o[1].start)
+        groups = [parts[i:i + 2] for i in range(0, len(parts), 2)] if name != 'mouths' else [[p] for p in parts]
+        print(name, 'parts', len(parts))
+        out = []
+        for k, grp in enumerate(groups[:n]):
+            X0 = min(o[1].start for o in grp) + 3; X1 = max(o[1].stop for o in grp) - 3; Y0 = min(o[0].start for o in grp) + 3; Y1 = max(o[0].stop for o in grp) - 3
+            crop = a[Y0:Y1, X0:X1]; alpha = np.clip((255 - crop.min(axis=2) - 12) * 1.6, 0, 255)
+            rgb = np.clip((crop - (255 - alpha[..., None])) / np.maximum(alpha[..., None], 1) * 255, 0, 255)
+            Image.fromarray(np.dstack([rgb, alpha]).astype('uint8'), 'RGBA').save(A('img', 'tex', f'{name}{k}.png')); out.append((X1 - X0, Y1 - Y0))
+        print(name, out)
+
+def gridcells(im, cols, rows, thr_light=True):
+    a = np.asarray(im.convert('L')).astype(float); H, W = a.shape
+    # 找分隔線：亮（白線）或灰線，取每欄／列平均最極端的位置
+    def seps(prof, n, L):
+        out = []
+        for k in range(1, n):
+            c = int(L * k / n); w = int(L * .06); seg = prof[c - w:c + w]
+            lo = c - w + int(np.argmax(np.abs(seg - np.median(prof)))); out.append(lo)
+        return out
+    cp = a.mean(axis=0); rp = a.mean(axis=1)
+    xs = [0] + seps(cp, cols, W) + [W]; ys = [0] + seps(rp, rows, H) + [H]
+    cells = []
+    for j in range(rows):
+        for i in range(cols):
+            pad = 14; cells.append(im.crop((xs[i] + pad, ys[j] + pad, xs[i + 1] - pad, ys[j + 1] - pad)))
+    return cells
+
+def motifs():
+    im = Image.open(A('art_src', 'motifs.jfif')).convert('RGB')
+    for k, c in enumerate(gridcells(im, 3, 3)):
+        s = min(c.size); c = c.crop((0, 0, s, s)).resize((256, 256), Image.LANCZOS).convert('L')
+        c.save(A('img', 'tex', f'motif{k}.png'))
+    print('motifs ok')
+
+def obis():
+    im = Image.open(A('art_src', 'obi_brocade.jfif')).convert('RGB')
+    for k, c in enumerate(gridcells(im, 3, 2)):
+        s = min(c.size); c = c.crop((0, 0, s, s)).resize((256, 256), Image.LANCZOS)
+        arr = np.asarray(c).astype(float); n = 256; rolled = np.roll(np.roll(arr, n // 2, 0), n // 2, 1)
+        x = np.sin(np.pi * (np.arange(n) + .5) / n) ** 1.2; m = np.outer(x, x)[..., None]
+        Image.fromarray((arr * m + rolled * (1 - m)).clip(0, 255).astype('uint8')).save(A('img', 'tex', f'obi{k}.jpg'), quality=88)
+    print('obi ok')
+
 for f in sys.argv[2:] or ['kanban', 'title', 'textures']: globals()[f]()
