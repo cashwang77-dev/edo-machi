@@ -271,7 +271,7 @@ function updPrompt() {
   const b = $('#act'); let label = '';
   if (G.mode === 'walk' && near) label = near.type === 'shop' ? `🏮 ${near.shop.def.name}（${near.shop.def.kind}）` : near.type === 'view' ? '🪑 坐下來看風景' : near.type === 'npc' ? `💬 跟「${near.npc.nm}」聊天` : near.type === 'deer' ? '🦌 摸摸小鹿' : near.spot.label;
   else if (G.mode === 'seat' || G.mode === 'bath') label = '🚶 起身離開';
-  b.textContent = label ? (isTouch ? label : `[E] ${label}`) : ''; b.classList.toggle('hide', !label || G.busy);
+  b.textContent = label ? (isTouch ? label : `[E] ${label}`) : ''; b.classList.toggle('hide', !label || G.busy || !$('#panel').classList.contains('hide'));
 }
 function act() {
   if (G.busy) return;
@@ -288,9 +288,9 @@ function act() {
   else if (near.type === 'well') { G.me.say('井水好冰涼～'); emote(6); sfx(300, .3, 'sine', .05); }
   else if (near.type === 'pray') {
     if (!afford(1)) return toast('身上沒有錢可以投香油錢……');
-    addMoney(-1, '香油錢'); emote(6); sfx(880, .6, 'sine', .06); setTimeout(() => sfx(1320, .8, 'sine', .04), 200);
-    const b = ['願今天也平平安安。', '生意興隆！', '良緣成就！', '闔家平安。', '心想事成。', '學業進步！'];
-    setTimeout(() => G.me.say('🙏 ' + b[Math.floor(Math.random() * b.length)]), 700);
+    addMoney(-1, '香油錢'); sfx(880, .6, 'sine', .06); setTimeout(() => sfx(1320, .8, 'sine', .04), 200);
+    G.ry = Math.atan2(-131 - G.pos.x, 0 - G.pos.z);
+    wishPrompt('神社參拜', '二拜二拍手一拜，寫下你的心願吧', 6);
   }
 }
 function sitAt(seat, kind = 'seat') {
@@ -579,7 +579,7 @@ function openTemple() {
   <button class="close" id="bX">✕</button>`;
   show('#panel'); $('#bX').onclick = closePanels;
   $('#tc1').onclick = () => templeCoin(1); $('#tc5').onclick = () => templeCoin(5);
-  $('#tg').onclick = templeGong; $('#tp').onclick = templePray;
+  $('#tg').onclick = templeGong; $('#tp').onclick = () => wishPrompt('東光寺 大佛殿', '雙手合十，寫下你的心願', 17);
   G.ry = PI; // 面向大殿
 }
 function templeCoin(v) {
@@ -593,10 +593,31 @@ function templeCoin(v) {
 function templeGong() {
   W.ringRope(); emote(16, 1.2); setTimeout(() => SND.gong(1), 250); net.send({ t: 'emote', e: '🔔' });
 }
-function templePray() {
-  closePanels(); G.ry = PI; emote(17, 3.6); net.send({ t: 'emote', e: '🙏' });
-  const w = TEMPLE_WISH[Math.floor(Math.random() * TEMPLE_WISH.length)]; const gave = G.coinT && performance.now() - G.coinT < 60000;
-  setTimeout(() => { G.me.say(`🙏 祈願：${w}${gave ? '（香油錢的心意，佛祖收到了）' : ''}`, 5); if (gave) G.me.emoji('✨'); }, 2600);
+// 祈福：讓玩家自己寫心願（最多 40 字，會過濾不雅字）
+function wishPrompt(title, hint, anim) {
+  const p = $('#panel');
+  p.innerHTML = `<h2>${title}<small>祈福</small></h2><p class="sub">${hint}（可留空，最多 40 字）</p>
+  <input id="wishIn" maxlength="40" placeholder="例：希望家人身體健康" autocomplete="off">
+  <div class="chips">${TEMPLE_WISH.map(w => `<button class="chipw">${w}</button>`).join('')}</div>
+  <div class="btns"><button id="wishGo" class="big alt">🙏 送出祈福</button><button id="wishX">取消</button></div>`;
+  show('#panel');
+  const inp = $('#wishIn'); setTimeout(() => inp.focus(), 50);
+  p.querySelectorAll('.chipw').forEach(b => b.onclick = () => { inp.value = b.textContent; inp.focus(); });
+  const go = () => { const raw = inp.value.trim(); closePanels(); inp.blur(); doWish(raw, anim); };
+  $('#wishGo').onclick = go; $('#wishX').onclick = closePanels;
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go(); } e.stopPropagation(); });
+}
+function doWish(raw, anim) {
+  const r = cleanText(raw); if (r.bad) toast('祈福內容含不雅字詞，已被過濾');
+  const text = r.text || TEMPLE_WISH[Math.floor(Math.random() * TEMPLE_WISH.length)];
+  const gave = G.coinT && performance.now() - G.coinT < 60000;
+  emote(anim, anim === 17 ? 3.6 : 2.4); net.send({ t: 'emote', e: '🙏' });
+  setTimeout(() => {
+    const line = `🙏 願：${text}`;
+    if (G.online) net.send({ t: 'chat', s: line }); else onChat(G.myId, line);
+    if (gave && anim === 17) setTimeout(() => G.me.emoji('✨'), 600);
+    toast(anim === 17 && gave ? '香油錢的心意，佛祖收到了 ✨' : '心願已經傳達了 🙏');
+  }, anim === 17 ? 2400 : 1500);
 }
 let kaneCD = 0;
 function ringKane() {
@@ -933,7 +954,17 @@ function update(dt) {
   W.update(dt, time, tday(), G.me ? G.me.root.position : new THREE.Vector3(), camera.position, quality);
   if (bloom) bloom.strength = .18 + W.night * .55;
 }
-function render() { if (G.shot) { const v = G.shot; camera.position.set(v[0], v[1], v[2]); camera.lookAt(v[3], v[4], v[5]); } if (quality === 2 && composer) composer.render(); else renderer.render(scene, camera); }
+let viewOff = 0;
+function updViewOffset() {
+  let target = 0;
+  if (innerWidth <= 700 && G.mode !== 'title') {
+    for (const id of ['#panel', '#mg', '#pcard', '#chatBox']) { const el = $(id); if (el && !el.classList.contains('hide')) { const r = el.getBoundingClientRect(); if (r.top > innerHeight * .35) target = Math.max(target, (innerHeight - r.top) * .55); } }
+  }
+  document.body.classList.toggle('sheet', target > 0);
+  viewOff += (target - viewOff) * .15;
+  if (viewOff > 1) camera.setViewOffset(innerWidth, innerHeight, 0, viewOff, innerWidth, innerHeight); else if (camera.view && camera.view.enabled) camera.clearViewOffset();
+}
+function render() { updViewOffset(); if (G.shot) { const v = G.shot; camera.position.set(v[0], v[1], v[2]); camera.lookAt(v[3], v[4], v[5]); } if (quality === 2 && composer) composer.render(); else renderer.render(scene, camera); }
 let miniT = 0;
 let frameN = 0;
 function loop() {
@@ -1002,6 +1033,12 @@ if (isTouch) document.body.classList.add('touch');
   if (QS.has('cam')) { G.shot = QS.get('cam').split(',').map(Number); show('#title', false); }
   if (QS.has('auto')) { $('#nameIn').value = QS.get('auto') || '測試'; start(); }
   if (QS.has('chat')) setTimeout(() => { openChat(); onChat(G.myId, '你好！一起去吃糰子吧'); }, 1500);
+  if (QS.has('demo')) setTimeout(() => {
+    const d = QS.get('demo');
+    if (d === 'menu') { const sh = W.shops.find(x => x.def.id === 'soba'); G.pos.set(sh.front.x, 0, sh.front.z); openShop(sh); $('#bCust').click(); }
+    if (d === 'wish') { G.pos.set(178, 0, -72.3); G.ry = PI; cam.yaw = .5; cam.pitch = .22; cam.dist = 4.8; openTemple(); $('#tp').click(); }
+    cam.tx = G.pos.x; cam.ty = G.pos.y + 1.45; cam.tz = G.pos.z;
+  }, 1800);
   loop();
 })();
 
@@ -1055,7 +1092,7 @@ async function runTest() {
     act(); ok(!$('#panel').classList.contains('hide'), '參拜選單');
     const mt = G.money; $('#tc5').click(); ok(G.money === mt - 5, '投 5 文');
     $('#tg').click(); ok(W.temple.ropeT > 0, '搖鈴（繩子擺動）');
-    await sleep(900); $('#tp').click(); ok(await until(() => G.me.anim === 17), '合掌參拜'); ok(await until(() => G.me.bub && G.emoteT <= 0, 9000), '得到祈願');
+    await sleep(900); $('#tp').click(); ok(!!$('#wishIn'), '祈福輸入框'); $('#wishIn').value = '希望江戶町越來越熱鬧'; $('#wishGo').click(); ok($('#panel').classList.contains('hide'), '送出後面板關閉'); ok(await until(() => G.me.anim === 17), '合掌參拜'); ok(await until(() => !!G.me.bub && $('#log').textContent.includes('願：希望江戶町越來越熱鬧')), '祈福內容顯示在頭上與聊天紀錄');
     G.pos.set(198.4, 0, -63.5); ok(await until(() => near && near.type === 'kane'), '鐘樓撞鐘點'); act(); ok(W.temple.strikeT > 0, '撞鐘（撞木擺動）');
     const dr = DEER[0]; G.pos.set(dr.g.position.x + 1, 0, dr.g.position.z); dr.wait = 30; ok(await until(() => near && near.type === 'deer'), '小鹿互動提示'); act(); ok(dr.bowT > 0, '小鹿鞠躬');
   } catch (e) { ok(false, 'EXC ' + e.message); }

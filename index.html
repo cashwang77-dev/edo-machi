@@ -69,14 +69,14 @@ button:not(:disabled):active{transform:translateY(1px)}
 #log>div.sys{background:rgba(140,40,30,.75)}
 #gmRow{margin-top:8px}
 #gmIn{font:inherit;width:100%;padding:8px 10px;border:1px dashed var(--sub);border-radius:8px;background:#fffaf0;color:var(--ink)}
-#held{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;background:rgba(243,234,214,.95);border:1.5px solid var(--ink);border-radius:24px;padding:4px 6px 4px 14px;font-size:14px;white-space:nowrap}
+#held{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;background:rgba(243,234,214,.95);border:1.5px solid var(--ink);border-radius:24px;padding:4px 6px 4px 14px;font-size:14px;white-space:nowrap}
 #held b{font-family:"Yuji Syuku",serif;font-weight:400;font-size:17px;color:var(--red)}
 #held button{padding:4px 10px;font-size:14px;border-radius:16px}
 #held #bEat{background:var(--red);color:#fff8e8;border-color:#7a1f1a}
 #banner{position:absolute;left:50%;top:56px;transform:translateX(-50%);background:linear-gradient(#f6ecd2,#ead9b2);border:2px solid var(--ink);border-radius:10px;padding:10px 24px;font-family:"Yuji Syuku",serif;font-size:22px;text-align:center;max-width:90vw;box-shadow:0 8px 30px rgba(0,0,0,.35);animation:drop .5s}
 #banner small{display:block;font-family:"Noto Sans TC",sans-serif;font-size:12px;color:var(--red)}
 @keyframes drop{from{transform:translate(-50%,-30px);opacity:0}}
-#pcard{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:25;width:min(380px,92vw)}
+#pcard{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:25;width:min(360px,92vw)}
 #pcard h3{margin:0 26px 8px 0}
 #pcard h3 small{font-family:"Noto Sans TC",sans-serif;font-size:13px;color:var(--sub);margin-left:8px}
 .pc{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -89,7 +89,7 @@ button:not(:disabled):active{transform:translateY(1px)}
 .gml>div{display:flex;justify-content:space-between;align-items:center;background:#fffaf0;border-radius:6px;padding:4px 8px}
 .gml button{font-size:12px;padding:3px 7px;margin-left:3px}
 body.touch #held{bottom:222px;top:auto}
-#act{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:17px;padding:11px 22px;border-radius:30px;box-shadow:0 4px 16px rgba(0,0,0,.35);white-space:nowrap}
+#act{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:17px;padding:11px 22px;border-radius:30px;box-shadow:0 4px 16px rgba(0,0,0,.35);white-space:nowrap}
 #tools{position:absolute;right:10px;bottom:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:70vw}
 #tools button{background:rgba(243,234,214,.93);font-size:15px;padding:7px 11px}
 #chatBox{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);width:min(520px,92vw);display:flex;gap:6px}
@@ -112,7 +112,10 @@ body.touch .pop{bottom:70px}
 .coin{position:absolute;left:50%;top:32%;transform:translateX(-50%);color:#ffe28a;font-weight:700;font-size:22px;text-shadow:0 2px 6px #000;animation:up 1.8s forwards;pointer-events:none}
 @keyframes up{to{transform:translate(-50%,-60px);opacity:0}}
 /* 面板 */
-#panel{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);width:min(560px,94vw);z-index:15;max-height:62vh;overflow:auto}
+#panel{position:fixed;right:14px;top:50%;transform:translateY(-46%);width:min(380px,94vw);z-index:15;max-height:calc(100vh - 170px);overflow:auto}
+#wishIn{font:inherit;font-size:16px;width:100%;padding:10px 12px;border:1.5px solid var(--ink);border-radius:8px;background:#fffaf0;color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 2px}
+.chipw{font-size:13px;padding:4px 10px;border-radius:14px;border-width:1px;background:#fffaf0}
 #panel h2{margin:0 26px 4px 0;font-family:"Yuji Syuku",serif;font-weight:400;font-size:26px}
 #panel h2 small{font-family:"Noto Sans TC",sans-serif;font-size:14px;color:var(--sub);margin-left:10px}
 .sub{margin:0 0 10px;color:var(--sub);font-size:14px}
@@ -138,7 +141,7 @@ body.touch .pop{bottom:70px}
 .oi small{grid-column:2;grid-row:1;color:var(--red)}
 @keyframes pulse{50%{box-shadow:0 0 0 3px rgba(184,48,42,.35)}}
 /* 小遊戲 */
-#mg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);width:min(560px,94vw);z-index:16;text-align:center}
+#mg{position:fixed;right:14px;top:50%;transform:translateY(-46%);width:min(380px,94vw);z-index:16;text-align:center}
 #mgItem{font-family:"Yuji Syuku",serif;font-size:20px}
 #mgStep{font-size:16px;margin:4px 0 10px}
 #mgStep b{font-family:"Yuji Syuku",serif;font-size:24px;font-weight:400;color:var(--red)}
@@ -182,9 +185,10 @@ body.touch #tools button{width:46px;height:46px;padding:0;border-radius:50%;font
 body.touch .pop{right:64px;bottom:auto;top:50%;transform:translateY(-50%)}
 body.touch #chatBox{position:fixed;left:0;right:0;top:auto;bottom:0;width:100%;transform:none;background:rgba(243,234,214,.97);padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:2px solid var(--ink);z-index:35}
 body.chatting #joy,body.chatting #tools,body.chatting #act,body.chatting #held,body.chatting .pop{display:none!important}
+body.sheet #joy,body.sheet #tools,body.sheet #act,body.sheet #held,body.sheet .pop{display:none!important}
 body.touch #log{top:44px;font-size:12px;width:58vw}
 body.touch #log>div:nth-last-child(n+5){display:none}
-body.touch #act{bottom:170px}
+body.touch #act{left:168px;right:auto;bottom:44px;transform:none;max-width:calc(100vw - 236px);white-space:normal;font-size:15px;padding:10px 16px;text-align:left}
 body.touch #tools{bottom:20px;max-width:56vw}
 
 body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
@@ -199,6 +203,12 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
   .lr{margin:5px 0}
   #tools button{font-size:13px;padding:6px 8px}
   #panel h2{font-size:22px}
+}
+@media (max-width:1100px){body:not(.touch) #act{left:14px;transform:none}}
+@media (max-width:700px){
+  #panel,#mg{left:50%;right:auto;top:auto;bottom:10px;transform:translateX(-50%);width:94vw;max-height:44vh}
+  #pcard{left:50%;right:auto;top:auto;bottom:10px;transform:translateX(-50%);width:94vw}
+  .menu{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
 }
 @media (max-height:500px){ #title .card{max-height:62vh;overflow:auto} #title .logo h1{font-size:44px} #title .logo{top:2vh} }
 </style>
