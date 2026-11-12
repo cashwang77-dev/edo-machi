@@ -98,7 +98,11 @@ export const SHOPS = [
       { id: 'kasa', n: '菅笠', zh: '斗笠', p: 30, look: { hat: 1 }, steps: KOMA },
       { id: 'sensu', n: '扇子', zh: '扇子', p: 30, look: { c: 1 }, steps: KOMA },
       { id: 'bangasa', n: '番傘', zh: '紅紙傘', p: 50, look: { c: 2 }, steps: KOMA },
-      { id: 'none', n: '外す', zh: '卸下飾品（免費）', p: 0, look: { hat: 0, c: 0 }, steps: [S('外す', '卸下', 'tap')] },
+      { id: 'kitsune', n: '狐のお面', zh: '狐狸面具', p: 60, look: { hat: 4 }, steps: KOMA },
+      { id: 'hachimaki', n: '鉢巻', zh: '頭巾', p: 20, look: { hat: 3 }, steps: KOMA },
+      { id: 'inro', n: '印籠', zh: '印籠（掛腰間）', p: 80, look: { w: 1 }, steps: KOMA },
+      { id: 'kinchaku', n: '巾着', zh: '巾著袋（掛腰間）', p: 30, look: { w: 2 }, steps: KOMA },
+      { id: 'none', n: '外す', zh: '卸下飾品（免費）', p: 0, look: { hat: 0, c: 0, w: 0 }, steps: [S('外す', '卸下', 'tap')] },
     ] },
   { id: 'ekisha', name: '八卦見', kind: '占卜', sign: '易', noren: '#4a3a6a', w: 8, floors: 1, side: 1, x: 36, wall: '#e2d8c2', service: true, stall: true,
     menu: [

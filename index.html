@@ -51,6 +51,30 @@ button:not(:disabled):active{transform:translateY(1px)}
 #log{position:absolute;left:10px;top:50px;width:min(360px,70vw);font-size:14px;pointer-events:none}
 #log>div{background:rgba(20,14,10,.5);color:#fff6e0;padding:3px 9px;border-radius:6px;margin-bottom:3px;width:fit-content;max-width:100%;transition:opacity 1s}
 #log>div.old{opacity:0}
+#log>div.whisper{background:rgba(90,50,120,.75)}
+#log>div.sys{background:rgba(140,40,30,.75)}
+#gmRow{margin-top:8px}
+#gmIn{font:inherit;width:100%;padding:8px 10px;border:1px dashed var(--sub);border-radius:8px;background:#fffaf0;color:var(--ink)}
+#held{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;background:rgba(243,234,214,.95);border:1.5px solid var(--ink);border-radius:24px;padding:4px 6px 4px 14px;font-size:14px;white-space:nowrap}
+#held b{font-family:"Yuji Syuku",serif;font-weight:400;font-size:17px;color:var(--red)}
+#held button{padding:4px 10px;font-size:14px;border-radius:16px}
+#held #bEat{background:var(--red);color:#fff8e8;border-color:#7a1f1a}
+#banner{position:absolute;left:50%;top:56px;transform:translateX(-50%);background:linear-gradient(#f6ecd2,#ead9b2);border:2px solid var(--ink);border-radius:10px;padding:10px 24px;font-family:"Yuji Syuku",serif;font-size:22px;text-align:center;max-width:90vw;box-shadow:0 8px 30px rgba(0,0,0,.35);animation:drop .5s}
+#banner small{display:block;font-family:"Noto Sans TC",sans-serif;font-size:12px;color:var(--red)}
+@keyframes drop{from{transform:translate(-50%,-30px);opacity:0}}
+#pcard{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:25;width:min(380px,92vw)}
+#pcard h3{margin:0 26px 8px 0}
+#pcard h3 small{font-family:"Noto Sans TC",sans-serif;font-size:13px;color:var(--sub);margin-left:8px}
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pc button{font-size:15px;padding:9px 6px}
+.gmrow{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);grid-template-columns:1fr 1fr 1fr}
+.gmrow button{font-size:13px;background:#f6e2d8}
+#gmPanel .row{display:flex;gap:6px}
+#gmPanel input{flex:1;font:inherit;padding:8px;border:1.5px solid var(--ink);border-radius:8px;background:#fffaf0}
+.gml{display:flex;flex-direction:column;gap:4px;max-height:30vh;overflow:auto}
+.gml>div{display:flex;justify-content:space-between;align-items:center;background:#fffaf0;border-radius:6px;padding:4px 8px}
+.gml button{font-size:12px;padding:3px 7px;margin-left:3px}
+body.touch #held{bottom:auto;top:96px}
 #act{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:17px;padding:11px 22px;border-radius:30px;box-shadow:0 4px 16px rgba(0,0,0,.35);white-space:nowrap}
 #tools{position:absolute;right:10px;bottom:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:70vw}
 #tools button{background:rgba(243,234,214,.93);font-size:15px;padding:7px 11px}
@@ -156,6 +180,7 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
   <div class="card">
     <h3>旅人の名</h3>
     <input id="nameIn" maxlength="12" placeholder="取一個暱稱（最多 12 字）" autocomplete="off">
+    <div id="gmRow" class="hide"><input id="gmIn" type="password" placeholder="通行證" autocomplete="off"></div>
     <div id="looks"></div>
     <div class="row"><button id="rnd">🎲 隨機</button><button id="go">入町 ▶</button></div>
   </div>
@@ -165,13 +190,17 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
   <canvas id="mini" width="240" height="120"></canvas>
   <div id="log"></div>
   <button id="act" class="hide"></button>
+  <div id="held" class="hide"></div>
+  <div id="banner" class="hide"></div>
   <div id="chatBox" class="hide"><div id="phr"></div><input id="chatIn" maxlength="80" placeholder="說點什麼…（Enter 送出）" autocomplete="off"><button id="chatSend">送出</button></div>
-  <div id="tools"><button id="bChat">💬</button><button id="bAct">🎭 動作</button><button id="bEmo">😊 表情</button><button id="bView">🌅 看風景</button><button id="bHelp">❔</button><button id="bSet">⚙</button></div>
+  <div id="tools"><button id="bChat">💬</button><button id="bAct">🎭 動作</button><button id="bEmo">😊 表情</button><button id="bView">🌅 看風景</button><button id="bGM" class="hide">👑</button><button id="bHelp">❔</button><button id="bSet">⚙</button></div>
   <div id="actMenu" class="pop hide"></div><div id="emoMenu" class="pop hide"></div>
   <div id="joy"><div id="joyK"></div></div>
   <div id="owner" class="hide"></div>
 </div>
 <div id="panel" class="card hide"></div>
+<div id="pcard" class="card hide"></div>
+<div id="gmPanel" class="modal hide"><div class="card"></div></div>
 <div id="mg" class="card hide"><div id="mgFlash"></div><div id="mgItem"></div><div id="mgStep"></div><div class="mgbar"><div id="mgFill"></div><div id="mgZone"></div><div id="mgNeedle"></div></div><div id="mgHint"></div><button id="mgBtn">！</button></div>
 <div id="help" class="modal hide"><div class="card">
   <button class="close" data-close>✕</button>
@@ -182,6 +211,8 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
     <dt>當客人</dt><dd>坐下 → 看菜單點餐 → 等老闆做好 → 享用！吳服店換和服、髮結床換髮型、小間物買飾品、浮世繪店畫你的畫像、湯屋泡湯</dd>
     <dt>當老闆</dt><dd>沒有玩家老闆的店都能「開店」。客人點餐後，點訂單開始做菜：看準時機按、連打、按住放開。做得越好，賺的獎金越多</dd>
     <dt>聊天</dt><dd>按 Enter 或 💬 打字（也有快捷短語），頭上會冒出對話框。走近 NPC 町人可以跟他們聊天，附近的 NPC 也會回應你說的話</dd>
+    <dt>玩家互動</dt><dd>點一下其他玩家或町人：打招呼、擊掌、送錢、送食物、悄悄話、跟著走</dd>
+    <dt>飾品・食物</dt><dd>小間物屋的簪、斗笠、狐狸面具、印籠會戴在身上；買的食物會拿在手上，按 🍡 吃掉，也可以帶著逛街或送人</dd>
     <dt>動作・表情</dt><dd>🎭 動作：揮手、鞠躬、拍手、大笑、萬歲、指路、跳舞、坐在地上（電腦可按 1～8）<br>😊 表情：頭上冒出表情符號，大家都看得到</dd>
     <dt>看風景</dt><dd>🌅 會隱藏介面、慢慢轉動視角。江戶町的一天是 30 分鐘，黃昏的富士山和夜晚的燈籠特別漂亮</dd>
     <dt>景點</dt><dd>西邊的神社可以參拜；東邊過了日本橋是露天風呂；河邊的長椅可以坐著看小船</dd>

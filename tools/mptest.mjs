@@ -1,17 +1,18 @@
 // 多人伺服器測試：node tools/mptest.mjs ws://localhost:8787/ws
 const URL = process.argv[2] || 'ws://localhost:8787/ws';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-function client(name, room = 'test' + Date.now() % 100000) {
+function client(name, room = 'test' + Date.now() % 100000, key) {
   return new Promise(res => {
     const ws = new WebSocket(URL + '?room=' + room); const c = { ws, name, got: [], id: null };
-    ws.onopen = () => ws.send(JSON.stringify({ t: 'hi', n: name, lk: { k: 1 }, x: 0, z: 0 }));
+    ws.onopen = () => ws.send(JSON.stringify({ t: 'hi', n: name, lk: { k: 1 }, x: 0, z: 0, k: key }));
     ws.onmessage = ev => { const m = JSON.parse(ev.data); c.got.push(m); if (m.t === 'welcome') { c.id = m.id; res(c); } if (m.t === 'full') { c.full = true; res(c); } };
     ws.onerror = () => res(c);
     c.send = o => ws.send(JSON.stringify(o));
     c.has = (t, f = () => true) => c.got.some(m => m.t === t && f(m));
+    c.got.has = c.has;
   });
 }
-const results = []; const ok = (c, m) => { results.push((c ? 'PASS ' : 'FAIL ') + m); };
+const results = []; const ok = (c, m) => { const l = (c ? 'PASS ' : 'FAIL ') + m; results.push(l); console.log(l); };
 const room = 'r' + Date.now() % 100000;
 const A = await client('店主阿花', room), B = await client('客人小明', room);
 ok(A.id && B.id, '兩人連線 ' + A.id + ' ' + B.id);
@@ -33,6 +34,39 @@ B.send({ t: 'emote', e: '😍' }); await sleep(300);
 ok(A.has('emote', m => m.e === '😍'), '表情符號');
 B.send({ t: 'order', s: 'chaya', oid: 'o2', item: 'sencha' }); await sleep(300);
 ok(B.has('nobody', m => m.oid === 'o2'), '沒老闆的店回 nobody');
+// 互動、過濾、GM
+B.send({ t: 'chat', s: '幹你娘咧' }); await sleep(300);
+ok(A.has('chat', m => m.s.includes('＊') && !m.s.includes('幹')), '髒話被過濾');
+ok(B.has('sys', m => m.s.includes('警告 1/3')), '第一次警告');
+B.send({ t: 'chat', s: '去死' }); B.send({ t: 'chat', s: 'fuck' }); await sleep(400);
+ok(B.has('muted', m => m.auto), '累犯三次自動禁言');
+B.send({ t: 'chat', s: '你好' }); await sleep(300);
+ok(!A.has('chat', m => m.s === '你好'), '禁言中說話不會送出');
+A.send({ t: 'act', to: B.id, k: 'gift', v: 10 }); await sleep(300);
+ok(B.has('act', m => m.k === 'gift' && m.v === 10), '送錢');
+A.send({ t: 'act', to: B.id, k: 'five' }); await sleep(300);
+ok(B.has('actfx', m => m.k === 'five' && m.a === A.id), '擊掌廣播');
+A.send({ t: 'w', to: B.id, s: '悄悄說' }); await sleep(300);
+ok(B.has('w', m => m.s === '悄悄說') && !B.has('chat', m => m.s === '悄悄說'), '悄悄話');
+const GMK = process.env.GMK || 'localtestkey123';
+const bad = []; for (let i = 0; i < 5; i++) bad.push(await client('猜' + i, room, 'wrong' + i));
+const G1 = await client('站長', room, GMK);
+ok(G1.has('welcome', m => m.gm === false), '猜錯 5 次後即使密碼正確也鎖住');
+bad.forEach(c => c.ws.close());
+const room3 = 'g' + Date.now() % 100000;
+const GM = await client('站長', room3, GMK), C = await client('路人', room3), D = await client('GM假冒', room3, 'nope');
+ok(GM.has('welcome', m => m.gm === true) && C.has('welcome', m => m.gm === false), 'GM 通行證驗證');
+ok(D.has('welcome', m => m.gm === false && m.n !== 'GM假冒'), '一般人不能取 GM 開頭的名字');
+GM.send({ t: 'chat', s: '/公告 今晚有煙火大會' }); await sleep(300);
+ok(C.has('announce', m => m.s === '今晚有煙火大會'), 'GM 公告');
+GM.send({ t: 'chat', s: '/時間 0.9' }); await sleep(300);
+ok(C.has('time', m => typeof m.off === 'number'), 'GM 改時間');
+GM.send({ t: 'chat', s: '/給 路人 500' }); await sleep(300);
+ok(C.has('gift', m => m.v === 500), 'GM 發錢');
+GM.send({ t: 'chat', s: '/踢 路人' }); await sleep(500);
+ok(C.has('kicked'), 'GM 踢人');
+C.send({ t: 'chat', s: '/公告 我也想' }); await sleep(200);
+GM.ws.close(); D.ws.close();
 A.ws.close(); await sleep(500);
 ok(B.has('leave', m => m.id === A.id) && B.got.filter(m => m.t === 'shops').pop().shops.soba === undefined, '店主離線→自動收店');
 B.ws.close();

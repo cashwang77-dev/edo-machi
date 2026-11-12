@@ -2,3 +2,5 @@ shots/
 tools/patch*.py
 node_modules/
 server/.wrangler/
+server/.dev.vars
+GM通行證.txt

@@ -9,7 +9,8 @@ export const KIMONO = [
 export const OBI = ['#8a2f2f', '#2b2b2b', '#c9a24a', '#e8e2d2', '#355d8a', '#6b3f6b'];
 export const PATTERNS = ['無地', '縞', '水玉', '市松', '麻の葉', '桜'];
 export const HAIRS = ['丁髷', '島田髷', '総髪', '坊主', '唐輪'];
-export const HATS = ['なし', '菅笠', '簪'];
+export const HATS = ['なし', '菅笠', '簪', '鉢巻', '狐面'];
+export const WAIST = ['なし', '印籠', '巾着'];
 export const CARRY = ['なし', '扇子', '番傘'];
 export const SKINS = ['#f1d2b6', '#e6bf9c', '#d6a77e'];
 
@@ -77,18 +78,20 @@ export class Chara {
     this.hairG = new THREE.Group(); this.headG.add(this.hairG);
     this.accG = new THREE.Group(); this.headG.add(this.accG);
     this.carryG = new THREE.Group(); this.arms[1].add(this.carryG);
+    this.foodG = new THREE.Group(); this.foodG.position.set(0, -.4, .1); this.arms[0].add(this.foodG);
+    this.waistG = new THREE.Group(); this.waistG.position.y = .33; this.upper.add(this.waistG);
     this.setLook(look);
     this.name = name; if (name) this.setName(name);
   }
   setLook(lk) {
-    lk = Object.assign({ k: 0, p: 0, o: 0, h: 0, s: 0, hat: 0, c: 0 }, lk || {});
+    lk = Object.assign({ k: 0, p: 0, o: 0, h: 0, s: 0, hat: 0, c: 0, w: 0, f: '' }, lk || {});
     this.look = lk;
     const kc = KIMONO[lk.k % KIMONO.length][1];
     const km = lk.p ? new THREE.MeshStandardMaterial({ map: TX.pattern(lk.p, kc, lk.k === 9 ? '#5a5a66' : '#f4efe2'), roughness: .9 }) : mat(kc, { roughness: .9 });
     this.bodyM.material = km; this.arms.forEach(a => { a.userData.sl.material = km; a.userData.h.material = mat(SKINS[lk.s % 3]); });
     this.obiM.material = this.bowM.material = mat(OBI[lk.o % OBI.length]);
     this.headM.material = mat(SKINS[lk.s % 3]); this.legSkin.forEach(l => l.material = mat(SKINS[lk.s % 3]));
-    this.hairG.clear(); this.accG.clear(); this.carryG.clear();
+    this.hairG.clear(); this.accG.clear(); this.carryG.clear(); this.foodG.clear(); this.waistG.clear();
     const H = (g, x, y, z, sx = 1, sy = 1, sz = 1) => { const m = new THREE.Mesh(g, hairMat); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.castShadow = true; this.hairG.add(m); return m; };
     const cap = new THREE.SphereGeometry(.142, 18, 10, 0, Math.PI * 2, 0, Math.PI * .55);
     switch (lk.h % HAIRS.length) {
@@ -103,16 +106,24 @@ export class Chara {
     }
     if (lk.hat === 1) { const h = new THREE.Mesh(G.hatG, mat('#c9a868', { side: THREE.DoubleSide })); h.position.y = .2; h.castShadow = true; this.accG.add(h); }
     if (lk.hat === 2) { for (const s of [-1, 1]) { const p = new THREE.Mesh(G.pin, mat('#d8b24a', { metalness: .6, roughness: .3 })); p.position.set(s * .06, .2, -.06); p.rotation.z = s * 1.2; this.accG.add(p); const b = new THREE.Mesh(new THREE.SphereGeometry(.025, 8, 6), mat('#d23c4c')); b.position.set(s * .15, .24, -.06); this.accG.add(b); } }
+    if (lk.hat === 3) { const b = new THREE.Mesh(new THREE.TorusGeometry(.142, .022, 6, 24), mat('#f4efe4')); b.rotation.x = Math.PI / 2 - .15; b.position.y = .05; this.accG.add(b); const k = new THREE.Mesh(new THREE.BoxGeometry(.07, .05, .05), mat('#f4efe4')); k.position.set(0, .07, -.15); this.accG.add(k); }
+    if (lk.hat === 4) { const f = new THREE.Group(); const face = new THREE.Mesh(new THREE.SphereGeometry(.1, 12, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat('#f7f3ea')); face.rotation.x = Math.PI / 2; f.add(face);
+      for (const s of [-1, 1]) { const ear = new THREE.Mesh(new THREE.ConeGeometry(.03, .08, 4), mat('#f7f3ea')); ear.position.set(s * .055, .09, 0); f.add(ear); const ey = new THREE.Mesh(new THREE.BoxGeometry(.035, .008, .01), mat('#c8322a')); ey.position.set(s * .04, .02, .09); ey.rotation.z = s * .4; f.add(ey); }
+      const no = new THREE.Mesh(new THREE.SphereGeometry(.012, 6, 4), mat('#c8322a')); no.position.set(0, -.02, .1); f.add(no);
+      f.position.set(.11, .04, .06); f.rotation.y = .9; this.accG.add(f); }
+    if (lk.w === 1) { const g = new THREE.Mesh(new THREE.BoxGeometry(.07, .1, .04), mat('#1a1414', { roughness: .3, metalness: .2 })); g.position.set(.17, -.08, .1); this.waistG.add(g); const c = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .1, 4), mat('#c9a24a')); c.position.set(.17, .0, .1); this.waistG.add(c); const n = new THREE.Mesh(new THREE.SphereGeometry(.018, 8, 6), mat('#c9a24a', { metalness: .6 })); n.position.set(.17, .05, .11); this.waistG.add(n); }
+    if (lk.w === 2) { const g = new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), mat('#b8352f')); g.scale.y = 1.2; g.position.set(-.17, -.09, .1); this.waistG.add(g); const t = new THREE.Mesh(new THREE.CylinderGeometry(.02, .03, .03, 8), mat('#c9a24a')); t.position.set(-.17, -.02, .1); this.waistG.add(t); }
+    if (lk.f && Chara.foodModel) { const d = Chara.foodModel(lk.f); if (d) { d.scale.setScalar(1.25); d.rotation.x = -.2; this.foodG.add(d); } }
     if (lk.c === 1) { const f = new THREE.Mesh(G.fan, mat('#f2e6c8', { side: THREE.DoubleSide })); f.position.set(0, -.38, .1); f.rotation.set(-1.2, 0, .6); this.carryG.add(f); }
     if (lk.c === 2) { const s = new THREE.Mesh(G.stick, mat('#4a3424')); s.position.set(0, .05, .08); this.carryG.add(s); const u = new THREE.Mesh(G.umb, mat('#b8352f', { side: THREE.DoubleSide })); u.position.set(0, .55, .08); u.castShadow = true; this.carryG.add(u); }
   }
-  setName(n) {
+  setName(n, npc) {
     if (this.tag) { this.root.remove(this.tag); this.tag.material.map.dispose(); }
     this.name = n;
     const c = document.createElement('canvas'); c.width = 256; c.height = 64; const g = c.getContext('2d');
     g.font = `600 30px ${TX.FONT}`; const w = Math.min(250, g.measureText(n).width + 28);
-    g.fillStyle = 'rgba(20,16,12,.55)'; rr(g, 128 - w / 2, 10, w, 44, 14); g.fill();
-    g.fillStyle = '#fff6e0'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(n, 128, 33);
+    g.fillStyle = this.gm ? 'rgba(150,40,30,.85)' : npc ? 'rgba(60,70,50,.42)' : 'rgba(20,16,12,.55)'; rr(g, 128 - w / 2, 10, w, 44, 14); g.fill(); if (this.gm) { g.strokeStyle = '#f3cf6a'; g.lineWidth = 3; g.stroke(); }
+    g.fillStyle = this.gm ? '#ffe08a' : npc ? '#e8ecdc' : '#fff6e0'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(n, 128, 33);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
     this.tag = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xd8d8d8, map: t, depthWrite: false, transparent: true }));
     this.tag.scale.set(1.2, .3, 1); this.tag.position.y = 1.95; this.tag.renderOrder = 10; this.root.add(this.tag);
@@ -156,9 +167,12 @@ export class Chara {
     else if (a === 10) { const e = Math.sin(t * 5); side = e * .12; twist = e * .35; alx = -1.6 - e * .9; arx = -1.6 + e * .9; alz = -.4; arz = .4; up = Math.abs(Math.cos(t * 5)) * .07; lx = e * .3; rx = -e * .3; headX = Math.sin(t * 10) * .08; }
     else if (a === 11) { const e = (Math.sin(t * 7) + 1) / 2; alx = arx = -2.6 - e * .35; alz = -.25; arz = .25; up = e * .05; headX = -.2; }
     else if (a === 13) { arx = -1.55; headX = .05; twist = .15; }
+    else if (a === 15) { const e = (Math.sin(t * 3) + 1) / 2; alx = -1.3 - e * .9; headX = .1 + e * .12; }
+    else if (a === 16) { const e = Math.min(1, t * 4); arx = -2.5 * e; arz = .15; up = Math.sin(Math.min(t * 6, Math.PI)) * .04; }
     else if (a === 14) { const e = Math.sin(t * 18); bend = -.18 + e * .04; alx = arx = -.5; alz = -.5; arz = .5; headX = -.25 + e * .06; up = Math.abs(e) * .02; }
     else { const b = Math.sin(t * 1.6) * .015; up = b; }
-    if (this.look.c === 2 && ![7, 4, 9, 10, 11, 13].includes(a)) arx = Math.min(arx, -1.2);
+    if (this.look.c === 2 && ![7, 4, 9, 10, 11, 13, 16].includes(a)) arx = Math.min(arx, -1.2);
+    if (this.look.f && ![5, 15, 4, 9, 10, 11].includes(a)) alx = Math.min(alx, -.9);
     const k = Math.min(1, dt * 12), lr = (o, v) => o + (v - o) * k;
     L[0].rotation.x = lr(L[0].rotation.x, lx); L[1].rotation.x = lr(L[1].rotation.x, rx);
     A[0].rotation.x = lr(A[0].rotation.x, alx); A[1].rotation.x = lr(A[1].rotation.x, arx);
