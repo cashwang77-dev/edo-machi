@@ -129,6 +129,10 @@ export function pattern(kind, color, alt = '#f4efe2') {
   else if (kind === 2) { for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { g.beginPath(); g.arc(x * 32 + (y % 2) * 16 + 8, y * 32 + 16, 5, 0, 7); g.fill(); } }
   else if (kind === 3) { g.globalAlpha = .55; for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if ((x + y) % 2) g.fillRect(x * 16, y * 16, 16, 16); }
   else if (kind === 4) { g.lineWidth = 2; g.globalAlpha = .7; for (let y = -1; y < 6; y++) for (let x = -1; x < 6; x++) { const cx = x * 32 + (y % 2) * 16, cy = y * 28; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + 16, cy + 28); g.lineTo(cx - 16, cy + 28); g.closePath(); g.stroke(); g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx, cy + 19); g.lineTo(cx + 16, cy + 28); g.moveTo(cx, cy + 19); g.lineTo(cx - 16, cy + 28); g.stroke(); } }
+  else if (kind === 6) { g.globalAlpha = 1; for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) { const cx = x * 44 + (y % 2) * 22 + 14, cy = y * 44 + 20, cl = ['#5a5ab8', '#8a4ab0', '#3a7ac8'][(x + y) % 3]; g.fillStyle = cl; g.beginPath(); g.arc(cx, cy, 12, 0, 7); g.fill(); g.fillStyle = '#f4efe2'; for (let p = 0; p < 5; p++) { const a = p / 5 * Math.PI * 2; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * 11, cy + Math.sin(a) * 11); g.lineWidth = 1.5; g.strokeStyle = '#f4efe2'; g.stroke(); } g.beginPath(); g.arc(cx, cy, 3, 0, 7); g.fill(); g.strokeStyle = '#4a8a4a'; g.lineWidth = 2; g.beginPath(); g.arc(cx + 14, cy + 10, 8, 0, 3); g.stroke(); } }
+  else if (kind === 7) { for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) { const cx = x * 44 + (y % 2) * 20 + 14, cy = y * 42 + 22; g.fillStyle = (x + y) % 3 ? '#f05a28' : '#e8233a'; g.beginPath(); g.ellipse(cx, cy, 9, 5, .3, 0, 7); g.fill(); g.beginPath(); g.moveTo(cx - 8, cy - 2); g.lineTo(cx - 17, cy - 8); g.lineTo(cx - 15, cy + 4); g.fill(); g.strokeStyle = '#6ab0d8'; g.lineWidth = 1.5; g.beginPath(); g.arc(cx + 14, cy - 12, 3, 0, 7); g.stroke(); } }
+  else if (kind === 8) { for (let i = 0; i < 4; i++) { const cx = [30, 96, 60, 110][i], cy = [30, 40, 95, 105][i], cl = ['#e8c56a', '#e84a6a', '#6ad0e8', '#f4efe2'][i]; g.strokeStyle = cl; g.lineWidth = 2; for (let r = 0; r < 14; r++) { const a = r / 14 * Math.PI * 2; g.beginPath(); g.moveTo(cx + Math.cos(a) * 5, cy + Math.sin(a) * 5); g.lineTo(cx + Math.cos(a) * 20, cy + Math.sin(a) * 20); g.stroke(); g.fillStyle = cl; g.fillRect(cx + Math.cos(a) * 23 - 1, cy + Math.sin(a) * 23 - 1, 3, 3); } } }
+  else if (kind === 9) { g.lineWidth = 2.2; for (let y = -1; y < 9; y++) for (let x = -1; x < 5; x++) { const cx = x * 32 + (y % 2) * 16, cy = y * 16; for (let r = 3; r > 0; r--) { g.strokeStyle = alt; g.globalAlpha = .9; g.beginPath(); g.arc(cx, cy, r * 5.2, Math.PI, 0); g.stroke(); } } }
   else if (kind === 5) { g.globalAlpha = .8; for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) { const cx = x * 44 + (y % 2) * 22 + 10, cy = y * 44 + 20; for (let p = 0; p < 5; p++) { const a = p / 5 * 6.283; g.beginPath(); g.ellipse(cx + Math.cos(a) * 6, cy + Math.sin(a) * 6, 5, 3.5, a, 0, 7); g.fill(); } } }
   return cache[k] = mk(c, [2, 2]);
 }
@@ -209,3 +213,22 @@ export function karakusa() {
   return cache[k] = mk(c, [2, 2]);
 }
 const PI2 = Math.PI * 2;
+
+// 頭髮：深色帶髮絲光澤
+export function hairTex() {
+  const k = 'HAIR'; if (cache[k]) return cache[k];
+  const [c, g] = cv(128, 128); const r = rnd(99);
+  g.fillStyle = '#17120f'; g.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 140; i++) { const x = r() * 128; g.strokeStyle = `rgba(${r() > .7 ? '120,96,80' : '60,48,40'},${.25 + r() * .35})`; g.lineWidth = .6 + r(); g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + (r() - .5) * 8, 40, x + (r() - .5) * 8, 90, x + (r() - .5) * 6, 128); g.stroke(); }
+  return cache[k] = mk(c, [3, 1]);
+}
+// 腰帶：底色＋織紋（依編號換花樣）
+export function obiTex(color, i) {
+  const k = 'OBT' + color + i; if (cache[k]) return cache[k];
+  const [c, g] = cv(128, 64); g.fillStyle = color; g.fillRect(0, 0, 128, 64);
+  g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = 1; for (let y = 4; y < 64; y += 4) { g.beginPath(); g.moveTo(0, y); g.lineTo(128, y); g.stroke(); }
+  g.fillStyle = i % 2 ? 'rgba(232,197,106,.55)' : 'rgba(255,255,255,.28)';
+  for (let x = 0; x < 128; x += 16) { g.beginPath(); g.moveTo(x + 8, 22); g.lineTo(x + 14, 32); g.lineTo(x + 8, 42); g.lineTo(x + 2, 32); g.fill(); }
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, 0, 128, 3); g.fillRect(0, 61, 128, 3);
+  return cache[k] = mk(c, [3, 1]);
+}

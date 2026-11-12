@@ -184,6 +184,25 @@ function shopHouse(def, rand) {
   const tate = std('tate' + def.id, { map: TX.text(def.sign, { w: 128, h: 384, bg: '#efe6d0', fg: '#1a1410', grain: true }) });
   g.add(M(new THREE.BoxGeometry(.55, 1.8, .1), [wd, wd, wd, wd, tate, tate], w / 2 - .45, 1.0, 1.15));
   g.add(M(boxG(.75, .1, .4), wd, w / 2 - .45, .05, 1.15));
+  // 長幟（のぼり）
+  if (def.nobori) { const [nc, nt] = def.nobori, nx = -w / 2 + .45; g.add(M(new THREE.CylinderGeometry(.035, .035, 3.6, 6), C.woodL(), nx, 1.8, 1.5)); g.add(M(new THREE.CylinderGeometry(.025, .025, .7, 5), C.woodL(), nx + .3, 3.45, 1.5, 0, 0, PI / 2));
+    g.add(M(new THREE.PlaneGeometry(.6, 2.3), std('nobori' + def.id, { map: TX.text(nt, { w: 120, h: 460, bg: nc, fg: '#fdf8ec', border: '#fdf8ec' }), side: THREE.DoubleSide, roughness: 1 }), nx + .32, 2.25, 1.52)); }
+  // 金魚池
+  if (def.play === 'kingyo') { g.add(M(new THREE.CylinderGeometry(1.15, 1.05, .42, 24), std('tubW', { color: '#8aa0b0', roughness: .4 }), 0, .21, 1.9)); g.add(M(new THREE.CylinderGeometry(1.08, 1.08, .02, 24), std('tubWater', { color: '#4f9ac0', roughness: .1, metalness: .2, transparent: true, opacity: .85 }), 0, .4, 1.9));
+    for (let i = 0; i < 12; i++) { const a = i * 2.4, r = .3 + (i % 4) * .18; const f = M(new THREE.SphereGeometry(.06, 8, 6), std(i % 3 ? 'kgy' : 'kgr', { color: i % 3 ? '#f05a28' : '#e02a3a', emissive: '#401000', emissiveIntensity: .2 }), Math.cos(a) * r, .41, 1.9 + Math.sin(a) * r, 0, -a, 0); f.scale.set(1.6, .5, .8); g.add(f); }
+    for (let i = 0; i < 4; i++) { g.add(M(new THREE.TorusGeometry(.08, .012, 4, 12), C.woodL(), -1.1 + i * .3, 1.1, -.5, PI / 2, 0, 0)); g.add(M(new THREE.CylinderGeometry(.008, .008, .16, 4), C.woodL(), -1.1 + i * .3, 1.1, -.36, PI / 2, 0, 0)); } }
+  // 射的：階梯獎品架與軟木塞槍
+  if (def.play === 'shateki') { for (let k = 0; k < 3; k++) g.add(M(boxG(w - 2, .1, .5), std('redCloth', { color: '#a8232e' }), 0, 1.4 + k * .45, -2.4 - k * .4));
+    const pc = ['#e8c56a', '#3f97ad', '#e84a6a', '#5c9a68', '#f4efe2', '#6a4a8a']; for (let k = 0; k < 3; k++) for (let x = -w / 2 + 1.6; x < w / 2 - 1.4; x += .7) g.add(M(boxG(.28, .32 - k * .05, .2), std('prz' + pc[(k * 3 + Math.round(x * 2)) % 6 + 0] , { color: pc[Math.abs(k * 3 + Math.round(x * 2)) % 6] }), x, 1.62 + k * .45, -2.4 - k * .4));
+    for (let i = 0; i < 3; i++) { g.add(M(boxG(.07, .06, .6), C.woodD(), -1 + i * 1, 1.15, -.55)); g.add(M(new THREE.CylinderGeometry(.03, .03, .04, 8), std('cork', { color: '#c9a868' }), -1 + i * 1, 1.15, -.22, PI / 2, 0, 0)); } }
+  // 面具牆
+  if (def.style === 'masks') { for (const y of [1.55, 2.15]) g.add(M(boxG(w - 1, .06, .06), C.woodL(), 0, y + .25, .25));
+    const mc = ['#f7f3ea', '#c8322a', '#f0c9a0', '#efe6d0', '#fbfaf6', '#b8282e', '#2f6a4a'];
+    for (const y of [1.55, 2.15]) for (let x = -w / 2 + 1; x < w / 2 - .8; x += .62) { const c = mc[Math.abs(Math.round(x * 3 + y * 7)) % mc.length]; g.add(M(new THREE.SphereGeometry(.2, 12, 8, 0, PI * 2, 0, PI / 2), std('mask' + c, { color: c, roughness: .45 }), x, y, .3, PI / 2, 0, 0));
+      g.add(M(new THREE.BoxGeometry(.06, .015, .01), C.black(), x - .06, y + .04, .5)); g.add(M(new THREE.BoxGeometry(.06, .015, .01), C.black(), x + .06, y + .04, .5)); g.add(M(new THREE.SphereGeometry(.025, 6, 4), std('maskN', { color: '#c8322a' }), x, y - .03, .5)); } }
+  // 浴衣展示架
+  if (def.style === 'yukata') { [6, 7, 8, 9].forEach((pk, i) => { const x = -w / 2 + 1.6 + i * ((w - 3.2) / 3); g.add(M(boxG(1.3, .06, .06), C.woodD(), x, 2.55, .6)); g.add(M(new THREE.CylinderGeometry(.03, .03, 2.5, 6), C.woodD(), x, 1.3, .6));
+    g.add(M(new THREE.PlaneGeometry(1.15, 1.7), std('yk' + pk, { map: TX.pattern(pk, ['#f4f0e8', '#f4f0e8', '#24406e', '#3f97ad'][i], i < 2 ? '#5a5a66' : '#f4efe2'), side: THREE.DoubleSide, roughness: .9 }), x, 1.65, .64)); }); }
   // 提燈
   const lm = lanternMat(def.sign[0], def.id === 'izakaya' ? '#e8dcc0' : '#c8322a');
   for (const s of [-1, 1]) {
@@ -204,7 +223,7 @@ function shopHouse(def, rand) {
       for (const q of [-.55, .55]) seats.push({ lx: bx + q, ly: .5, lz: 2.4, face: PI, dlx: bx + q + (q > 0 ? .5 : -.5), dly: .55, dlz: 2.4 });
     }
   }
-  const nStool = Math.min(3, Math.floor((w - 2) / 1.6));
+  const nStool = def.play ? 0 : Math.min(3, Math.floor((w - 2) / 1.6));
   for (let i = 0; i < nStool; i++) {
     const x = (i - (nStool - 1) / 2) * 1.7;
     g.add(M(new THREE.CylinderGeometry(.2, .22, .45, 10), wl, x, .225, .4));
@@ -446,6 +465,7 @@ export function buildWorld(scene) {
     if (info.chimney) shop.chimney = tw(info.chimney);
     W.lanterns.push(...shop.lanterns);
     if (def.umbrella) { const u = tw({ x: 0, y: 0, z: 3.3 }); col(u.x, u.z, .2); }
+    if (def.play === 'kingyo') { const u = tw({ x: 0, y: 0, z: 1.9 }); col(u.x, u.z, 1.2); }
     { const w2 = def.w / 2, top = def.floors === 2 ? 7 : 4.6; blk(g, -w2, w2, 0, top, -2.2, -9.6); blk(g, -w2, -w2 + .25, 0, 3.1, .1, -9); blk(g, w2 - .25, w2, 0, 3.1, .1, -9);
       if (def.floors === 2) { blk(g, -w2 - .35, w2 + .35, 2.95, 4.1, 1.6, -1.1); blk(g, -w2, w2, 3, 7, -1.1, -9.6); } else blk(g, -w2 - .35, w2 + .35, 3.0, 4.6, 1.6, -2.2); }
     B.bake(g); W.shops.push(shop);

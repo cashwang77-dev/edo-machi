@@ -7,7 +7,7 @@ export const KIMONO = [
   ['桜', '#e7b3c0'], ['茶', '#7a5236'], ['江戸紫', '#6a4a8a'], ['浅葱', '#3f97ad'], ['白鼠', '#c9c4ba']
 ];
 export const OBI = ['#8a2f2f', '#2b2b2b', '#c9a24a', '#e8e2d2', '#355d8a', '#6b3f6b'];
-export const PATTERNS = ['無地', '縞', '水玉', '市松', '麻の葉', '桜'];
+export const PATTERNS = ['無地', '縞', '水玉', '市松', '麻の葉', '桜', '朝顔', '金魚', '花火', '青海波'];
 export const HAIRS = ['丁髷', '島田髷', '総髪', '坊主', '唐輪'];
 export const HATS = ['なし', '菅笠', '簪', '鉢巻', '狐面'];
 export const WAIST = ['なし', '印籠', '巾着'];
@@ -69,11 +69,12 @@ const G = {
 };
 const M = {};
 function mat(c, o = {}) { const k = c + JSON.stringify(o); return M[k] || (M[k] = new THREE.MeshStandardMaterial({ color: c, roughness: .85, ...o })); }
-const hairMat = mat('#16120f', { roughness: .42, metalness: .05 });
+const hairMat = new THREE.MeshStandardMaterial({ map: TX.hairTex(), color: '#ffffff', roughness: .38, metalness: .06 });
 function fabricMat(lk) {
   const kc = KIMONO[lk.k % KIMONO.length][1]; const k = 'F' + lk.k + '_' + lk.p;
   return M[k] || (M[k] = new THREE.MeshStandardMaterial({ map: lk.p ? TX.pattern(lk.p, kc, lk.k === 9 ? '#5a5a66' : '#f4efe2') : TX.fabric(kc), roughness: .88 }));
 }
+function obiMat(i) { const k = 'OBI' + i; return M[k] || (M[k] = new THREE.MeshStandardMaterial({ map: TX.obiTex(OBI[i], i), roughness: .5, metalness: .08 })); }
 function mesh(g, m, par, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1, shadow = true) {
   const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.scale.set(sx, sy, sz); o.castShadow = shadow; par.add(o); return o;
 }
@@ -103,6 +104,7 @@ export class Chara {
     this.skirtM = mesh(G.skirt, mat('#888'), this.skirtG);
     this.lowG = new THREE.Group(); this.upper.add(this.lowG); this.skirtLowM = mesh(G.skirtLow, mat('#888'), this.lowG); this.lowG.visible = false;
     this.obiM = mesh(G.obi, mat('#888'), this.upper, 0, .22, 0);
+    this.obiageM = mesh(new THREE.CylinderGeometry(.186, .186, .022, 24), mat('#888'), this.upper, 0, .3, 0, 0, 0, 0, 1, 1, 1, false);
     this.cordM = mesh(G.cord, mat('#c8322a'), this.upper, 0, .2, 0, PI / 2, 0, 0, 1, 1, 1, false);
     this.bowM = mesh(G.taiko, mat('#888'), this.upper, 0, .25, -.2);
     this.detailG = new THREE.Group(); this.upper.add(this.detailG);
@@ -116,8 +118,10 @@ export class Chara {
       const a = new THREE.Group(); a.position.set(s * .2, .56, 0);
       const arm = mesh(G.arm, mat('#888'), a, 0, -.14, .03, .12, 0, 0);
       const sl = mesh(G.sleeve, mat('#888'), a, s * .012, -.015, -.02, 0, 0, 0, 1, 1, 1);
+      const lin = mesh(G.sleeve, mat('#c8322a'), a, s * .012, -.03, -.02, 0, 0, 0, .85, 1, .98, false);
       const h = mesh(G.hand, mat('#f1d2b6'), a, 0, -.29, .08, .35, 0, 0, .9, 1, .75);
-      a.userData = { sl, h, arm }; this.upper.add(a); this.arms.push(a);
+      const th = mesh(G.hand, mat('#f1d2b6'), a, -s * .02, -.27, .1, .3, 0, s * .8, .45, .6, .45, false);
+      a.userData = { sl, h, arm, lin, th }; this.upper.add(a); this.arms.push(a);
     }
     // 頭
     this.headG = new THREE.Group(); this.headG.position.y = .78; this.upper.add(this.headG);
@@ -137,9 +141,10 @@ export class Chara {
   setLook(lk) {
     lk = Object.assign({ k: 0, p: 0, o: 0, h: 0, s: 0, hat: 0, c: 0, w: 0, f: '' }, lk || {});
     this.look = lk;
-    const km = fabricMat(lk), skin = mat(SKINS[lk.s % 3], { roughness: .6 }), obi = mat(OBI[lk.o % OBI.length], { roughness: .55 });
+    const km = fabricMat(lk), skin = mat(SKINS[lk.s % 3], { roughness: .55, emissive: '#6a2a18', emissiveIntensity: .07 }), obi = obiMat(lk.o % OBI.length);
+    this.obiageM.material = mat(['#e8889a', '#f2d27a', '#8ab4d8', '#f4f0e4', '#c8a0d8', '#a8d8b0'][(lk.o + 3) % 6], { roughness: .7 });
     this.torsoM.material = this.skirtM.material = km; this.legs.forEach(l => { l.userData.th.material = km; l.userData.sh.material = skin; l.userData.geta.material = mat('#7a5634'); l.userData.geta.scale.y = 1; l.userData.teeth.forEach((t, i) => { t.material = mat('#5a3e26'); t.scale.set(1, 1, 1); t.position.y = -.06; t.visible = true; }); });
-    this.collarC.forEach(c => c.material = km); this.skirtLowM.material = km; this.arms.forEach(a => { a.userData.sl.material = km; a.userData.arm.material = km; a.userData.sl.scale.set(1, 1, 1); a.userData.h.material = skin; });
+    this.collarC.forEach(c => c.material = km); this.skirtLowM.material = km; this.arms.forEach(a => { a.userData.sl.material = km; a.userData.arm.material = km; a.userData.sl.scale.set(1, 1, 1); a.userData.h.material = a.userData.th.material = skin; a.userData.lin.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4]); a.userData.lin.visible = true; });
     this.obiM.material = obi; this.bowM.material = obi; this.headM.material = skin; this.buildFace(lk, skin);
     this.cordM.material = mat(['#c8322a', '#e8c56a', '#3a6a8a', '#f4f0e4', '#8a3a6a', '#2f6a4a'][(lk.o + 2) % 6]);
     const female = lk.h === 1 || lk.h === 4;
@@ -190,8 +195,10 @@ export class Chara {
       if (ey === 4) mesh(new THREE.TorusGeometry(.016, .0045, 4, 12, PI), dark, F, x, y - .006, z + .004, 0, 0, 0, 1, 1, 1, false);
       else {
         const [sx, sy, rz] = [[1, 1.25, 0], [1.45, .72, s * .16], [1.3, .92, -s * .24], [1.42, .78, s * .38]][ey];
-        mesh(G.eye, dark, F, x, y, z, 0, 0, rz, sx, sy, .5, false);
-        mesh(G.hi, hl, F, x + .006, y + .007, z + .009, 0, 0, 0, 1, 1, 1, false);
+        mesh(G.eye, mat('#fbf8f2', { roughness: .3 }), F, x, y, z - .003, 0, 0, rz, sx * 1.2, sy * 1.0, .42, false);
+        mesh(G.eye, mat('#2a1a12', { roughness: .25 }), F, x, y - .001, z + .003, 0, 0, rz, sx * .74, sy * .82, .5, false);
+        mesh(G.hi, hl, F, x + .006, y + .007, z + .011, 0, 0, 0, 1, 1, 1, false);
+        mesh(new THREE.BoxGeometry(.04, .005, .006), dark, F, x, y + .02 * sy, z + .006, 0, 0, rz, sx, 1, 1, false);
         if (ey === 2) mesh(new THREE.BoxGeometry(.03, .004, .004), dark, F, x + s * .006, y - .022, z + .002, 0, 0, -s * .3, 1, 1, 1, false);
       }
       if (br === 2) mesh(G.hi, hairMat, F, s * .04, .07, .108, 0, 0, 0, 3, 2, 1, false);
@@ -225,11 +232,15 @@ export class Chara {
     const m = lk.m || 0;
     if (m) {
       const f = new THREE.Group(); f.position.set(.11, .04, .05); f.rotation.y = .9; A.add(f);
-      const base = { 1: '#f7f3ea', 2: '#f0c9a0', 3: '#fbf6ee', 4: '#c8322a' }[m];
+      const base = { 1: '#f7f3ea', 2: '#f0c9a0', 3: '#fbf6ee', 4: '#c8322a', 5: '#efe6d0', 6: '#b8282e', 7: '#fbfaf6', 8: '#c8322a' }[m];
       mesh(new THREE.SphereGeometry(.095, 14, 10, 0, PI * 2, 0, PI / 2), mat(base, { roughness: .4 }), f, 0, 0, 0, PI / 2, 0, 0);
       if (m === 1) { mesh(new THREE.ConeGeometry(.035, .07, 10), mat(base), f, 0, -.02, .1, PI / 2, 0, 0); for (const s of [-1, 1]) { mesh(new THREE.ConeGeometry(.03, .08, 4), mat(base), f, s * .055, .085, 0); mesh(new THREE.BoxGeometry(.035, .008, .01), mat('#c8322a'), f, s * .04, .02, .085, 0, 0, s * .4); } }
       if (m === 2) { mesh(new THREE.TorusGeometry(.016, .007, 6, 12), mat('#c8322a'), f, .02, -.04, .09); for (const s of [-1, 1]) mesh(new THREE.SphereGeometry(.014, 8, 6), mat('#1a1210'), f, s * .035 + (s > 0 ? .012 : 0), .02, .085, 0, 0, 0, 1, s > 0 ? .6 : 1, .5); }
       if (m === 3) { for (const s of [-1, 1]) { mesh(new THREE.CircleGeometry(.022, 12), mat('#f07a8a'), f, s * .05, -.015, .09, 0, s * .4, 0, 1, 1, 1, false); mesh(new THREE.BoxGeometry(.025, .005, .004), mat('#1a1210'), f, s * .035, .02, .093, 0, 0, s * .2); } mesh(new THREE.SphereGeometry(.009, 6, 4), mat('#c8322a'), f, 0, -.04, .094); }
+      if (m === 5) { for (const s of [-1, 1]) { mesh(new THREE.ConeGeometry(.015, .1, 8), gold, f, s * .06, .1, .02, 0, 0, -s * .5); mesh(new THREE.BoxGeometry(.035, .01, .008), gold, f, s * .035, .02, .09, 0, 0, s * .45); } mesh(new THREE.BoxGeometry(.07, .02, .008), mat('#7a1a1a'), f, 0, -.045, .09); mesh(new THREE.BoxGeometry(.06, .006, .009), mat('#ffffff'), f, 0, -.04, .093); }
+      if (m === 6) { for (const s of [-1, 1]) { mesh(new THREE.ConeGeometry(.018, .08, 8), mat('#f2e6c8'), f, s * .05, .1, .02, 0, 0, -s * .3); mesh(new THREE.ConeGeometry(.008, .025, 6), mat('#ffffff'), f, s * .025, -.055, .09, PI, 0, 0); mesh(new THREE.SphereGeometry(.013, 8, 6), mat('#f2d27a'), f, s * .035, .02, .088); } }
+      if (m === 7) { for (const s of [-1, 1]) { mesh(new THREE.ConeGeometry(.03, .06, 4), mat(base), f, s * .055, .085, 0); mesh(new THREE.ConeGeometry(.015, .03, 4), mat('#f2a0b0'), f, s * .055, .08, .015); for (let w = 0; w < 3; w++) mesh(new THREE.BoxGeometry(.05, .002, .002), mat('#1a1210'), f, s * .06, -.02 + w * .01, .088, 0, 0, s * (w - 1) * .2, 1, 1, 1, false); mesh(new THREE.BoxGeometry(.025, .006, .004), mat('#1a1210'), f, s * .035, .02, .09, 0, 0, -s * .3); } mesh(new THREE.SphereGeometry(.01, 6, 4), mat('#f2a0b0'), f, 0, -.01, .095); }
+      if (m === 8) { mesh(new THREE.SphereGeometry(.03, 10, 8), mat('#c8322a'), f, 0, -.01, .1); for (const s of [-1, 1]) { mesh(new THREE.SphereGeometry(.018, 8, 6), gold, f, s * .04, .03, .085); mesh(new THREE.TorusGeometry(.025, .008, 6, 12, PI), mat('#1a1a1a'), f, s * .04, .05, .08); } mesh(new THREE.BoxGeometry(.08, .015, .01), mat('#ffffff'), f, 0, -.05, .088); mesh(new THREE.TorusGeometry(.11, .02, 6, 18, PI * 1.4), mat('#2f6a4a'), f, 0, 0, -.01, 0, 0, -PI * .2); }
       if (m === 4) { mesh(new THREE.CylinderGeometry(.012, .022, .12, 8), mat('#c8322a'), f, 0, -.005, .15, PI / 2, 0, 0); for (const s of [-1, 1]) mesh(new THREE.BoxGeometry(.04, .012, .008), mat('#1a1210'), f, s * .04, .035, .088, 0, 0, s * .35); }
     }
     // 腰間
@@ -240,13 +251,15 @@ export class Chara {
     if (lk.c === 3) { mesh(G.stick, mat('#4a3424'), C, 0, .05, .08); mesh(G.umb, new THREE.MeshStandardMaterial({ map: TX.janome(), side: THREE.DoubleSide, roughness: .7 }), C, 0, .55, .08); }
     if (lk.c === 4) { mesh(new THREE.CylinderGeometry(.006, .006, .14, 4), mat('#c9a868'), C, 0, -.32, .1); mesh(new THREE.CircleGeometry(.09, 18), new THREE.MeshStandardMaterial({ map: TX.text('涼', { w: 128, h: 128, bg: '#f4efe2', fg: '#2a4b7c', vertical: false }), side: THREE.DoubleSide }), C, 0, -.2, .1, -.6, 0, 0, 1, 1, 1, false); }
     if (lk.c === 5) { mesh(new THREE.CylinderGeometry(.006, .006, .45, 4), mat('#c9a868'), C, 0, -.12, .1); this.wheel = new THREE.Group(); this.wheel.position.set(0, .12, .13); C.add(this.wheel); ['#e8455c', '#3f97ad', '#e8c56a', '#5c9a68'].forEach((c, i) => mesh(new THREE.ConeGeometry(.05, .09, 3), mat(c, { side: THREE.DoubleSide }), this.wheel, Math.cos(i * PI / 2) * .04, Math.sin(i * PI / 2) * .04, 0, 0, 0, i * PI / 2, 1, 1, .2, false)); }
+    if (lk.c === 7) { mesh(new THREE.CylinderGeometry(.003, .003, .1, 3), mat('#e84a5c'), C, 0, -.34, .1); const bag = mesh(new THREE.SphereGeometry(.07, 14, 12), new THREE.MeshStandardMaterial({ color: '#cfe8f4', transparent: true, opacity: .45, roughness: .1, metalness: .1 }), C, 0, -.46, .1, 0, 0, 0, 1, 1.15, 1, false);
+      for (let i = 0; i < 2; i++) { const fish = new THREE.Group(); fish.position.set(-.02 + i * .04, -.47 - i * .02, .1); fish.rotation.y = i * 2; C.add(fish); mesh(new THREE.SphereGeometry(.015, 8, 6), mat('#f05a28'), fish, 0, 0, 0, 0, 0, 0, 1.4, .8, .8, false); mesh(new THREE.ConeGeometry(.012, .02, 4), mat('#f05a28'), fish, -.025, 0, 0, 0, 0, PI / 2, 1, 1, .4, false); } }
     if (lk.c === 6) { mesh(new THREE.CylinderGeometry(.006, .006, .3, 4), mat('#4a3424'), C, 0, -.2, .18, 1.1, 0, 0); const lan = mesh(new THREE.SphereGeometry(.08, 12, 10), new THREE.MeshStandardMaterial({ color: '#f4e4c0', emissive: '#ffb050', emissiveIntensity: .8 }), C, 0, -.28, .36, 0, 0, 0, 1, 1.3, 1); }
     // 背上
     if (lk.b === 1) { mesh(new THREE.SphereGeometry(.15, 12, 10), new THREE.MeshStandardMaterial({ map: TX.karakusa(), roughness: .9 }), B, 0, .02, -.08, 0, 0, 0, 1.1, .85, .7); mesh(new THREE.TorusGeometry(.12, .015, 6, 16, PI), mat('#3a7a4a'), B, 0, .14, .14, -PI / 2, 0, 0); }
     if (lk.b === 2) { mesh(new THREE.CylinderGeometry(.13, .1, .3, 12, 1, true), mat('#9a7a4a', { side: THREE.DoubleSide, roughness: 1 }), B, 0, 0, -.1); for (let i = 0; i < 4; i++) mesh(new THREE.TorusGeometry(.125 - i * .008, .006, 3, 16), mat('#6a4a2a'), B, 0, -.12 + i * .08, -.1, PI / 2, 0, 0, 1, 1, 1, false); }
     if (lk.b === 3) { mesh(new THREE.BoxGeometry(.18, .18, .07), mat('#3a2418', { roughness: .4 }), B, .02, -.12, -.06, 0, 0, .25); mesh(new THREE.CylinderGeometry(.012, .012, .62, 6), mat('#2a1810'), B, -.06, .22, -.07, 0, 0, .25); mesh(new THREE.CircleGeometry(.065, 12), mat('#f4efe2'), B, .02, -.12, -.024, 0, 0, 0, 1, 1, 1, false); }
   }
-  addHeld(lk) { if (lk.f && Chara.foodModel) { const d = Chara.foodModel(lk.f); if (d) { d.scale.setScalar(1.25); d.rotation.x = -.2; this.foodG.add(d); } } }
+  addHeld(lk) { if (lk.f && Chara.foodModel) { const d = Chara.foodModel(lk.f); if (d) { d.scale.multiplyScalar(1.15); this.foodG.add(d); } } }
 
   // ---------- GM：花魁 ----------
   buildOiran(lk) {
@@ -257,7 +270,7 @@ export class Chara {
     const skin = mat('#f8f4ef', { roughness: .4 });
     this.torsoM.material = this.skirtM.material = inner; this.collarC.forEach(c => c.material = redM);
     this.legs.forEach(l => { l.userData.th.material = inner; l.userData.sh.material = skin; });
-    this.skirtLowM.material = inner; this.arms.forEach(a => { a.userData.sl.material = robe; a.userData.arm.material = robe; a.userData.sl.scale.set(1.3, 1.45, 1.45); a.userData.h.material = skin; });
+    this.skirtLowM.material = inner; this.arms.forEach(a => { a.userData.lin.visible = false; a.userData.th.material = skin; a.userData.sl.material = robe; a.userData.arm.material = robe; a.userData.sl.scale.set(1.3, 1.45, 1.45); a.userData.h.material = skin; });
     this.headM.material = skin; this.skinParts.forEach(p => p.material = skin);
     this.obiM.material = goldM; this.bowM.material = goldM; this.bowM.geometry = G.knotB; this.cordM.material = redM;
     // 袖口多層衣緣

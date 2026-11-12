@@ -27,6 +27,9 @@ export const ACC = [
   { id: 'chokan', n: '蝶簪', zh: '蝴蝶簪', slot: 'hs', v: 3, p: 55 }, { id: 'tamakan', n: '玉簪', zh: '珊瑚玉簪', slot: 'hs', v: 4, p: 40 },
   { id: 'kitsune', n: '狐の面', zh: '狐狸面具', slot: 'm', v: 1, p: 60 }, { id: 'hyottoko', n: 'ひょっとこ', zh: '火男面具', slot: 'm', v: 2, p: 50 },
   { id: 'okame', n: 'おかめ', zh: '阿龜面具', slot: 'm', v: 3, p: 50 }, { id: 'tengu', n: '天狗', zh: '天狗面具', slot: 'm', v: 4, p: 70 },
+  { id: 'hannya', n: '般若', zh: '般若面具', slot: 'm', v: 5, p: 90 }, { id: 'oni', n: '鬼の面', zh: '鬼面具', slot: 'm', v: 6, p: 70 },
+  { id: 'nekomen', n: '猫の面', zh: '貓面具', slot: 'm', v: 7, p: 55 }, { id: 'shishi', n: '獅子', zh: '獅子面具', slot: 'm', v: 8, p: 80 },
+  { id: 'kingyo', n: '金魚', zh: '金魚袋', slot: 'c', v: 7, p: 0, prize: 1 },
   { id: 'inro', n: '印籠', zh: '印籠', slot: 'w', v: 1, p: 80 }, { id: 'kinchaku', n: '巾着', zh: '巾著袋', slot: 'w', v: 2, p: 30 },
   { id: 'daisho', n: '大小', zh: '武士雙刀', slot: 'w', v: 3, p: 150 }, { id: 'tabako', n: '煙草入れ', zh: '煙草入れ', slot: 'w', v: 4, p: 45 },
   { id: 'sensu', n: '扇子', zh: '扇子', slot: 'c', v: 1, p: 30 }, { id: 'bangasa', n: '番傘', zh: '紅紙傘', slot: 'c', v: 2, p: 50 },
@@ -111,7 +114,7 @@ export const SHOPS = [
       { id: 'konpeito', n: '金平糖', zh: '金平糖', p: 12, dish: D('sweet', '#f2b8d0', '#b8d8f2'), steps: KASHI },
     ] },
   { id: 'komamono', name: '紅屋', kind: '小間物（飾品）', sign: '小間物', noren: '#a8323e', w: 10, floors: 2, side: 1, x: 18, wall: '#efe5d0', service: true,
-    menu: ACC.map(a => ({ id: a.id, n: a.n, zh: a.zh, p: a.p, look: { [a.slot]: a.v }, acc: a, cat: SLOT_NAME[a.slot], steps: KOMA })) },
+    menu: ACC.filter(a => a.slot !== 'm' && !a.prize).map(a => ({ id: a.id, n: a.n, zh: a.zh, p: a.p, look: { [a.slot]: a.v }, acc: a, cat: SLOT_NAME[a.slot], steps: KOMA })) },
   { id: 'ekisha', name: '八卦見', kind: '占卜', sign: '易', noren: '#4a3a6a', w: 8, floors: 1, side: 1, x: 36, wall: '#e2d8c2', service: true, stall: true,
     menu: [
       { id: 'omikuji', n: 'おみくじ', zh: '求籤', p: 4, fortune: 'kuji', steps: EKI },
@@ -121,7 +124,23 @@ export const SHOPS = [
     menu: [
       { id: 'nyuyoku', n: '入浴', zh: '泡湯', p: 8, bath: true, steps: YU },
     ] },
+  // ---- 祭典區（日本橋側）----
+  { id: 'kingyosukui', name: '金魚すくい', kind: '撈金魚（遊戲）', sign: '金魚', noren: '#1f6a9a', w: 8, floors: 1, side: -1, x: 72, wall: '#e8e0cc', stall: true, play: 'kingyo', style: 'yatai', price: 10, nobori: ['#1f6a9a', '金魚'] },
+  { id: 'omenya', name: '面屋', kind: 'お面屋（面具）', sign: 'お面', noren: '#c8322a', w: 10, floors: 1, side: -1, x: 88, wall: '#efe5d0', service: true, style: 'masks', nobori: ['#c8322a', 'お面'],
+    menu: ACC.filter(a => a.slot === 'm').map(a => ({ id: a.id, n: a.n, zh: a.zh, p: a.p, look: { m: a.v }, acc: a, cat: '面具', steps: [S('選ぶ', '挑面具', 'tap'), S('結ぶ', '綁繩', 'tap')] })) },
+  { id: 'shateki', name: '射的屋', kind: '射的（遊戲）', sign: '射的', noren: '#2f6a4a', w: 9, floors: 1, side: 1, x: 72, wall: '#e6dac0', stall: true, play: 'shateki', style: 'yatai', price: 15, nobori: ['#e8c56a', '射的'] },
+  { id: 'yukata', name: '夏衣', kind: '浴衣屋（吳服）', sign: '浴衣', noren: '#3a6aa8', w: 12, floors: 2, side: 1, x: 89, wall: '#f2ead6', service: true, style: 'yukata', nobori: ['#3a6aa8', '浴衣'],
+    menu: [
+      { id: 'y6', n: '朝顔の浴衣', zh: '朝顏浴衣', p: 110, look: { k: 9, p: 6 }, steps: GOFUKU },
+      { id: 'y7', n: '金魚の浴衣', zh: '金魚浴衣', p: 110, look: { k: 9, p: 7 }, steps: GOFUKU },
+      { id: 'y8', n: '花火の浴衣', zh: '花火浴衣', p: 130, look: { k: 0, p: 8 }, steps: GOFUKU },
+      { id: 'y9', n: '青海波の浴衣', zh: '波浪浴衣', p: 120, look: { k: 8, p: 9 }, steps: GOFUKU },
+      { id: 'y10', n: '撫子の浴衣', zh: '撫子浴衣', p: 110, look: { k: 5, p: 6 }, steps: GOFUKU },
+      { id: 'y11', n: '紺の花火', zh: '深藍花火', p: 130, look: { k: 3, p: 8 }, steps: GOFUKU },
+    ] },
 ];
+// 老店門口的長幟（のぼり）
+for (const [id, col, txt] of [['soba', '#24406e', '名物'], ['dango', '#c8322a', '団子'], ['tempura', '#e8c56a', '天麩羅'], ['wagashi', '#7a2f4a', '和菓子'], ['izakaya', '#6b5a3a', '酒'], ['chaya', '#5c9a68', '抹茶']]) { const sh = SHOPS.find(x => x.id === id); if (sh) sh.nobori = [col, txt]; }
 export const STREET = { front: 7, x0: -100, x1: 106 }; // 店面線 |z| = 7
 
 export const FORTUNE = {

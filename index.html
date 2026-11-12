@@ -69,7 +69,7 @@ button:not(:disabled):active{transform:translateY(1px)}
 #log>div.sys{background:rgba(140,40,30,.75)}
 #gmRow{margin-top:8px}
 #gmIn{font:inherit;width:100%;padding:8px 10px;border:1px dashed var(--sub);border-radius:8px;background:#fffaf0;color:var(--ink)}
-#held{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;background:rgba(243,234,214,.95);border:1.5px solid var(--ink);border-radius:24px;padding:4px 6px 4px 14px;font-size:14px;white-space:nowrap}
+#held{position:absolute;left:14px;bottom:64px;display:flex;align-items:center;gap:6px;background:rgba(243,234,214,.95);border:1.5px solid var(--ink);border-radius:24px;padding:4px 6px 4px 14px;font-size:14px;white-space:nowrap}
 #held b{font-family:"Yuji Syuku",serif;font-weight:400;font-size:17px;color:var(--red)}
 #held button{padding:4px 10px;font-size:14px;border-radius:16px}
 #held #bEat{background:var(--red);color:#fff8e8;border-color:#7a1f1a}
@@ -88,7 +88,7 @@ button:not(:disabled):active{transform:translateY(1px)}
 .gml{display:flex;flex-direction:column;gap:4px;max-height:30vh;overflow:auto}
 .gml>div{display:flex;justify-content:space-between;align-items:center;background:#fffaf0;border-radius:6px;padding:4px 8px}
 .gml button{font-size:12px;padding:3px 7px;margin-left:3px}
-body.touch #held{bottom:222px;top:auto}
+body.touch #held{left:12px;bottom:168px;top:auto;flex-wrap:wrap;max-width:60vw}
 #act{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:17px;padding:11px 22px;border-radius:30px;box-shadow:0 4px 16px rgba(0,0,0,.35);white-space:nowrap}
 #tools{position:absolute;right:10px;bottom:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:70vw}
 #tools button{background:rgba(243,234,214,.93);font-size:15px;padding:7px 11px}
@@ -160,6 +160,8 @@ body.touch .pop{bottom:70px}
 @keyframes pop{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}30%{opacity:1;transform:translate(-50%,0) scale(1.15)}100%{opacity:0;transform:translate(-50%,-14px)}}
 /* 彈窗 */
 .modal{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:rgba(10,6,4,.45);padding:16px}
+.pgc{text-align:center;max-width:420px!important}
+#pgc{width:100%;max-width:360px;border-radius:10px;border:2px solid var(--ink);touch-action:none;cursor:crosshair}
 .modal .card{max-width:min(560px,calc(100vw - 32px));width:100%;max-height:86vh;overflow:auto;position:relative}
 @media (max-width:520px){#help dl{grid-template-columns:1fr!important;gap:2px!important}#help dt{margin-top:8px}}
 #help h3{font-size:26px}
@@ -275,6 +277,7 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
 </div></div>
 <div id="fortune" class="modal hide"></div>
 <div id="ukiyo" class="modal hide"></div>
+<div id="pg" class="modal hide"></div>
 <div id="settings" class="modal hide"><div class="card">
   <button class="close" data-close>✕</button>
   <h3>設定・畫質</h3>
