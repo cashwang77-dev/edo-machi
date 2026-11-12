@@ -777,9 +777,11 @@ const clock = new THREE.Clock(); let time = 0, sendT = 0, nearT = 0, last = { x:
 function update(dt) {
   time += dt;
   if (G.mode === 'title') {
-    const p = G.me.root.position; const a = time * .12;
-    camera.position.set(p.x - 3.6 * Math.cos(a * .5 - .4), 1.55, p.z + 3.6 * Math.sin(a * .5 - .4) * .6 + 1.2); camera.lookAt(p.x, 1.05, p.z);
-    G.me.root.rotation.y = -PI / 2 + Math.sin(time * .4) * .5; G.me.update(dt, 0);
+    // 標題：從東邊拍角色，背景是街道盡頭的富士山
+    const p = G.me.root.position, port = camera.aspect < 1;
+    const th = (port ? .03 : .32) + Math.sin(time * .12) * .05, cz = p.z - (port ? .1 : .55);
+    camera.position.set(p.x + (port ? 4.2 : 3.4), 1.45, cz); camera.lookAt(p.x + 3.4 - Math.cos(th) * 10, port ? 2.9 : 1.75, cz + Math.sin(th) * 10);
+    G.me.root.rotation.y = PI / 2 + Math.sin(time * .4) * .4; G.me.update(dt, 0);
   } else {
     // 移動
     let ix = 0, iz = 0;

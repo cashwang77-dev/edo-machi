@@ -572,9 +572,9 @@ export function buildWorld(scene) {
     const fg = new THREE.LatheGeometry(pts, 48); const cols = []; const pos = fg.attributes.position;
     for (let i = 0; i < pos.count; i++) { const y = pos.getY(i) / 520; const ang = Math.atan2(pos.getZ(i), pos.getX(i)); const snow = y > .62 + Math.sin(ang * 9) * .06 ? 1 : 0; const c = snow ? new THREE.Color('#f4f6fb') : new THREE.Color('#5a6c8c'); cols.push(c.r, c.g, c.b); }
     fg.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
-    const fm = new THREE.MeshLambertMaterial({ vertexColors: true, fog: false }); fm.userData.base = new THREE.Color('#ffffff'); W.far.push(fm);
-    const fuji = new THREE.Mesh(fg, fm); fuji.position.set(-2300, -40, -420); scene.add(fuji);
-    for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283, r = 1300 + rand() * 200; if (Math.abs(a - 3.4) < .35) continue; const m = new THREE.Mesh(new THREE.ConeGeometry(300 + rand() * 300, 90 + rand() * 120, 7), fogless('#4f6278')); m.position.set(Math.cos(a) * r, 0, Math.sin(a) * r); m.scale.z = .5 + rand() * .5; scene.add(m); }
+    const fm = new THREE.MeshLambertMaterial({ vertexColors: true, fog: false }); fm.userData.base = new THREE.Color('#ffffff'); W.far.push(fm); W.fujiMat = fm;
+    const fuji = new THREE.Mesh(fg, fm); fuji.position.set(-2300, -40, -140); fuji.scale.set(1.35, 1.35, 1.35); scene.add(fuji); W.fuji = fuji;
+    for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283, r = 1300 + rand() * 200; if (Math.abs(a - Math.PI) < .45) continue; const m = new THREE.Mesh(new THREE.ConeGeometry(300 + rand() * 300, 90 + rand() * 120, 7), fogless('#4f6278')); m.position.set(Math.cos(a) * r, 0, Math.sin(a) * r); m.scale.z = .5 + rand() * .5; scene.add(m); }
     // 江戶城
     const cg = new THREE.Group(); cg.position.set(260, 0, -560);
     const wm = fogless('#e9e6dc'), rm = fogless('#3d4a52'), sm = fogless('#7d7a70'), gm = fogless('#caa44a');
@@ -619,7 +619,7 @@ export function buildWorld(scene) {
     waterMat.uniforms.uTime.value = time; waterMat.uniforms.uSky.value.copy(D.bot).lerp(D.top, .3); waterMat.uniforms.uSunDir.value.copy(sunDir); waterMat.uniforms.uSunCol.value.copy(D.sun); waterMat.uniforms.uFog.value.copy(D.fog); waterMat.uniforms.uFogD.value = scene.fog.density; waterMat.uniforms.uGlow.value = D.lan;
     waterMat.uniforms.uDeep.value.set('#1d3b3a').multiplyScalar(.35 + .65 * (1 - D.lan));
     for (const m of GLOW) m.emissiveIntensity = D.lan * m.userData.k;
-    for (const m of W.far) { m.color.copy(m.userData.base).lerp(D.fog, .62); }
+    for (const m of W.far) { m.color.copy(m.userData.base).lerp(D.fog, m === W.fujiMat ? .38 + D.lan * .2 : .62); }
     W.night = D.lan; W.D = D;
     // 燈籠點光源：每 0.4 秒挑最近的
     lt -= dt; if (lt < 0) { lt = .4; const near = W.lanterns.map(p => [p, p.distanceToSquared(focus)]).sort((a, b) => a[1] - b[1]).slice(0, pool.length); pool.forEach((l, i) => { if (near[i]) l.position.copy(near[i][0]).add(new THREE.Vector3(0, -.2, 0)); }); }
