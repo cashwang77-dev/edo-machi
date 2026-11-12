@@ -8,6 +8,10 @@ def bbox(im):
     a = np.asarray(im).astype(int); ink = (765 - a.sum(2)) > 40; w_ = ink.shape[1]; ink[:, :int(w_ * .25)] = False; ink[:, int(w_ * .75):] = False; ink[int(ink.shape[0] * .93):] = False
     ys, xs = np.where(ink); return np.percentile(xs, .5), np.percentile(ys, .5), np.percentile(xs, 99.5), np.percentile(ys, 99.5)
 B = bbox(base)
+# 新版貼圖排版：左半正面、右半側背面色帶 → 從 glb 取出右半沿用
+import pygltflib, io
+_g = pygltflib.GLTF2().load(os.path.join(ROOT, 'img', f'head_{name}.glb')); _b = _g.binary_blob(); _bv = _g.bufferViews[_g.images[0].bufferView]
+RIGHT = Image.open(io.BytesIO(_b[_bv.byteOffset:_bv.byteOffset + _bv.byteLength])).convert('RGB').resize((2048, 1024)).crop((1024, 0, 2048, 1024))
 def sq(im): w, h = im.size; return im.crop(((w - h) // 2, 0, (w + h) // 2, h))
 def tex(im, cheek=(225, 177, 163)):
     t = sq(im).copy(); d = ImageDraw.Draw(t); d.rectangle([0, 0, 15, 15], fill=cheek); d.rectangle([16, 0, 31, 15], fill=(28, 24, 26)); return t.resize((1024, 1024), Image.LANCZOS)
@@ -23,5 +27,6 @@ for ex in [f[3:-4] for f in os.listdir(SRC) if f.startswith('ex_') and f.endswit
     im2 = im.resize((round(W * s), round(H * s)), Image.LANCZOS); E2 = [v * s for v in E]
     canvas = Image.new('RGB', (W, H), 'white'); canvas.paste(im2, (round(B[0] - E2[0]), round(B[1] - E2[1])))
     out = Image.composite(canvas, base, mask)
-    tex(out).save(os.path.join(ROOT, 'img', f'head_{name}_{ex}.jpg'), quality=86)
+    t = Image.new('RGB', (2048, 1024)); t.paste(tex(out), (0, 0)); t.paste(RIGHT, (1024, 0))
+    t.save(os.path.join(ROOT, 'img', f'head_{name}_{ex}.jpg'), quality=86)
     print(ex, 'scale', round(s, 3))

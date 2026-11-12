@@ -21,14 +21,17 @@ export const CHEEKS = ['無', '淡', '濃'];
 export const MOLES = ['無', '淚痣'];
 export const FACES = ['精緻', 'Q版'];
 // 精緻臉：3D 生成的真人頭部（依髮型對應）；沒有對應模型的髮型維持原本做法
-export const HEAD3D = { 1: 'head_bijin' };
+export const HEAD3D = { 0: 'head_chonmage', 1: 'head_bijin', 2: 'head_sohatsu', 3: 'head_bozu' };
+// 各模型的縮放與上下位置（模型高度含脖子／肩膀，比例不同）
+const H3CFG = { head_bijin: [.44, .005, '#efd3c4'], head_chonmage: [.42, .01, '#dcae90'], head_sohatsu: [.35, -.005, '#d8a98a'], head_bozu: [.34, -.005, '#d2a183'] };
 // 3D 頭的表情貼圖（同一張臉的表情差分，UV 相同直接換貼圖）
 const H3EX = { head_bijin: ['calm', 'laugh', 'wow', 'sad'] }; const H3T = {}; const tl = new THREE.TextureLoader();
-function exTex(n, ex) { const k = n + '_' + ex; if (!H3T[k]) { const t = H3T[k] = tl.load(`img/${k}.jpg?v=2`); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; } return H3T[k]; }
+function exTex(n, ex) { const k = n + '_' + ex; if (!H3T[k]) { const t = H3T[k] = tl.load(`img/${k}.jpg?v=3`); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; } return H3T[k]; }
 const H3 = {}; const gltf = new GLTFLoader();
-function loadHead(n) { return H3[n] || (H3[n] = gltf.loadAsync(`img/${n}.glb?v=2`).then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material.roughness = .6; o.material.metalness = 0; } }); return g.scene; }).catch(() => null)); }
+function loadHead(n) { return H3[n] || (H3[n] = gltf.loadAsync(`img/${n}.glb?v=3`).then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material.roughness = .6; o.material.metalness = 0; } }); return g.scene; }).catch(() => null)); }
 const PI = Math.PI;
-export const RIDE_Y = .7; // 坐在人力車上時角色根部的高度
+export const RIDE_Y = .7;
+const BODY_W = .84; // 身體寬度比例（配合寫實頭部，肩寬約兩個頭寬） // 坐在人力車上時角色根部的高度
 
 export function randomLook(r = Math.random) {
   const pick = n => Math.floor(r() * n);
@@ -144,7 +147,7 @@ export class Chara {
     this.collarC = [];
     for (const s of [-1, 1]) this.collarC.push(mesh(G.eri, mat('#888'), this.detailG, s * .058, .49, .16, -.36, 0, -s * .28, 1.3, 1.02, 1, false));
     this.fukiM = mesh(G.fuki, mat('#c8322a'), this.skirtG, 0, -.432, 0, PI / 2, 0, 0, 1, 1, 1, false);
-    mesh(G.neck, mat('#f1d2b6'), this.upper, 0, .655, 0);
+    this.neckM = mesh(G.neck, mat('#f1d2b6'), this.upper, 0, .655, 0);
     // 手臂：肩→和服袖＋手
     this.arms = [];
     for (const s of [-1, 1]) {
@@ -157,7 +160,8 @@ export class Chara {
       a.userData = { sl, h, arm, lin, th }; this.upper.add(a); this.arms.push(a);
     }
     // 頭
-    this.headG = new THREE.Group(); this.headG.position.y = .775; this.headG.scale.setScalar(.9); this.upper.add(this.headG);
+    this.upper.scale.set(BODY_W, 1, BODY_W);
+    this.headG = new THREE.Group(); this.headG.position.y = .775; this.headG.scale.set(.9 / BODY_W, .9, .9 / BODY_W); this.upper.add(this.headG);
     this.headM = mesh(G.head, mat('#f1d2b6'), this.headG, 0, 0, 0);
     this.faceG = new THREE.Group(); this.headG.add(this.faceG);
     this.skinParts = [];
@@ -179,7 +183,7 @@ export class Chara {
     this.torsoM.material = this.skirtM.material = km; this.legs.forEach(l => { l.userData.th.material = km; l.userData.sh.material = skin; l.userData.geta.material = mat('#7a5634'); l.userData.geta.scale.y = 1; l.userData.teeth.forEach((t, i) => { t.material = mat('#5a3e26'); t.scale.set(1, 1, 1); t.position.y = -.06; t.visible = true; }); });
     this.collarC.forEach(c => c.material = km); this.skirtLowM.material = km; this.arms.forEach(a => { a.userData.sl.material = km; a.userData.arm.material = km; a.userData.sl.scale.set(1, 1, 1); a.userData.h.material = a.userData.th.material = skin; a.userData.lin.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4]); a.userData.lin.visible = true; });
     this.fukiM.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4], { roughness: .6 });
-    this.obiM.material = obi; this.bowM.material = obi; this.headM.material = skin; this.buildFace(lk, skin); this.apply3d(lk);
+    this.obiM.material = obi; this.bowM.material = obi; this.headM.material = skin; this.neckM.material = skin; this.buildFace(lk, skin); this.apply3d(lk);
     this.cordM.material = mat(['#c8322a', '#e8c56a', '#3a6a8a', '#f4f0e4', '#8a3a6a', '#2f6a4a'][(lk.o + 2) % 6]);
     const female = lk.h === 1 || lk.h === 4;
     this.obiM.scale.set(1, female ? 1 : .5, 1); this.obiM.position.y = female ? .25 : .19; this.obiageM.visible = female; this.cordM.visible = female; this.fukiM.visible = female;
@@ -374,7 +378,8 @@ export class Chara {
     const show = v => { this.headM.visible = this.hairG.visible = v; this.faceG.visible = v; };
     show(true); this.h3tok = null; if (!n) return;
     const tok = this.h3tok = {};
-    loadHead(n).then(sc => { if (!sc || this.h3tok !== tok) return; this.h3 = sc.clone(); this.h3n = n; this.h3ex = ''; this.h3.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); this.h3mat = o.material; this.h3base = o.material.map; } }); this.h3.scale.setScalar(.44); this.h3.position.set(0, .005, .006); this.headG.add(this.h3); show(false); });
+    loadHead(n).then(sc => { if (!sc || this.h3tok !== tok) return; this.h3 = sc.clone(); this.h3n = n; this.h3ex = ''; this.h3.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); this.h3mat = o.material; this.h3base = o.material.map; } }); const hc = H3CFG[n] || [.44, 0]; this.h3.scale.setScalar(hc[0]); this.h3.position.set(0, hc[1], .006);
+      if (hc[2]) { const sk = mat(hc[2], { roughness: .55 }); this.neckM.material = sk; this.arms.forEach(a => { a.userData.h.material = a.userData.th.material = sk; }); this.legs.forEach(l => l.userData.sh.material = sk); } this.headG.add(this.h3); show(false); });
   }
   lod(d) { const near = d < 16; this.faceG.visible = d < 13 && !this.h3; this.detailG.visible = near; this.legs.forEach(l => { l.userData.teeth.forEach(t => t.visible = near); }); }
   setName(n, npc) {
@@ -435,7 +440,7 @@ export class Chara {
     else if (a === 16) { const e = Math.min(1, t * 4); arx = -2.5 * e; arz = .15; up = Math.sin(Math.min(t * 6, PI)) * .04; }
     else if (a === 17) { const e = Math.min(1, t * 2.5); alx = arx = -1.25 * e; alz = -.62 * e; arz = .62 * e; bend = .22 * Math.min(1, Math.max(0, t - .6) * 2); headX = .25 * e; }
     else if (a === 14) { const e = Math.sin(t * 18); bend = -.18 + e * .04; alx = arx = -.5; alz = -.5; arz = .5; headX = -.25 + e * .06; up = Math.abs(e) * .02; }
-    else { up = Math.sin(t * 1.6) * .012; if (this.gm) { twist = Math.sin(t * .9) * .06; headX = Math.sin(t * .7) * .04; } }
+    else { up = Math.sin(t * 1.6) * .012; alx = arx = -.4; alz = -.26; arz = .26; if (this.gm) { twist = Math.sin(t * .9) * .06; headX = Math.sin(t * .7) * .04; } }
     if (this.look.c === 2 && ![7, 4, 9, 10, 11, 13, 16, 17].includes(a)) arx = Math.min(arx, -1.2);
     if (this.gm && ![7, 4, 9, 10, 11, 13, 16, 17].includes(a)) arx = Math.min(arx, -.7);
     if (this.look.f && ![5, 15, 4, 9, 10, 11, 17].includes(a)) alx = Math.min(alx, -.9);
@@ -444,6 +449,8 @@ export class Chara {
     K[0].rotation.x = lr(K[0].rotation.x, lk); K[1].rotation.x = lr(K[1].rotation.x, rk);
     A[0].rotation.x = lr(A[0].rotation.x, alx); A[1].rotation.x = lr(A[1].rotation.x, arx);
     A[0].rotation.z = lr(A[0].rotation.z, -alz); A[1].rotation.z = lr(A[1].rotation.z, -arz);
+    // 袖子受重力下垂：抵銷大部分手臂旋轉
+    for (const ar of A) { const u = ar.userData; if (!u.sl) continue; const gx = -ar.rotation.x * .78, gz = -ar.rotation.z * .7; u.sl.rotation.x = gx; u.sl.rotation.z = gz; if (u.lin) { u.lin.rotation.x = gx; u.lin.rotation.z = gz; } }
     this.upper.rotation.x = lr(this.upper.rotation.x, bend); this.upper.rotation.y = lr(this.upper.rotation.y, twist); this.upper.rotation.z = lr(this.upper.rotation.z, side);
     this.skirtG.rotation.x = lr(this.skirtG.rotation.x, lap - bend); this.skirtG.scale.y = lr(this.skirtG.scale.y, lap < -1 ? .6 : 1);
     { const th = this.skirtG.rotation.x, Lk = .44 * this.skirtG.scale.y; this.lowG.position.set(0, -Lk * Math.cos(th), -Lk * Math.sin(th)); this.lowG.rotation.x = -this.upper.rotation.x; this.lowG.visible = th < -.8; }
