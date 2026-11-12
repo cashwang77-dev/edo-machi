@@ -761,6 +761,49 @@ function updDeer(dt) {
   }
 }
 
+// ---------- 花魁道中：GM 花魁身邊的跟班（提燈男眾、兩位禿、撐傘男眾）----------
+const RETINUE = new Map();
+const RET_PLAN = [
+  { role: 'lantern', off: [0, 2.3], look: { k: 6, p: 1, o: 1, h: 0, s: 1, ey: 3, br: 3, mo: 3, ck: 0 } },
+  { role: 'kamuro', off: [-.6, 1.2], look: { k: 1, p: 5, o: 2, h: 4, s: 0, ey: 0, br: 0, mo: 1, ck: 2, hs: 1 } },
+  { role: 'kamuro', off: [.6, 1.2], look: { k: 1, p: 5, o: 2, h: 4, s: 0, ey: 4, br: 0, mo: 0, ck: 2, hs: 1 } },
+  { role: 'umbrella', off: [.45, -.8], look: { k: 3, p: 0, o: 1, h: 0, s: 1, ey: 1, br: 1, mo: 3, ck: 0 } },
+];
+function makeRetinue(boss) {
+  const mem = RET_PLAN.map(pl => { const ch = new Chara(pl.look, ''); if (pl.role === 'kamuro') ch.root.scale.setScalar(.66); scene.add(ch.root); const b = boss.root.position; ch.root.position.copy(b); return { ...pl, ch }; });
+  const lb = mem[0].ch; const lan = new THREE.Group(); lan.position.set(0, -.3, .2); lan.rotation.x = 1; lb.arms[1].add(lan);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .7, 5), dm('#3a2418')); pole.position.y = .3; lan.add(pole);
+  const box = new THREE.Mesh(new THREE.CylinderGeometry(.11, .11, .32, 14), new THREE.MeshStandardMaterial({ map: TX.text('花', { w: 256, h: 128, bg: '#f6efe0', fg: '#1a1210', vertical: false }), emissive: '#ffb050', emissiveIntensity: .6 })); box.position.y = .72; box.rotation.x = -1; lan.add(box);
+  // 大紅傘（長竿撐在花魁頭頂）
+  const umb = new THREE.Group(); scene.add(umb);
+  const canopy = new THREE.Mesh(new THREE.ConeGeometry(1.15, .45, 24, 1, true), new THREE.MeshStandardMaterial({ map: TX.janome(), side: THREE.DoubleSide, roughness: .7 })); canopy.castShadow = true; umb.add(canopy);
+  for (let i = 0; i < 12; i++) { const a = i / 12 * PI * 2; const r = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, 1.15, 3), dm('#e8dcc0')); r.position.set(Math.cos(a) * .55, -.12, Math.sin(a) * .55); r.rotation.set(Math.sin(a) * 1.15, 0, -Math.cos(a) * 1.15); umb.add(r); }
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, 1, 6), dm('#4a3424')); scene.add(shaft);
+  return { mem, umb, shaft, boss };
+}
+function dropRetinue(ch) { const r = RETINUE.get(ch); if (!r) return; r.mem.forEach(m => scene.remove(m.ch.root)); scene.remove(r.umb); scene.remove(r.shaft); RETINUE.delete(ch); }
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
+function updRetinue(dt) {
+  const bosses = [G.me, ...[...G.remotes.values()].map(r => r.ch)].filter(c => c && c.gm && G.mode !== 'title');
+  for (const [ch] of RETINUE) if (!bosses.includes(ch)) dropRetinue(ch);
+  for (const boss of bosses) {
+    if (!RETINUE.has(boss)) RETINUE.set(boss, makeRetinue(boss));
+    const R = RETINUE.get(boss), bp = boss.root.position, ry = boss.root.rotation.y, sn = Math.sin(ry), cs = Math.cos(ry);
+    for (const m of R.mem) {
+      const p = m.ch.root.position, tx = bp.x + m.off[0] * cs + m.off[1] * sn, tz = bp.z - m.off[0] * sn + m.off[1] * cs;
+      const dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz); if (d > 8) { p.set(tx, bp.y, tz); }
+      const sp = Math.min(d, Math.max(0, d - .05) * 3 * dt + (d > 1.5 ? d * dt * 2 : 0)); if (d > .001) { p.x += dx / d * sp; p.z += dz / d * sp; }
+      p.y = heightAt(p.x, p.z) * (m.role === 'kamuro' ? 1 : 1);
+      m.ch.root.rotation.y = angLerp(m.ch.root.rotation.y, d > .3 ? Math.atan2(dx, dz) : ry, Math.min(1, dt * 5));
+      m.ch.play(d > .12 ? 1 : 0); m.ch.update(dt, d > .12 ? 2.4 : 0);
+    }
+    // 傘：竿子從撐傘男眾的手到花魁頭頂
+    const ub = R.mem[3].ch.root.position; _v1.set(ub.x, ub.y + 1.05, ub.z); _v2.set(bp.x, bp.y + 2.75, bp.z);
+    R.umb.position.lerp(_v2, Math.min(1, dt * 6)); R.umb.rotation.y += dt * .2;
+    const dir = _v2.clone().sub(_v1); const len = dir.length(); R.shaft.position.copy(_v1).addScaledVector(dir, .5); R.shaft.scale.set(1, len, 1); R.shaft.quaternion.setFromUnitVectors(_up, dir.normalize());
+  }
+}
+
 // ---------- 掌櫃叫賣 ----------
 const CALLS = {
   soba: ['そば〜、あったかいそばはいかが〜', '熱騰騰的蕎麥麵喔～'], chaya: ['いらっしゃい、お茶でも一服どうぞ〜', '進來喝杯茶歇歇腳吧～'],
@@ -1110,8 +1153,8 @@ function update(dt) {
     if (R.ovT > 0) { R.ovT -= dt; R.ch.play(R.ov); } else R.ch.play(R.a); R.ch.update(dt, Math.hypot(p.x - ox, p.z - oz) / Math.max(dt, .001));
   }
   for (const c of G.npcCust) c.ch.update(dt, 0);
-  updNPCs(dt); updDeer(dt);
-  if ((lodT = (lodT || 0) - dt) < 0) { lodT = .3; const cp = camera.position; const all = [G.me, ...[...G.remotes.values()].map(r => r.ch), ...NPCS.map(n => n.ch), ...Object.values(keepers), ...G.npcCust.map(c => c.ch)]; for (const ch of all) if (ch && ch.lod) ch.lod(ch.root.position.distanceTo(cp)); }
+  updNPCs(dt); updDeer(dt); updRetinue(dt);
+  if ((lodT = (lodT || 0) - dt) < 0) { lodT = .3; const cp = camera.position; const all = [G.me, ...[...G.remotes.values()].map(r => r.ch), ...NPCS.map(n => n.ch), ...Object.values(keepers), ...G.npcCust.map(c => c.ch), ...[...RETINUE.values()].flatMap(r => r.mem.map(m => m.ch))]; for (const ch of all) if (ch && ch.lod) ch.lod(ch.root.position.distanceTo(cp)); }
   if (G.mode !== 'title' && W) {
     const near = [...G.remotes.values()].filter(r => r.ch.root.position.distanceTo(G.pos) < 15).length + NPCS.filter(n => n.ch.root.visible && n.ch.root.position.distanceTo(G.pos) < 15).length;
     SND.update(dt, tday(), W.night || 0, Math.max(0, Math.abs(G.pos.x - 125) - 13), near, Math.abs(G.pos.z) < 12 && G.pos.x > -100 && G.pos.x < 104);

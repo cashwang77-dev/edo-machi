@@ -25,6 +25,21 @@ export function randomLook(r = Math.random) {
   return { k: pick(KIMONO.length), p: [0, 0, 1, 2, 3, 4, 5, 9, 10, 11, 12][pick(11)], o: pick(OBI.length), h: pick(HAIRS.length), s: pick(3), hat: r() < .15 ? 1 : 0, c: r() < .1 ? pick(3) : 0, ey: pick(5), br: pick(4), mo: pick(4), ck: pick(3), mk: r() < .2 ? 1 : 0 };
 }
 const V2 = a => a.map(p => new THREE.Vector2(p[0], p[1]));
+// 把球形變成真人頭型：拉長、側面收窄、下巴收尖、顴骨、後腦飽滿（頭、臉部貼花、頭髮共用，貼合不浮）
+function headShape(x, y, z) {
+  y *= 1.13; x *= .9;
+  if (y < 0) { const t = Math.min(1, -y / 1.13); x *= 1 - .36 * t * t; z *= 1 - .14 * t * t; if (z > 0) { z += .06 * t * t; y -= .04 * t * t; } }
+  if (z < 0) { z *= 1.1; y *= 1.02; }
+  if (y > -.4 && y < .1 && z > .2) x *= 1 + .05 * (1 - Math.abs(y + .15) / .25);
+  if (y > .25 && z > .3) z *= .97;
+  return [x, y, z];
+}
+function deformHead(g, r) {
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const [x, y, z] = headShape(p.getX(i) / r, p.getY(i) / r, p.getZ(i) / r); p.setXYZ(i, x * r, y * r, z * r); }
+  g.computeVertexNormals(); return g;
+}
+const HEADP = (x, y, z, r = .125) => headShape(x / r, y / r, z / r).map(v => v * r);
 // ---------- 共用幾何 ----------
 const G = {
   torso: new THREE.LatheGeometry(V2([[0, 0], [.186, 0], [.19, .05], [.182, .14], [.166, .26], [.17, .36], [.178, .44], [.172, .5], [.145, .56], [.1, .6], [.06, .622], [.035, .632], [0, .635]]), 30),
@@ -47,19 +62,19 @@ const G = {
   arm: new THREE.CylinderGeometry(.04, .036, .26, 12),
   hand: new THREE.CapsuleGeometry(.026, .04, 4, 10),
   neck: new THREE.CylinderGeometry(.045, .05, .08, 10),
-  head: new THREE.SphereGeometry(.125, 24, 18),
-  decal: new THREE.SphereGeometry(.1262, 40, 32, PI / 2 - .9, 1.8, PI * .28, PI * .5),
+  head: deformHead(new THREE.SphereGeometry(.125, 32, 24), .125),
+  decal: deformHead(new THREE.SphereGeometry(.1265, 40, 32, PI / 2 - .9, 1.8, PI * .28, PI * .5), .1265),
   ear: new THREE.SphereGeometry(.024, 8, 6),
-  nose: new THREE.SphereGeometry(.013, 8, 6),
+  nose: (() => { const sh = new THREE.Shape(); sh.moveTo(-.011, 0); sh.lineTo(.011, 0); sh.lineTo(0, .034); sh.closePath(); const g = new THREE.ExtrudeGeometry(sh, { depth: .016, bevelEnabled: true, bevelThickness: .004, bevelSize: .004, bevelSegments: 2 }); g.translate(0, -.034, -.008); g.rotateX(-.25); return g; })(),
   eye: new THREE.SphereGeometry(.018, 10, 8),
   hi: new THREE.SphereGeometry(.0055, 6, 4),
   brow: new THREE.BoxGeometry(.036, .007, .006),
   mouth: new THREE.TorusGeometry(.014, .0035, 4, 10, PI),
   cheek: new THREE.CircleGeometry(.022, 12),
   collar: new THREE.BoxGeometry(.04, .24, .015),
-  capTop: new THREE.SphereGeometry(.133, 20, 7, 0, PI * 2, 0, PI * .34),
-  capBack: new THREE.SphereGeometry(.133, 20, 9, PI / 2 + .9, PI * 2 - 1.8, PI * .32, PI * .34),
-  side: new THREE.SphereGeometry(.134, 20, 9, PI / 2 + .9, PI * 2 - 1.8, PI * .3, PI * .3),
+  capTop: deformHead(new THREE.SphereGeometry(.133, 28, 10, 0, PI * 2, 0, PI * .37), .133),
+  capBack: deformHead(new THREE.SphereGeometry(.133, 24, 11, PI / 2 + .9, PI * 2 - 1.8, PI * .32, PI * .4), .133),
+  side: deformHead(new THREE.SphereGeometry(.134, 24, 11, PI / 2 + .9, PI * 2 - 1.8, PI * .3, PI * .3), .134),
   knot: new THREE.CylinderGeometry(.022, .028, .16, 8),
   bun: new THREE.SphereGeometry(.085, 14, 10),
   hatG: new THREE.ConeGeometry(.34, .16, 24, 1, true),
@@ -125,8 +140,8 @@ export class Chara {
       a.userData = { sl, h, arm, lin, th }; this.upper.add(a); this.arms.push(a);
     }
     // 頭
-    this.headG = new THREE.Group(); this.headG.position.y = .78; this.upper.add(this.headG);
-    this.headM = mesh(G.head, mat('#f1d2b6'), this.headG, 0, 0, 0, 0, 0, 0, .95, 1.05, .98);
+    this.headG = new THREE.Group(); this.headG.position.y = .775; this.headG.scale.setScalar(.9); this.upper.add(this.headG);
+    this.headM = mesh(G.head, mat('#f1d2b6'), this.headG, 0, 0, 0);
     this.faceG = new THREE.Group(); this.headG.add(this.faceG);
     this.skinParts = [];
     this.backG = new THREE.Group(); this.backG.position.set(0, .38, -.2); 
@@ -163,13 +178,13 @@ export class Chara {
         const k = H(G.knot, 0, .145, -.03); k.rotation.x = PI / 2 - .25; H(G.bun, 0, .12, -.1, .35, .35, .5); break;
       }
       case 1: { // 島田髷：前髮、兩鬢、頭頂大髷、後髷
-        HC(); H(G.bun, 0, .11, .07, .55, .38, .45); for (const s of [-1, 1]) H(G.bun, s * .11, .0, -.01, .45, .6, .7);
+        HC(); H(G.bun, 0, .098, .072, .58, .36, .45); for (const s of [-1, 1]) H(G.bun, s * .11, .0, -.01, .45, .6, .7);
         H(G.bun, 0, .17, -.04, 1.25, .62, .85); H(G.bun, 0, .05, -.14, .95, .75, .7); H(G.knot, 0, .17, -.04, 1.8, .55, 1.8, 0, PI / 2);
         break;
       }
       case 2: { HC(0, 1.05); const k = H(G.knot, 0, .02, -.16); k.rotation.x = .55; k.scale.set(1.6, 1.4, 1.6); H(G.bun, 0, -.06, -.2, .35, .9, .35); break; } // 総髪
       case 3: { mesh(G.capTop, mat('#d6bba3', { roughness: .65 }), this.hairG, 0, .004, -.004, 1.01, 1.0, 1.02); break; } // 坊主
-      case 4: { HC(); H(G.bun, 0, .1, .07, .5, .35, .42); for (const s of [-1, 1]) { H(G.bun, s * .1, .15, -.02, .78, .78, .78); mesh(G.pin, mat('#d8b24a', { metalness: .6, roughness: .3 }), this.hairG, s * .1, .15, -.02, 0, 0, PI / 2, 1, .9, 1); } break; } // 唐輪
+      case 4: { HC(); H(G.bun, 0, .092, .07, .54, .34, .42); for (const s of [-1, 1]) { H(G.bun, s * .1, .15, -.02, .78, .78, .78); mesh(G.pin, mat('#d8b24a', { metalness: .6, roughness: .3 }), this.hairG, s * .1, .15, -.02, 0, 0, PI / 2, 1, .9, 1); } break; } // 唐輪
     }
     if (lk.hat === 1) { const h = mesh(G.hatG, mat('#c9a868', { side: THREE.DoubleSide }), this.accG, 0, .2, 0); for (let i = 0; i < 6; i++) mesh(new THREE.TorusGeometry(.34 - i * .05, .004, 3, 24), mat('#8a6a3a'), this.accG, 0, .13 + i * .022, 0, PI / 2, 0, 0, 1, 1, 1, false); mesh(new THREE.CylinderGeometry(.003, .003, .3, 3), mat('#5a3a2a'), this.accG, 0, -.06, .1, .3, 0, 0, 1, 1, 1, false); }
     if (lk.hat === 2) { for (const s of [-1, 1]) { mesh(G.pin, mat('#d8b24a', { metalness: .7, roughness: .25 }), this.accG, s * .06, .19, -.06, 0, 0, s * 1.2); mesh(new THREE.SphereGeometry(.024, 10, 8), mat('#d23c4c', { roughness: .3 }), this.accG, s * .15, .23, -.06); for (let i = 0; i < 3; i++) mesh(new THREE.BoxGeometry(.004, .05, .004), mat('#d8b24a', { metalness: .7, roughness: .25 }), this.accG, s * (.15 + (i - 1) * .012), .19, -.06, 0, 0, 0, 1, 1, 1, false); } }
@@ -189,10 +204,10 @@ export class Chara {
   buildFace(lk, skin) {
     const F = this.faceG; F.clear(); this.skinParts = []; this.decal = null;
     if (TX.IMG.face) {
-      for (const s of [-1, 1]) this.skinParts.push(mesh(G.ear, skin, F, s * .118, -.01, -.005, 0, 0, 0, .55, 1, .8, false));
-      this.noseM = mesh(G.nose, skin, F, 0, -.024, .119, 0, 0, 0, .8, .7, .65, false);
+      for (const s of [-1, 1]) this.skinParts.push(mesh(G.ear, skin, F, s * .108, -.012, -.008, 0, 0, 0, .5, 1.15, .8, false));
+      this.noseM = mesh(G.nose, skin, F, 0, -.002, .128, 0, 0, 0, 1, 1, 1, false);
       const tex = TX.faceTex((lk.ey || 0) % 5, (lk.br || 0) % 4, (lk.mo || 0) % 4, lk.ck == null ? 1 : lk.ck % 3, lk.mk ? 1 : 0);
-      this.decal = mesh(G.decal, new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: .5, polygonOffset: true, polygonOffsetFactor: -2 }), F, 0, 0, 0, 0, 0, 0, .95, 1.05, .98, false);
+      this.decal = mesh(G.decal, new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: .5, polygonOffset: true, polygonOffsetFactor: -2 }), F, 0, 0, 0, 0, 0, 0, 1, 1, 1, false);
       this.mouthM = this.noseM; return;
     }
     const dark = mat('#1a1210', { roughness: .3 }), hl = mat('#ffffff', { emissive: '#ffffff', emissiveIntensity: .4 });
