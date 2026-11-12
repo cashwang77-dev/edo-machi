@@ -415,6 +415,19 @@ export function buildWorld(scene) {
     g.add(M(boxG(4, .14, 1.2), C.roof(), 0, 3.1, 0, .25, 0, 0));
     B.bake(g); W.spots.push({ type: 'board', x: 104, z: -8.5, label: '📜 看御觸書（遊戲說明）' }); col(104, -9.5, 1.6);
   }
+  // 奉加帳（贊助箱）
+  {
+    const g = new THREE.Group(); g.position.set(104, 0, 9.5); g.rotation.y = 2.78; const wd = C.wood();
+    g.add(M(boxG(1.4, .9, .8, 1), C.woodD(), 0, .45, 0));
+    g.add(M(boxG(1.5, .06, .9, 1), C.woodL(), 0, .93, 0));
+    for (let i = 0; i < 5; i++) g.add(M(boxG(.06, .03, .7), C.black(), -.5 + i * .25, .97, 0));
+    for (const s of [-1, 1]) g.add(M(boxG(.14, 2.4, .14), wd, s * .8, 1.2, -.25));
+    g.add(M(new THREE.BoxGeometry(1.5, .55, .06), std('houga', { map: TX.text('奉加帳', { w: 384, h: 140, bg: '#2a1d14', fg: '#e8c56a', vertical: false, grain: true }) }), 0, 2.15, -.25));
+    g.add(M(boxG(1.9, .1, .9), C.roof(), 0, 2.55, -.2, .2, 0, 0));
+    const lan = M(LANTERN_G, lanternMat('奉', '#c8322a'), 1.05, 1.45, .1); g.add(lan);
+    g.updateMatrixWorld(true); W.lanterns.push(new THREE.Vector3(1.05, 1.7, .1).applyMatrix4(g.matrixWorld));
+    B.bake(g); W.spots.push({ type: 'donate', x: 104, z: 8.3, label: '☕ 奉加帳（支持作者）' }); col(104, 9.5, 1.0);
+  }
 
   // 店鋪
   for (const def of SHOPS) {

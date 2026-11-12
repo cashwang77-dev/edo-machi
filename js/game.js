@@ -279,6 +279,7 @@ function act() {
   else if (near.type === 'view') sitAt(near.seat);
   else if (near.type === 'npc') { npcTalk(near.npc); G.ry = Math.atan2(near.npc.ch.root.position.x - G.pos.x, near.npc.ch.root.position.z - G.pos.z); }
   else if (near.type === 'board') show('#help');
+  else if (near.type === 'donate') { show('#donate'); G.me.emoji('🙇'); }
   else if (near.type === 'well') { G.me.say('井水好冰涼～'); emote(6); sfx(300, .3, 'sine', .05); }
   else if (near.type === 'pray') {
     if (!afford(1)) return toast('身上沒有錢可以投香油錢……');
@@ -884,6 +885,7 @@ $('#bView').onclick = toggleView;
 $('#bGM').onclick = openGM;
 $('#bHelp').onclick = () => show('#help');
 $('#bFS').onclick = toggleFS;
+document.querySelectorAll('[data-donate]').forEach(b => b.onclick = () => { show('#settings', false); show('#donate'); });
 $('#bSet').onclick = () => { show('#settings'); document.querySelectorAll('#settings [data-q]').forEach(b => b.classList.toggle('on', +b.dataset.q === quality)); };
 const sndBtns = () => document.querySelectorAll('#settings [data-snd]').forEach(b => b.classList.toggle('on', !!SND.on[b.dataset.snd]));
 document.querySelectorAll('#settings [data-snd]').forEach(b => b.onclick = () => { SND.start(); SND.setOn(b.dataset.snd, !SND.on[b.dataset.snd]); sndBtns(); });

@@ -165,6 +165,8 @@ body.touch .pop{bottom:70px}
 .uk img{max-height:72vh;max-width:90vw;border-radius:4px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
 #settings .card{max-width:380px}
 #settings button.on{background:var(--ink);color:var(--paper)}
+.kofi{display:block;text-align:center;margin-top:9px;font-size:14px;color:var(--red);text-decoration:none}
+.kofi:hover{text-decoration:underline}
 /* 搖桿 */
 #joy{position:absolute;left:22px;bottom:26px;width:130px;height:130px;border-radius:50%;background:rgba(243,234,214,.22);border:2px solid rgba(243,234,214,.6);display:none;touch-action:none}
 #joyK{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px;border-radius:50%;background:rgba(243,234,214,.85);border:2px solid var(--ink)}
@@ -206,6 +208,7 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
     <div id="gmRow" class="hide"><input id="gmIn" type="password" placeholder="通行證" autocomplete="off"></div>
     <div id="looks"></div>
     <div class="row"><button id="rnd">🎲 隨機</button><button id="go">入町 ▶</button></div>
+    <a class="kofi" href="https://ko-fi.com/cash703856" target="_blank" rel="noopener">☕ 喜歡江戶町？請作者喝杯咖啡</a>
     <p id="iosTip" class="sub hide" style="margin:8px 0 0;font-size:13px">📱 iPhone 小提醒：按 Safari 下方「分享」→「加入主畫面」，從主畫面打開就是全螢幕，沒有網址列。</p>
   </div>
 </div>
@@ -239,9 +242,17 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
     <dt>飾品・食物</dt><dd>小間物屋的簪、斗笠、狐狸面具、印籠會戴在身上；買的食物會拿在手上，按 🍡 吃掉，也可以帶著逛街或送人</dd>
     <dt>動作・表情</dt><dd>🎭 動作：揮手、鞠躬、拍手、大笑、萬歲、指路、跳舞、坐在地上（電腦可按 1～8）<br>😊 表情：頭上冒出表情符號，大家都看得到</dd>
     <dt>看風景</dt><dd>🌅 會隱藏介面、慢慢轉動視角。江戶町的一天是 30 分鐘，黃昏的富士山和夜晚的燈籠特別漂亮</dd>
+    <dt>支持作者</dt><dd>日本橋頭的「奉加帳」、⚙ 設定裡都可以贊助，所有玩法都免費 ☕</dd>
     <dt>景點</dt><dd>西邊的神社可以參拜；東邊過了日本橋是露天風呂；河邊的長椅可以坐著看小船</dd>
   </dl>
   <div class="btns"><button class="big alt" data-close>知道了，出發！</button></div>
+</div></div>
+<div id="donate" class="modal hide"><div class="card" style="text-align:center">
+  <button class="close" data-close>✕</button>
+  <h3>☕ 奉加帳</h3>
+  <p style="margin:6px 0 12px">江戶町是一個人做的免費小遊戲。<br>伺服器、配樂和之後的新店鋪、新活動，都靠大家支持。</p>
+  <a class="big alt" href="https://ko-fi.com/cash703856" target="_blank" rel="noopener" style="display:inline-block">☕ 到 Ko-fi 請我喝杯咖啡</a>
+  <p class="sub" style="margin-top:12px">所有玩法都免費，贊助不會影響遊戲內容。謝謝你來江戶町逛逛 🙇</p>
 </div></div>
 <div id="fortune" class="modal hide"></div>
 <div id="ukiyo" class="modal hide"></div>
@@ -252,6 +263,8 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
   <div class="btns"><button data-snd="music">🎵 和風配樂</button><button data-snd="sfx">🍃 環境音效</button><button data-snd="call">📣 掌櫃叫賣</button></div>
   <p class="sub" style="margin-top:12px">畫質（手機若卡頓，請調成「流暢」）</p>
   <div class="btns"><button data-q="2">✨ 精緻（光暈＋陰影）</button><button data-q="1">⚖ 標準</button><button data-q="0">🚀 流暢</button></div>
+  <p class="sub" style="margin-top:12px">支持作者</p>
+  <div class="btns"><button data-donate>☕ 奉加帳（贊助）</button></div>
 </div></div>
 <div id="toast"></div>
 <script>addEventListener("error",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+e.message+" @"+(e.filename||"").split("/").pop()+":"+e.lineno});addEventListener("unhandledrejection",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+(e.reason&&e.reason.stack||e.reason)})</script>
