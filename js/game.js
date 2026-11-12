@@ -119,7 +119,7 @@ function addMe() {
 }
 function addRemote(p) {
   if (G.remotes.has(p.id)) return;
-  const ch = new Chara(p.lk, ''); if (p.gm) ch.gm = true; ch.setName(p.gm ? '👑 ' + p.n : p.n); ch.root.position.set(p.x, p.y || 0, p.z); scene.add(ch.root);
+  const ch = new Chara(p.lk, ''); if (p.gm) { ch.gm = true; ch.setLook(p.lk); } ch.setName(p.gm ? '👑 ' + p.n : p.n); ch.root.position.set(p.x, p.y || 0, p.z); scene.add(ch.root);
   G.remotes.set(p.id, { ch, n: p.n, tx: p.x, ty: p.y || 0, tz: p.z, tr: p.r || 0, a: p.a || 0, lastX: p.x, lastZ: p.z });
   updCount();
 }
@@ -369,15 +369,15 @@ function served(s, item, q, from) {
     openMenu(s);
   } else if (item.look) {
     G.look = { ...G.look, ...item.look }; G.me.setLook(G.look); store.set('look', G.look); net.send({ t: 'look', lk: G.look }); G.me.emoji('✨');
-    G.me.say('換好了！好看嗎？'); toast(`完成「${item.zh}」！品質：${gname}`); openMenu(s);
+    G.me.say('換好了！好看嗎？'); toast(`完成「${item.zh}」！品質：${gname}`); openMenu(s); closeup(4, { dist: 2.4, h: .95, ang: .2, look: .75, spin: .45, keep: 1 });
   } else if (item.fortune) {
     const arr = FORTUNE[item.fortune]; const [h, t] = arr[Math.floor(Math.random() * arr.length)];
     $('#fortune').innerHTML = `<div class="kuji"><div class="kt">${h}</div><p>${t}</p><button onclick="this.closest('.modal').classList.add('hide')">收下</button></div>`; show('#fortune'); show('#panel', false);
-    G.me.say(`抽到「${h}」！`);
+    G.me.say(`抽到「${h}」！`); closeup(3.5, { dist: 1.8, h: 1.05, ang: .4, look: .95, keep: 1 });
   } else if (item.art) { show('#panel', false); setTimeout(() => ukiyoe(item.art, s), 300); }
   else if (item.bath) {
     const seat = W.bath.find(b => seatFree(b)) || W.bath[0]; closePanels();
-    toast('前往對岸的露天風呂～'); sitAt(seat, 'bath'); setTimeout(() => G.me.say('呼～好舒服～'), 1200);
+    toast('前往對岸的露天風呂～'); sitAt(seat, 'bath'); setTimeout(() => G.me.say('呼～好舒服～'), 1200); closeup(5, { dist: 2.3, h: .55, ang: .35, look: .3, spin: .15, keep: 1 });
   }
 }
 
@@ -424,7 +424,7 @@ function npcCustomerTick(dt) {
 const MG = { on: false };
 function startMG(o) {
   if (MG.on) return;
-  Object.assign(MG, { on: true, o, i: 0, scores: [], st: null });
+  Object.assign(MG, { on: true, o, i: 0, scores: [], st: null }); closeup(999, { dist: 2.3, h: 1.55, ang: .35, look: 1.2, keep: 1 });
   show('#mg'); show('#owner', false); G.me.play(4); nextStep();
 }
 function nextStep() {
@@ -462,7 +462,7 @@ function updMG(dt) {
   $('#mgNeedle').style.left = Math.min(1, st.v) * 100 + '%'; $('#mgFill').style.width = (st.g === 'tap' ? 0 : Math.min(1, st.v) * 100) + '%';
 }
 function finishMG() {
-  const q = MG.scores.reduce((a, b) => a + b, 0) / MG.scores.length; const o = MG.o; MG.on = false; show('#mg', false);
+  const q = MG.scores.reduce((a, b) => a + b, 0) / MG.scores.length; const o = MG.o; MG.on = false; show('#mg', false); if (G.cu) G.cu.t = Math.max(G.cu.t, G.cu.dur - .7);
   G.me.play(0); G.queue = G.queue.filter(x => x !== o);
   const [g] = grade(q); const bonus = Math.round(o.item.p * (q >= 85 ? .5 : q >= 60 ? .2 : 0));
   addMoney(o.item.p + bonus, `${g}${bonus ? '（含獎金 ' + bonus + '）' : ''}`);
@@ -477,7 +477,7 @@ function finishMG() {
   }
   renderOwner();
 }
-function mgAbort() { MG.on = false; show('#mg', false); }
+function mgAbort() { MG.on = false; show('#mg', false); if (G.cu) G.cu.t = Math.max(G.cu.t, G.cu.dur - .7); }
 function placeDishFor(r, item) {
   const p = r.ch.root.position; const seat = W.seats.find(s => Math.hypot(s.x - p.x, s.z - p.z) < .6);
   placeDish(item, seat ? seat.dish : new THREE.Vector3(p.x, p.y + .5, p.z), seat ? seat.r : 0, 7);
@@ -503,6 +503,7 @@ function eatHeld() {
   const it = itemById(G.look.f); if (!it || G.eatT > 0) return;
   if (G.mode !== 'walk' && G.mode !== 'seat' && G.mode !== 'bath') return toast('現在不方便吃東西');
   G.eatT = 4; G.eatItem = it; $('#held').classList.add('hide');
+  closeup(4.4, G.mode === 'seat' ? { dist: 1.6, h: 1.05, ang: .55, look: .95, keep: 1 } : G.mode === 'bath' ? { dist: 1.8, h: .5, ang: .5, look: .4, keep: 1 } : { dist: 1.7, h: 1.4, ang: .5, look: 1.2 });
 }
 function finishEat() {
   const it = G.eatItem; setHeld(''); const lines = ['好好吃！', '好吃！', '真是極品～', '這味道太棒了', '吃飽了，謝謝招待！'];
@@ -588,10 +589,10 @@ function templeCoin(v) {
   const c = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .015, 14), new THREE.MeshStandardMaterial({ color: '#d9b44a', metalness: .9, roughness: .25 }));
   const a = G.pos.clone().add(new THREE.Vector3(.15, 1.3, -.2)), b = new THREE.Vector3(W.temple.gong.x, 1.15, -74.3);
   scene.add(c); let t = 0; const fly = () => { t += .03; const k = Math.min(1, t / .6); c.position.lerpVectors(a, b, k); c.position.y += Math.sin(k * PI) * 1.2; c.rotation.x += .5; c.rotation.z += .3; if (k < 1) requestAnimationFrame(fly); else setTimeout(() => scene.remove(c), 200); }; fly();
-  emote(16, .8); SND.coin(1); net.send({ t: 'emote', e: '🪙' });
+  emote(16, .8); SND.coin(1); net.send({ t: 'emote', e: '🪙' }); closeup(1.9, { dist: 2.3, h: 1.5, ang: 1.1, look: 1.2 });
 }
 function templeGong() {
-  W.ringRope(); emote(16, 1.2); setTimeout(() => SND.gong(1), 250); net.send({ t: 'emote', e: '🔔' });
+  W.ringRope(); emote(16, 1.2); setTimeout(() => SND.gong(1), 250); net.send({ t: 'emote', e: '🔔' }); closeup(2.4, { dist: 2.6, h: 1.9, ang: 1.0, look: 1.9 });
 }
 // 祈福：讓玩家自己寫心願（最多 40 字，會過濾不雅字）
 function wishPrompt(title, hint, anim) {
@@ -612,6 +613,7 @@ function doWish(raw, anim) {
   const text = r.text || TEMPLE_WISH[Math.floor(Math.random() * TEMPLE_WISH.length)];
   const gave = G.coinT && performance.now() - G.coinT < 60000;
   emote(anim, anim === 17 ? 3.6 : 2.4); net.send({ t: 'emote', e: '🙏' });
+  closeup(anim === 17 ? 5.2 : 4.2, { dist: 1.75, h: 1.45, ang: .5, look: 1.22 });
   setTimeout(() => {
     const line = `🙏 願：${text}`;
     if (G.online) net.send({ t: 'chat', s: line }); else onChat(G.myId, line);
@@ -622,7 +624,7 @@ function doWish(raw, anim) {
 let kaneCD = 0;
 function ringKane() {
   if (performance.now() < kaneCD) return toast('鐘聲還在迴盪，稍等一下再撞');
-  kaneCD = performance.now() + 9000; W.strike(); emote(16, 1.2); setTimeout(() => { SND.bigBell(1); }, 500); net.send({ t: 'emote', e: '🏯' });
+  kaneCD = performance.now() + 9000; W.strike(); emote(16, 1.2); closeup(3.4, { dist: 3.4, h: 1.8, ang: 1.25, look: 1.6 }); setTimeout(() => { SND.bigBell(1); }, 500); net.send({ t: 'emote', e: '🏯' });
 }
 function templeFx(e, from) { // 其他玩家的寺院動作：在附近才聽得到
   if (!W.temple) return; const d = from.distanceTo(G.pos);
@@ -656,7 +658,7 @@ function spawnDeer() {
   }
 }
 function deerTarget(d) { d.tx = 146 + Math.random() * 64; d.tz = -103 + Math.random() * 52; if (d.tx > 156 && d.tx < 200 && d.tz < -76) d.tz = -60; }
-function petDeer(d) { d.bowT = 2.4; d.wait = 4; d.g.rotation.y = Math.atan2(G.pos.x - d.g.position.x, G.pos.z - d.g.position.z); setTimeout(() => G.me.emoji('🦌'), 300); setTimeout(() => d.g.position && G.me.say(['小鹿向你鞠躬了！', '好可愛～', '牠好像想吃鹿仙貝'][Math.floor(Math.random() * 3)], 3), 900); }
+function petDeer(d) { d.bowT = 2.4; d.wait = 4; closeup(3, { dist: 2.6, h: 1.1, ang: 1.35, look: .8 }); d.g.rotation.y = Math.atan2(G.pos.x - d.g.position.x, G.pos.z - d.g.position.z); setTimeout(() => G.me.emoji('🦌'), 300); setTimeout(() => d.g.position && G.me.say(['小鹿向你鞠躬了！', '好可愛～', '牠好像想吃鹿仙貝'][Math.floor(Math.random() * 3)], 3), 900); }
 function updDeer(dt) {
   for (const d of DEER) {
     const p = d.g.position; let moving = false;
@@ -765,6 +767,26 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const ACTIONS = [[7, '👋', '揮手', 2.2], [6, '🙇', '鞠躬', 2], [9, '👏', '拍手', 2.4], [14, '😆', '大笑', 2.4], [11, '🙌', '萬歲', 2.6], [13, '👉', '指路', 2.5], [10, '💃', '跳舞', 1e9], [12, '🧘', '坐在地上', 1e9]];
 const EMOJIS = ['😊', '😂', '😍', '😮', '😢', '😡', '😴', '🤔', '👍', '❤️', '🎉', '🍵', '🍜', '🌸', '🏮', '💰'];
 const PHRASES = ['你好！', '歡迎光臨！', '謝謝！', '好吃嗎？', '一起逛街吧', '要不要來我店裡？', '你的和服好漂亮', '去看富士山吧', '下次見～'];
+// 特寫：鏡頭滑到人物正面拉近；移動或時間到就回原本視角
+// opt：dist 距離、h 鏡頭高度、ang 偏離正面的角度、look 看向的高度、spin 環繞速度
+function closeup(dur, opt = {}) {
+  if (G.shot || (QS.has('test') && !QS.has('cu'))) return;
+  G.cu = { t: 0, dur, dist: 2, h: 1.4, ang: .5, look: 1.2, spin: 0, ...opt };
+}
+const cuPos = new THREE.Vector3(), cuLook = new THREE.Vector3(), nPos = new THREE.Vector3(), nLook = new THREE.Vector3();
+function applyCloseup(dt) {
+  const c = G.cu; if (!c) return;
+  c.t += dt; if (c.t > c.dur) { G.cu = null; return; }
+  const k = Math.min(1, c.t / .7, (c.dur - c.t) / .7); const e = k * k * (3 - 2 * k);
+  const p = G.me.root.position;
+  // 繞著人物轉到正面（角度、距離、高度分別內插），避免鏡頭直線穿過頭部
+  const a1 = G.ry + c.ang + c.t * c.spin;
+  const dx = camera.position.x - p.x, dz = camera.position.z - p.z, a0 = Math.atan2(dx, dz), d0 = Math.hypot(dx, dz), h0 = camera.position.y - p.y;
+  const a = angLerp(a0, a1, e), d = d0 + (c.dist - d0) * e, h = h0 + (c.h - h0) * e;
+  camera.position.set(p.x + Math.sin(a) * d, p.y + h, p.z + Math.cos(a) * d);
+  nLook.set(cam.tx, cam.ty, cam.tz); cuLook.set(p.x, p.y + c.look, p.z); nLook.lerp(cuLook, e); camera.lookAt(nLook);
+}
+const EMOTE_CU = { 9: [2.6, { dist: 2.6, h: 1.3, ang: .25, look: 1 }], 10: [4.2, { dist: 3, h: 1.25, ang: 0, look: 1, spin: .7 }], 11: [2.8, { dist: 2.8, h: 1.1, ang: .3, look: 1.1 }], 14: [2.6, { dist: 2.2, h: 1.4, ang: .35, look: 1.2 }], 7: [2.2, { dist: 2.6, h: 1.4, ang: .4, look: 1.2 }] };
 function emote(a, dur = 2.2) { if (G.mode !== 'walk') { if (a !== 6) toast('站著的時候才能做動作喔'); return; } G.emote = a; G.emoteT = dur; G.me.play(a); }
 function sendEmoji(e) { G.me.emoji(e); net.send({ t: 'emote', e }); }
 const NPC_LINES = {
@@ -839,7 +861,12 @@ async function start() {
 setInterval(() => { if (G.online) net.send({ t: 'ping' }); }, 15000);
 net.on('welcome', m => {
   G.myId = m.id; G.timeOff = m.timeOff || 0; G.owners = m.shops || {};
-  if (m.gm) { G.gm = true; G.me.gm = true; G.me.setName('👑 ' + m.n); setMoney(G.money); show('#bGM'); toast('👑 GM 模式：錢用不完、可使用管理面板', 3500); }
+  if (m.gm) {
+    G.gm = true; G.me.gm = true; G.me.setLook(G.look); G.me.setName('👑 ' + m.n); setMoney(G.money); show('#bGM');
+    // 花魁道中：環繞特寫＋櫻花＋公告橫幅
+    setTimeout(() => { closeup(6, { dist: 3, h: 1.3, ang: 0, look: 1.1, spin: 1.05 }); G.me.emoji('🌸'); announce(`花魁「${m.n}」駕到`, '花魁道中'); SND.pluck(523, .1); setTimeout(() => SND.pluck(659, .1), 220); setTimeout(() => SND.pluck(784, .12), 440); }, 600);
+    toast('👑 GM 模式：花魁造型、錢用不完、可使用管理面板', 3800);
+  }
   else if (m.n !== G.name) { G.name = m.n; G.me.setName(m.n); }
   m.players.forEach(addRemote); updCount();
 });
@@ -858,7 +885,7 @@ net.on('time', m => { G.timeOff = m.off; });
 net.on('muted', m => { const t = new Date(m.until); toast(`${m.auto ? '因多次不雅用語，' : ''}你被禁言到 ${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`, 4000); });
 net.on('kicked', () => toast('你已被管理員請出江戶町', 6000));
 net.on('tp', m => { if (G.mode === 'owner') leaveOwner(); if (G.mode === 'seat' || G.mode === 'bath') standUp(); G.pos.set(m.x, heightAt(m.x, m.z), m.z); if (!okAt(m.x, m.z)) G.pos.set(m.x - 1, 0, m.z); toast('✨ 瞬間移動！'); });
-net.on('join', m => { addRemote(m); toast(`「${m.n}」來到了江戶町`); });
+net.on('join', m => { addRemote(m); if (m.gm) { announce(`花魁「${m.n}」駕到`, '花魁道中'); const R = G.remotes.get(m.id); if (R) R.ch.emoji('🌸'); } else toast(`「${m.n}」來到了江戶町`); });
 net.on('leave', m => delRemote(m.id));
 net.on('s', m => { for (const [id, x, z, y, r, a] of m.p) { const R = G.remotes.get(id); if (R) { R.tx = x; R.tz = z; R.ty = y; R.tr = r; R.a = a; } } });
 net.on('chat', m => onChat(m.id, m.s));
@@ -928,6 +955,8 @@ function update(dt) {
     for (let k = .5; k < dist; k += .25) { const x = cam.tx + off.x * k, y = cam.ty + off.y * k, z = cam.tz + off.z * k; if (y < 7 && x > -98 && x < 101 && Math.abs(z) > 7.4 && Math.abs(z) < 18 && G.mode !== 'owner') { dist = Math.max(1.2, k - .3); break; } }
     camera.position.set(cam.tx + off.x * dist, Math.max(.4 + heightAt(cam.tx, cam.tz), cam.ty + off.y * dist), cam.tz + off.z * dist);
     camera.lookAt(cam.tx, cam.ty, cam.tz);
+    if (G.cu && len > .3 && G.mode === 'walk' && !G.cu.keep) G.cu = null;
+    applyCloseup(dt); if (G.me.tag) G.me.tag.visible = !G.cu;
     // 送位置
     sendT -= dt;
     if (G.online && sendT < 0) { sendT = .2; const a = G.me.anim; if (Math.abs(last.x - G.pos.x) > .03 || Math.abs(last.z - G.pos.z) > .03 || Math.abs(last.r - G.ry) > .05 || last.a !== a) { net.send({ t: 'p', x: G.pos.x, z: G.pos.z, y: G.pos.y, r: G.ry, a }); last = { x: G.pos.x, z: G.pos.z, r: G.ry, a }; } }
@@ -1001,7 +1030,7 @@ const pop = (id, on) => { ['#actMenu', '#emoMenu'].forEach(x => show(x, x === id
 $('#actMenu').innerHTML = ACTIONS.map(([a, ic, nm, d], i) => `<button data-a="${i}"><span>${ic}</span>${nm}${isTouch ? '' : `<kbd>${i + 1}</kbd>`}</button>`).join('');
 $('#emoMenu').innerHTML = EMOJIS.map(e => `<button data-e="${e}">${e}</button>`).join('');
 $('#phr').innerHTML = PHRASES.map(t => `<button>${t}</button>`).join('');
-document.querySelectorAll('#actMenu [data-a]').forEach(b => b.onclick = () => { const [a, , , d] = ACTIONS[+b.dataset.a]; emote(a, d); pop(null); });
+document.querySelectorAll('#actMenu [data-a]').forEach(b => b.onclick = () => { const [a, , , d] = ACTIONS[+b.dataset.a]; emote(a, d); if (EMOTE_CU[a] && G.mode === 'walk') closeup(...EMOTE_CU[a]); pop(null); });
 document.querySelectorAll('#emoMenu [data-e]').forEach(b => b.onclick = () => { sendEmoji(b.dataset.e); pop(null); });
 document.querySelectorAll('#phr button').forEach(b => b.onclick = () => { $('#chatIn').value = b.textContent; sendChat(); });
 $('#bAct').onclick = () => pop('#actMenu'); $('#bEmo').onclick = () => pop('#emoMenu');
@@ -1031,11 +1060,14 @@ if (isTouch) document.body.classList.add('touch');
   addMe(); spawnNPCs(); spawnDeer(); buildTitle();
   $('#loading').classList.add('hide');
   if (QS.has('cam')) { G.shot = QS.get('cam').split(',').map(Number); show('#title', false); }
+  if (QS.has('oiran') && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { G.me.gm = true; G.me.setLook(G.look); G.me.setName('👑 花魁'); }
   if (QS.has('auto')) { $('#nameIn').value = QS.get('auto') || '測試'; start(); }
   if (QS.has('chat')) setTimeout(() => { openChat(); onChat(G.myId, '你好！一起去吃糰子吧'); }, 1500);
   if (QS.has('demo')) setTimeout(() => {
     const d = QS.get('demo');
     if (d === 'menu') { const sh = W.shops.find(x => x.def.id === 'soba'); G.pos.set(sh.front.x, 0, sh.front.z); openShop(sh); $('#bCust').click(); }
+    if (d === 'eat') { G.pos.set(-40, 0, 1); G.ry = -PI / 2; setHeld('dango:sanshoku'); setTimeout(eatHeld, 300); }
+    if (d === 'pray') { G.pos.set(178, 0, -72.3); G.ry = PI; doWish('願大家平安喜樂', 17); }
     if (d === 'wish') { G.pos.set(178, 0, -72.3); G.ry = PI; cam.yaw = .5; cam.pitch = .22; cam.dist = 4.8; openTemple(); $('#tp').click(); }
     cam.tx = G.pos.x; cam.ty = G.pos.y + 1.45; cam.tz = G.pos.z;
   }, 1800);
@@ -1100,4 +1132,4 @@ async function runTest() {
   const d = document.createElement('pre'); d.style.cssText = 'position:fixed;left:8px;top:50px;z-index:99;background:rgba(255,255,255,.92);font-size:15px;padding:8px;margin:0'; d.textContent = (fail ? 'FAIL\n' : 'PASS\n') + log.join('\n'); document.body.appendChild(d);
 }
 if (QS.get('test') === 'flow') { store.set('helped', true); setTimeout(runTest, 1500); }
-window.EDO = { SND, openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };
+window.EDO = { step: n => { for (let i = 0; i < n; i++) update(1 / 30); render(); }, SND, openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };

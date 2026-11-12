@@ -154,3 +154,28 @@ export function kanban(name, idx) {
   const tw = fs * ch.length + sp * (ch.length - 1); ch.forEach((x, i) => g.fillText(x, W / 2 - tw / 2 + fs / 2 + i * (fs + sp), H / 2 + fs * .04));
   const t = mk(c); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; t.userData = { ratio: W / H }; return cache[k] = t;
 }
+
+// 花魁布料：in＝紅地金牡丹、out＝黑地金鳳凰雲紋、obi＝金地紅菱
+export function oiran(kind) {
+  const k = 'OI' + kind; if (cache[k]) return cache[k];
+  const [c, g] = cv(256, 256); const r = rnd(kind.length * 31 + 7);
+  const gold = (a = 1) => `rgba(232,190,82,${a})`;
+  if (kind === 'obi') {
+    g.fillStyle = '#d9a83a'; g.fillRect(0, 0, 256, 256);
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { g.fillStyle = (x + y) % 2 ? '#b8202e' : '#f2d27a'; g.beginPath(); const cx = x * 32 + 16, cy = y * 32 + 16; g.moveTo(cx, cy - 12); g.lineTo(cx + 12, cy); g.lineTo(cx, cy + 12); g.lineTo(cx - 12, cy); g.fill(); }
+    return cache[k] = mk(c);
+  }
+  g.fillStyle = kind === 'in' ? '#b3172c' : '#141015'; g.fillRect(0, 0, 256, 256);
+  // 雲紋
+  g.strokeStyle = gold(kind === 'in' ? .35 : .5); g.lineWidth = 3;
+  for (let i = 0; i < 7; i++) { const x = r() * 256, y = r() * 256; for (let j = 0; j < 3; j++) { g.beginPath(); g.arc(x + j * 16, y, 9, Math.PI, 0); g.stroke(); } }
+  // 大朵牡丹
+  for (let i = 0; i < (kind === 'in' ? 5 : 4); i++) {
+    const x = r() * 256, y = r() * 256, R = 18 + r() * 14;
+    for (let p = 0; p < 8; p++) { const a = p / 8 * Math.PI * 2; g.fillStyle = kind === 'in' ? (p % 2 ? '#f2d27a' : '#ffffff') : (p % 2 ? gold(.95) : '#c21f32'); g.beginPath(); g.ellipse(x + Math.cos(a) * R * .55, y + Math.sin(a) * R * .55, R * .5, R * .3, a, 0, 7); g.fill(); }
+    g.fillStyle = gold(); g.beginPath(); g.arc(x, y, R * .25, 0, 7); g.fill();
+  }
+  // 金箔細點
+  for (let i = 0; i < 260; i++) { g.fillStyle = gold(.4 + r() * .6); g.fillRect(r() * 256, r() * 256, 1 + r() * 2, 1 + r() * 2); }
+  const t = mk(c, [2, 2]); return cache[k] = t;
+}

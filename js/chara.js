@@ -56,7 +56,7 @@ export class Chara {
     for (const s of [-1, 1]) {
       const lg = new THREE.Group(); lg.position.set(s * .08, .5, 0);
       const l = new THREE.Mesh(G.leg, mat('#f1d2b6')); l.position.y = -.25; lg.add(l);
-      const g = new THREE.Mesh(G.geta, mat('#6b4a2e')); g.position.set(0, -.44, .03); lg.add(g);
+      const g = new THREE.Mesh(G.geta, mat('#6b4a2e')); g.position.set(0, -.44, .03); lg.add(g); this.getas = this.getas || []; this.getas.push(g);
       this.root.add(lg); this.legs.push(lg); this.legSkin = this.legSkin || []; this.legSkin.push(l);
     }
     this.bodyM = new THREE.Mesh(G.body); this.bodyM.position.y = -.5; this.bodyM.castShadow = true; this.upper.add(this.bodyM);
@@ -78,6 +78,7 @@ export class Chara {
     this.hairG = new THREE.Group(); this.headG.add(this.hairG);
     this.accG = new THREE.Group(); this.headG.add(this.accG);
     this.carryG = new THREE.Group(); this.arms[1].add(this.carryG);
+    this.oiranG = new THREE.Group(); this.upper.add(this.oiranG); this.auraG = new THREE.Group(); this.root.add(this.auraG);
     this.foodG = new THREE.Group(); this.foodG.position.set(0, -.4, .1); this.arms[0].add(this.foodG);
     this.waistG = new THREE.Group(); this.waistG.position.y = .33; this.upper.add(this.waistG);
     this.setLook(look);
@@ -91,7 +92,9 @@ export class Chara {
     this.bodyM.material = km; this.arms.forEach(a => { a.userData.sl.material = km; a.userData.h.material = mat(SKINS[lk.s % 3]); });
     this.obiM.material = this.bowM.material = mat(OBI[lk.o % OBI.length]);
     this.headM.material = mat(SKINS[lk.s % 3]); this.legSkin.forEach(l => l.material = mat(SKINS[lk.s % 3]));
-    this.hairG.clear(); this.accG.clear(); this.carryG.clear(); this.foodG.clear(); this.waistG.clear();
+    this.hairG.clear(); this.accG.clear(); this.carryG.clear(); this.foodG.clear(); this.waistG.clear(); this.oiranG.clear(); this.auraG.clear();
+    this.getas.forEach(g => { g.scale.y = 1; g.position.y = -.44; g.material = mat('#6b4a2e'); }); this.legs.forEach(l => l.position.y = .5); this.lift = 0;
+    if (this.gm) { this.buildOiran(lk); return; }
     const H = (g, x, y, z, sx = 1, sy = 1, sz = 1) => { const m = new THREE.Mesh(g, hairMat); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.castShadow = true; this.hairG.add(m); return m; };
     const capTop = new THREE.SphereGeometry(.142, 18, 6, 0, Math.PI * 2, 0, Math.PI * .34);
     const capBack = new THREE.SphereGeometry(.142, 18, 8, Math.PI / 2 + .95, Math.PI * 2 - 1.9, Math.PI * .33, Math.PI * .3);
@@ -118,6 +121,54 @@ export class Chara {
     if (lk.f && Chara.foodModel) { const d = Chara.foodModel(lk.f); if (d) { d.scale.setScalar(1.25); d.rotation.x = -.2; this.foodG.add(d); } }
     if (lk.c === 1) { const f = new THREE.Mesh(G.fan, mat('#f2e6c8', { side: THREE.DoubleSide })); f.position.set(0, -.38, .1); f.rotation.set(-1.2, 0, .6); this.carryG.add(f); }
     if (lk.c === 2) { const s = new THREE.Mesh(G.stick, mat('#4a3424')); s.position.set(0, .05, .08); this.carryG.add(s); const u = new THREE.Mesh(G.umb, mat('#b8352f', { side: THREE.DoubleSide })); u.position.set(0, .55, .08); u.castShadow = true; this.carryG.add(u); }
+  }
+  // ---------- GM：花魁 ----------
+  buildOiran(lk) {
+    const P = (g, m, x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1, par = this.oiranG) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.scale.set(sx, sy, sz); o.castShadow = true; par.add(o); return o; };
+    const goldM = mat('#e2b84a', { metalness: .85, roughness: .25 }), redM = mat('#c21f32', { roughness: .5 });
+    const kimono = new THREE.MeshStandardMaterial({ map: TX.oiran('in'), roughness: .55, metalness: .15 });
+    const robe = new THREE.MeshStandardMaterial({ map: TX.oiran('out'), roughness: .5, metalness: .2, side: THREE.DoubleSide });
+    const skin = mat('#f7f2ec', { roughness: .45 });
+    this.bodyM.material = kimono; this.arms.forEach(a => { a.userData.sl.material = robe; a.userData.h.material = skin; a.userData.sl.scale.set(1.25, 1.05, 1.9); });
+    this.headM.material = skin; this.legSkin.forEach(l => l.material = skin);
+    this.obiM.material = this.bowM.material = goldM;
+    // 打掛（外罩，下襬拖地）
+    const pts = [[.0, -.02], [.36, -.02], [.33, .25], [.27, .62], [.26, .96], [.23, 1.12], [.15, 1.2], [0, 1.21]].map(q => new THREE.Vector2(q[0], q[1]));
+    const outer = P(new THREE.LatheGeometry(pts, 24, Math.PI * .28, Math.PI * 1.44), robe, 0, -.5, 0, 0, 0, 0);
+    outer.rotation.y = 0;
+    // 前結帶（垂到膝下）
+    P(new THREE.BoxGeometry(.3, .58, .05), new THREE.MeshStandardMaterial({ map: TX.oiran('obi'), metalness: .5, roughness: .35 }), 0, .02, .24, -.06);
+    P(new THREE.BoxGeometry(.4, .2, .09), goldM, 0, .33, .22);
+    for (const sd of [-1, 1]) { P(new THREE.SphereGeometry(.09, 12, 8), goldM, sd * .12, .34, .27, 0, 0, sd * .5, 1.25, .62, .45); P(new THREE.SphereGeometry(.055, 10, 8), redM, sd * .1, .34, .3, 0, 0, sd * .5, 1.2, .55, .4); P(new THREE.BoxGeometry(.06, .22, .02), goldM, sd * .07, .2, .27, 0, 0, sd * .25); }
+    P(new THREE.SphereGeometry(.045, 10, 8), redM, 0, .34, .3, 0, 0, 0, 1, .9, .7);
+    // 層層衣領
+    for (const [c, dz, w] of [['#f6f1e8', .19, .04], ['#c21f32', .192, .03], ['#e2b84a', .194, .02]]) for (const sd of [-1, 1]) P(new THREE.BoxGeometry(w, .26, .02), mat(c), sd * (.06 + w), .53, dz, -.3, 0, sd * .48);
+    // 高木屐（三枚齒、黑漆）
+    this.getas.forEach(g => { g.scale.y = 4.2; g.position.y = -.5; g.material = mat('#141012', { roughness: .25, metalness: .2 }); });
+    this.lift = .08;
+    // 妝：紅唇、眼尾紅
+    P(new THREE.BoxGeometry(.035, .016, .01), redM, 0, -.055, .132, 0, 0, 0, 1, 1, 1, this.headG);
+    for (const sd of [-1, 1]) P(new THREE.BoxGeometry(.03, .008, .008), redM, sd * .075, .018, .118, 0, sd * .5, sd * -.3, 1, 1, 1, this.headG);
+    // 橫兵庫髷
+    const hair = mat('#0e0b0c', { roughness: .35 });
+    const H = (g, x, y, z, sx = 1, sy = 1, sz = 1, rx = 0, rz = 0) => P(g, hair, x, y, z, rx, 0, rz, sx, sy, sz, this.hairG);
+    H(new THREE.SphereGeometry(.143, 18, 6, 0, Math.PI * 2, 0, Math.PI * .34), 0, .01, -.01, 1.08, 1.1, 1.1);
+    H(new THREE.SphereGeometry(.143, 18, 8, Math.PI / 2 + .95, Math.PI * 2 - 1.9, Math.PI * .33, Math.PI * .32), 0, 0, -.01, 1.1, 1.1, 1.12);
+    for (const sd of [-1, 1]) H(new THREE.SphereGeometry(.11, 14, 10), sd * .2, .17, -.04, 1.5, .62, .95, 0, sd * -.35);
+    H(new THREE.SphereGeometry(.1, 14, 10), 0, .22, -.04, 1.3, .7, 1);
+    H(new THREE.SphereGeometry(.1, 14, 10), 0, .06, -.18, 1.1, .9, .8);
+    // 簪：放射狀金簪＋珊瑚珠
+    for (let i = 0; i < 12; i++) { const a = -1.15 + i / 11 * 2.3; const pin = P(new THREE.CylinderGeometry(.006, .006, .34, 4), goldM, Math.sin(a) * .12, .26 + Math.cos(a) * .06, -.02 + (i % 2) * .04, 0, 0, -a, 1, 1, 1, this.hairG); pin.position.x += Math.sin(a) * .1; pin.position.y += Math.cos(a) * .05;
+      if (i % 2 === 0) P(new THREE.SphereGeometry(.018, 8, 6), i % 4 ? redM : goldM, Math.sin(a) * .29, .26 + Math.cos(a) * .2, -.02, 0, 0, 0, 1, 1, 1, this.hairG); }
+    // 玳瑁梳（前面三把）
+    for (let i = 0; i < 3; i++) { P(new THREE.BoxGeometry(.2 - i * .02, .06, .015), mat('#6a3a1a', { metalness: .3, roughness: .3 }), 0, .19 + i * .045, .06 + i * .015, -.35, 0, 0, 1, 1, 1, this.hairG); P(new THREE.BoxGeometry(.21 - i * .02, .008, .017), goldM, 0, .222 + i * .045, .06 + i * .015, -.35, 0, 0, 1, 1, 1, this.hairG); }
+    // 垂飾（びらびら簪）
+    for (const sd of [-1, 1]) for (let k = 0; k < 4; k++) P(new THREE.BoxGeometry(.006, .12, .004), goldM, sd * (.22 + k * .012), .1, .03, 0, 0, 0, 1, 1, 1, this.hairG);
+    // 金色光點
+    const tex = TX.radial('aura', 'rgba(255,230,140,1)', 'rgba(255,190,80,0)');
+    for (let i = 0; i < 14; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); sp.userData = { a: i / 14 * Math.PI * 2, r: .45 + (i % 3) * .1, y: .2 + (i % 5) * .32, sp: .6 + (i % 4) * .2 }; sp.scale.setScalar(.09); this.auraG.add(sp); }
+    if (lk.f && Chara.foodModel) { const d = Chara.foodModel(lk.f); if (d) { d.scale.setScalar(1.25); d.rotation.x = -.2; this.foodG.add(d); } }
+    if (this.name) this.setName(this.name);
   }
   setName(n, npc) {
     if (this.tag) { this.root.remove(this.tag); this.tag.material.map.dispose(); }
@@ -182,7 +233,8 @@ export class Chara {
     A[0].rotation.z = lr(A[0].rotation.z, -alz); A[1].rotation.z = lr(A[1].rotation.z, -arz);
     this.upper.rotation.x = lr(this.upper.rotation.x, bend); this.upper.rotation.y = lr(this.upper.rotation.y, twist); this.upper.rotation.z = lr(this.upper.rotation.z, side);
     this.headG.rotation.x = lr(this.headG.rotation.x, headX);
-    this.upper.position.y = .5 + up; L.forEach(l => l.position.y = .5 + up * .5);
+    this.upper.position.y = .5 + up + (this.lift || 0); L.forEach(l => l.position.y = .5 + up * .5 + (this.lift || 0));
+    if (this.auraG.children.length) for (const sp of this.auraG.children) { const u = sp.userData; const a = u.a + t * u.sp; sp.position.set(Math.cos(a) * u.r, u.y + Math.sin(t * 1.7 + u.a * 3) * .08, Math.sin(a) * u.r); sp.material.opacity = .45 + .45 * Math.sin(t * 3 + u.a * 5); }
     this.offY = lr(this.offY || 0, sitY);
     this.upper.position.y += this.offY; L.forEach(l => l.position.y += this.offY);
   }
