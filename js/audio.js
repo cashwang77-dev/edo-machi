@@ -83,6 +83,27 @@ export const SND = {
     if (!this.ac || !this.on.sfx) return; const ac = this.ac, t = ac.currentTime, f = 4200 + Math.random() * 600;
     for (let i = 0; i < 3; i++) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; const s = t + i * .07; g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(.012 * night, s + .01); g.gain.linearRampToValueAtTime(0, s + .05); o.connect(g).connect(this.sfxG); o.start(s); o.stop(s + .06); }
   },
+  gong(vol = 1) { // 鰐口：金屬鏘鏘聲
+    if (!this.ac || !this.on.sfx || vol < .03) return; const ac = this.ac;
+    for (let k = 0; k < 3; k++) { const t = ac.currentTime + k * .22;
+      [[523, .2, 1.4], [1187, .12, 1.0], [1873, .08, .7], [2655, .05, .5], [3411, .03, .3]].forEach(([f, a, d]) => {
+        const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = f * (1 + (Math.random() - .5) * .01); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a * vol * (k ? .7 : 1), t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+        o.connect(g).connect(this.sfxG); o.start(t); o.stop(t + d); }); }
+  },
+  coin(vol = 1) { // 投幣：叮、叮噹
+    if (!this.ac || !this.on.sfx || vol < .03) return; const ac = this.ac;
+    [[0, 3520], [.09, 4400], [.2, 2960]].forEach(([dt, f]) => { const t = ac.currentTime + .55 + dt; const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.06 * vol, t + .003); g.gain.exponentialRampToValueAtTime(.0001, t + .35); o.connect(g).connect(this.sfxG); o.start(t); o.stop(t + .4); });
+    const t = ac.currentTime + .75; const n = ac.createBufferSource(), b = ac.createBuffer(1, ac.sampleRate * .15, ac.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / 900); n.buffer = b; const g = ac.createGain(); g.gain.value = .12 * vol; const fl = ac.createBiquadFilter(); fl.type = 'bandpass'; fl.frequency.value = 900; n.connect(fl).connect(g).connect(this.sfxG); n.start(t);
+  },
+  bigBell(vol = 1) { // 梵鐘：低沉長音
+    if (!this.ac || !this.on.sfx || vol < .03) return; const ac = this.ac, t = ac.currentTime;
+    [[1, .6, 14], [2.02, .3, 10], [2.74, .22, 8], [3.5, .1, 6], [5.4, .07, 4], [8.9, .03, 2.5]].forEach(([m, a, d]) => {
+      const o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(); o.frequency.value = 55 * m; o2.frequency.value = 55 * m * 1.004; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a * .45 * vol, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+      o.connect(g); o2.connect(g); g.connect(this.sfxG); o.start(t); o2.start(t); o.stop(t + d); o2.stop(t + d); });
+    const n = ac.createBufferSource(), b = ac.createBuffer(1, ac.sampleRate * .3, ac.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / 2500); n.buffer = b; const g = ac.createGain(); g.gain.value = .25 * vol; const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 400; n.connect(fl).connect(g).connect(this.sfxG); n.start(t);
+  },
   pluck(f = 440, v = .08) { // 介面用的琴音
     if (!this.ac || !this.on.sfx) return; const ac = this.ac, t = ac.currentTime;
     const o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), fl = ac.createBiquadFilter();

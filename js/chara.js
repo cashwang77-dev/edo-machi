@@ -171,10 +171,11 @@ export class Chara {
     else if (a === 13) { arx = -1.55; headX = .05; twist = .15; }
     else if (a === 15) { const e = (Math.sin(t * 3) + 1) / 2; alx = -1.3 - e * .9; headX = .1 + e * .12; }
     else if (a === 16) { const e = Math.min(1, t * 4); arx = -2.5 * e; arz = .15; up = Math.sin(Math.min(t * 6, Math.PI)) * .04; }
+    else if (a === 17) { const e = Math.min(1, t * 2.5); alx = arx = -1.25 * e; alz = -.62 * e; arz = .62 * e; bend = .22 * Math.min(1, Math.max(0, t - .6) * 2); headX = .25 * e; }
     else if (a === 14) { const e = Math.sin(t * 18); bend = -.18 + e * .04; alx = arx = -.5; alz = -.5; arz = .5; headX = -.25 + e * .06; up = Math.abs(e) * .02; }
     else { const b = Math.sin(t * 1.6) * .015; up = b; }
-    if (this.look.c === 2 && ![7, 4, 9, 10, 11, 13, 16].includes(a)) arx = Math.min(arx, -1.2);
-    if (this.look.f && ![5, 15, 4, 9, 10, 11].includes(a)) alx = Math.min(alx, -.9);
+    if (this.look.c === 2 && ![7, 4, 9, 10, 11, 13, 16, 17].includes(a)) arx = Math.min(arx, -1.2);
+    if (this.look.f && ![5, 15, 4, 9, 10, 11, 17].includes(a)) alx = Math.min(alx, -.9);
     const k = Math.min(1, dt * 12), lr = (o, v) => o + (v - o) * k;
     L[0].rotation.x = lr(L[0].rotation.x, lx); L[1].rotation.x = lr(L[1].rotation.x, rx);
     A[0].rotation.x = lr(A[0].rotation.x, alx); A[1].rotation.x = lr(A[1].rotation.x, arx);

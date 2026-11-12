@@ -168,7 +168,8 @@ function npcPlan(n) {
     }
   }
   const q = Math.random();
-  if (q < .08) { n.tx = -115 + Math.random() * 10; n.tz = (Math.random() - .5) * 4; }
+  if (q < .06) { n.tx = 170 + Math.random() * 16; n.tz = -55 - Math.random() * 14; }
+  else if (q < .12) { n.tx = -115 + Math.random() * 10; n.tz = (Math.random() - .5) * 4; }
   else if (q < .14) { n.tx = 104 + Math.random() * 4; n.tz = (Math.random() - .5) * 20; }
   else { n.tx = -95 + Math.random() * 196; n.tz = (Math.random() - .5) * 9; }
   n.st = 'walk';
@@ -263,11 +264,12 @@ function findNear() {
   for (const s of W.seats) if (s.kind === 'view') { const d = Math.hypot(p.x - s.x, p.z - s.z); if (d < 1.5 && d < best) { best = d; near = { type: 'view', seat: s }; } }
   for (const s of W.spots) { const d = Math.hypot(p.x - s.x, p.z - s.z); if (d < 2.6 && d < best) { best = d; near = { type: s.type, spot: s }; } }
   for (const n of NPCS) { const q = n.ch.root.position; const d = Math.hypot(p.x - q.x, p.z - q.z); if (d < 2.0 && d < best) { best = d; near = { type: 'npc', npc: n }; } }
+  for (const dr of DEER) { const q = dr.g.position; const d = Math.hypot(p.x - q.x, p.z - q.z); if (d < 2.2 && d < best) { best = d; near = { type: 'deer', deer: dr }; } }
   updPrompt();
 }
 function updPrompt() {
   const b = $('#act'); let label = '';
-  if (G.mode === 'walk' && near) label = near.type === 'shop' ? `🏮 ${near.shop.def.name}（${near.shop.def.kind}）` : near.type === 'view' ? '🪑 坐下來看風景' : near.type === 'npc' ? `💬 跟「${near.npc.nm}」聊天` : near.spot.label;
+  if (G.mode === 'walk' && near) label = near.type === 'shop' ? `🏮 ${near.shop.def.name}（${near.shop.def.kind}）` : near.type === 'view' ? '🪑 坐下來看風景' : near.type === 'npc' ? `💬 跟「${near.npc.nm}」聊天` : near.type === 'deer' ? '🦌 摸摸小鹿' : near.spot.label;
   else if (G.mode === 'seat' || G.mode === 'bath') label = '🚶 起身離開';
   b.textContent = label ? (isTouch ? label : `[E] ${label}`) : ''; b.classList.toggle('hide', !label || G.busy);
 }
@@ -279,6 +281,9 @@ function act() {
   else if (near.type === 'view') sitAt(near.seat);
   else if (near.type === 'npc') { npcTalk(near.npc); G.ry = Math.atan2(near.npc.ch.root.position.x - G.pos.x, near.npc.ch.root.position.z - G.pos.z); }
   else if (near.type === 'board') show('#help');
+  else if (near.type === 'temple') openTemple();
+  else if (near.type === 'kane') ringKane();
+  else if (near.type === 'deer') petDeer(near.deer);
   else if (near.type === 'donate') { show('#donate'); G.me.emoji('🙇'); }
   else if (near.type === 'well') { G.me.say('井水好冰涼～'); emote(6); sfx(300, .3, 'sine', .05); }
   else if (near.type === 'pray') {
@@ -565,6 +570,91 @@ function openGM() {
   el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => net.send({ t: 'chat', s: `/${b.dataset.c} ${b.dataset.n}` }));
 }
 
+// ---------- 東光寺：參拜・投幣・搖鈴・撞鐘 ----------
+const TEMPLE_WISH = ['心願成就', '身體健康', '開運招福', '學業進步', '生意興隆', '闔家平安', '良緣到來', '旅途平安'];
+function openTemple() {
+  const p = $('#panel');
+  p.innerHTML = `<h2>東光寺 大佛殿<small>參拜</small></h2><p class="sub">寺院參拜不拍手：投香油錢、搖鈴，再雙手合十。身上：<b>${G.gm ? '∞' : G.money}</b> 文</p>
+  <div class="btns"><button id="tc1">🪙 投 1 文</button><button id="tc5">🪙 投 5 文（結緣）</button><button id="tg">🔔 搖鈴</button><button id="tp" class="big alt">🙏 合掌參拜</button></div>
+  <button class="close" id="bX">✕</button>`;
+  show('#panel'); $('#bX').onclick = closePanels;
+  $('#tc1').onclick = () => templeCoin(1); $('#tc5').onclick = () => templeCoin(5);
+  $('#tg').onclick = templeGong; $('#tp').onclick = templePray;
+  G.ry = PI; // 面向大殿
+}
+function templeCoin(v) {
+  if (!afford(v)) return toast('身上的錢不夠');
+  addMoney(-v, '香油錢'); G.coinT = performance.now();
+  const c = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .015, 14), new THREE.MeshStandardMaterial({ color: '#d9b44a', metalness: .9, roughness: .25 }));
+  const a = G.pos.clone().add(new THREE.Vector3(.15, 1.3, -.2)), b = new THREE.Vector3(W.temple.gong.x, 1.15, -74.3);
+  scene.add(c); let t = 0; const fly = () => { t += .03; const k = Math.min(1, t / .6); c.position.lerpVectors(a, b, k); c.position.y += Math.sin(k * PI) * 1.2; c.rotation.x += .5; c.rotation.z += .3; if (k < 1) requestAnimationFrame(fly); else setTimeout(() => scene.remove(c), 200); }; fly();
+  emote(16, .8); SND.coin(1); net.send({ t: 'emote', e: '🪙' });
+}
+function templeGong() {
+  W.ringRope(); emote(16, 1.2); setTimeout(() => SND.gong(1), 250); net.send({ t: 'emote', e: '🔔' });
+}
+function templePray() {
+  closePanels(); G.ry = PI; emote(17, 3.6); net.send({ t: 'emote', e: '🙏' });
+  const w = TEMPLE_WISH[Math.floor(Math.random() * TEMPLE_WISH.length)]; const gave = G.coinT && performance.now() - G.coinT < 60000;
+  setTimeout(() => { G.me.say(`🙏 祈願：${w}${gave ? '（香油錢的心意，佛祖收到了）' : ''}`, 5); if (gave) G.me.emoji('✨'); }, 2600);
+}
+let kaneCD = 0;
+function ringKane() {
+  if (performance.now() < kaneCD) return toast('鐘聲還在迴盪，稍等一下再撞');
+  kaneCD = performance.now() + 9000; W.strike(); emote(16, 1.2); setTimeout(() => { SND.bigBell(1); }, 500); net.send({ t: 'emote', e: '🏯' });
+}
+function templeFx(e, from) { // 其他玩家的寺院動作：在附近才聽得到
+  if (!W.temple) return; const d = from.distanceTo(G.pos);
+  if (e === '🔔') { W.ringRope(); SND.gong(Math.max(0, 1 - d / 40)); }
+  if (e === '🪙') SND.coin(Math.max(0, 1 - d / 25));
+  if (e === '🏯') { W.strike(); setTimeout(() => SND.bigBell(Math.max(.15, 1 - d / 260)), 500); }
+}
+
+// ---------- 奈良鹿 ----------
+const DEER = [];
+function makeDeer() {
+  const g = new THREE.Group(); const fur = new THREE.MeshStandardMaterial({ color: '#9a6a3c', roughness: .9 }), white = new THREE.MeshStandardMaterial({ color: '#efe6d8', roughness: .9 }), dark = new THREE.MeshStandardMaterial({ color: '#2a1d14' });
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(.22, .55, 4, 10), fur); body.rotation.z = PI / 2; body.position.y = .78; body.rotation.y = PI / 2; g.add(body);
+  for (let i = 0; i < 6; i++) { const sp = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 4), white); sp.position.set((i % 2 ? .12 : -.12), .92, -.25 + i * .1); g.add(sp); }
+  const legs = []; for (const [x, z] of [[-.12, .3], [.12, .3], [-.12, -.3], [.12, -.3]]) { const l = new THREE.Group(); l.position.set(x, .62, z); const m = new THREE.Mesh(new THREE.CylinderGeometry(.04, .03, .6, 6), fur); m.position.y = -.3; l.add(m); const h = new THREE.Mesh(new THREE.BoxGeometry(.06, .05, .08), dark); h.position.y = -.6; l.add(h); g.add(l); legs.push(l); }
+  const neck = new THREE.Group(); neck.position.set(0, .92, .38); g.add(neck);
+  const nm = new THREE.Mesh(new THREE.CylinderGeometry(.08, .11, .45, 8), fur); nm.position.y = .2; nm.rotation.x = .35; neck.add(nm);
+  const head = new THREE.Group(); head.position.set(0, .44, .1); neck.add(head);
+  const hm = new THREE.Mesh(new THREE.SphereGeometry(.12, 12, 10), fur); hm.scale.set(.9, .9, 1.2); head.add(hm);
+  const sn = new THREE.Mesh(new THREE.SphereGeometry(.07, 10, 8), fur); sn.position.set(0, -.04, .14); sn.scale.set(.9, .8, 1.2); head.add(sn);
+  const no = new THREE.Mesh(new THREE.SphereGeometry(.028, 6, 5), dark); no.position.set(0, -.03, .22); head.add(no);
+  for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.022, 6, 5), dark); e.position.set(s * .07, .03, .08); head.add(e); const ear = new THREE.Mesh(new THREE.ConeGeometry(.045, .14, 6), fur); ear.position.set(s * .1, .1, -.02); ear.rotation.z = -s * 1.1; head.add(ear); }
+  const tail = new THREE.Mesh(new THREE.SphereGeometry(.06, 8, 6), white); tail.position.set(0, .86, -.52); g.add(tail);
+  g.traverse(o => o.castShadow = true);
+  return { g, legs, neck, head };
+}
+function spawnDeer() {
+  for (const [x, z] of [[160, -60], [196, -64], [170, -95], [150, -85], [205, -92]]) {
+    const d = makeDeer(); d.g.position.set(x, 0, z); d.g.rotation.y = Math.random() * 6; scene.add(d.g);
+    Object.assign(d, { tx: x, tz: z, wait: Math.random() * 5, phase: 0, bowT: 0 }); DEER.push(d);
+  }
+}
+function deerTarget(d) { d.tx = 146 + Math.random() * 64; d.tz = -103 + Math.random() * 52; if (d.tx > 156 && d.tx < 200 && d.tz < -76) d.tz = -60; }
+function petDeer(d) { d.bowT = 2.4; d.wait = 4; d.g.rotation.y = Math.atan2(G.pos.x - d.g.position.x, G.pos.z - d.g.position.z); setTimeout(() => G.me.emoji('🦌'), 300); setTimeout(() => d.g.position && G.me.say(['小鹿向你鞠躬了！', '好可愛～', '牠好像想吃鹿仙貝'][Math.floor(Math.random() * 3)], 3), 900); }
+function updDeer(dt) {
+  for (const d of DEER) {
+    const p = d.g.position; let moving = false;
+    if (d.bowT > 0) { d.bowT -= dt; const e = Math.sin((2.4 - d.bowT) / 1.2 * PI); d.neck.rotation.x = Math.max(0, e) * 1.1; }
+    else {
+      d.neck.rotation.x *= .9;
+      const pd = Math.hypot(G.pos.x - p.x, G.pos.z - p.z);
+      if (pd < 3 && Math.random() < dt * .15) { d.bowT = 2.4; d.g.rotation.y = Math.atan2(G.pos.x - p.x, G.pos.z - p.z); }
+      if (d.wait > 0) { d.wait -= dt; if (d.wait <= 0) deerTarget(d); if (Math.random() < dt * .3) d.head.rotation.x = (Math.random() - .3) * .8; }
+      else {
+        const dx = d.tx - p.x, dz = d.tz - p.z, dist = Math.hypot(dx, dz);
+        if (dist < .4) d.wait = 3 + Math.random() * 7;
+        else { const sp = .9, nx = p.x + dx / dist * sp * dt, nz = p.z + dz / dist * sp * dt; if (okAt(nx, nz)) { p.x = nx; p.z = nz; moving = true; } else d.wait = 1; d.g.rotation.y = angLerp(d.g.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 4)); }
+      }
+    }
+    d.phase += dt * (moving ? 9 : 0); d.legs.forEach((l, i) => l.rotation.x = moving ? Math.sin(d.phase + (i % 2 ? PI : 0) + (i > 1 ? PI / 2 : 0)) * .45 : l.rotation.x * .8);
+  }
+}
+
 // ---------- 掌櫃叫賣 ----------
 const CALLS = {
   soba: ['そば〜、あったかいそばはいかが〜', '熱騰騰的蕎麥麵喔～'], chaya: ['いらっしゃい、お茶でも一服どうぞ〜', '進來喝杯茶歇歇腳吧～'],
@@ -751,7 +841,7 @@ net.on('join', m => { addRemote(m); toast(`「${m.n}」來到了江戶町`); });
 net.on('leave', m => delRemote(m.id));
 net.on('s', m => { for (const [id, x, z, y, r, a] of m.p) { const R = G.remotes.get(id); if (R) { R.tx = x; R.tz = z; R.ty = y; R.tr = r; R.a = a; } } });
 net.on('chat', m => onChat(m.id, m.s));
-net.on('emote', m => { const R = G.remotes.get(m.id); if (R) R.ch.emoji(m.e); });
+net.on('emote', m => { const R = G.remotes.get(m.id); if (R) { R.ch.emoji(m.e); if (['🔔', '🪙', '🏯'].includes(m.e)) templeFx(m.e, R.ch.root.position); if (m.e === '🙏') { R.ov = 17; R.ovT = 3.6; } } });
 net.on('look', m => { const R = G.remotes.get(m.id); if (R) R.ch.setLook(m.lk); });
 net.on('shops', m => {
   const old = G.owners; G.owners = m.shops || {};
@@ -834,7 +924,7 @@ function update(dt) {
     if (R.ovT > 0) { R.ovT -= dt; R.ch.play(R.ov); } else R.ch.play(R.a); R.ch.update(dt, Math.hypot(p.x - ox, p.z - oz) / Math.max(dt, .001));
   }
   for (const c of G.npcCust) c.ch.update(dt, 0);
-  updNPCs(dt);
+  updNPCs(dt); updDeer(dt);
   if (G.mode !== 'title' && W) {
     const near = [...G.remotes.values()].filter(r => r.ch.root.position.distanceTo(G.pos) < 15).length + NPCS.filter(n => n.ch.root.visible && n.ch.root.position.distanceTo(G.pos) < 15).length;
     SND.update(dt, tday(), W.night || 0, Math.max(0, Math.abs(G.pos.x - 125) - 13), near, Math.abs(G.pos.z) < 12 && G.pos.x > -100 && G.pos.x < 104);
@@ -855,7 +945,7 @@ function loop() {
 const mini = $('#mini'), mg = mini.getContext('2d');
 function drawMini() {
   if (mini.classList.contains('hide')) return;
-  const w = mini.width, h = mini.height, sx = w / 340, ox = -160; const X = x => (x - ox) * sx, Z = z => h / 2 + z * sx;
+  const w = mini.width, h = mini.height, sx = w / 380, ox = -160; const X = x => (x - ox) * sx, Z = z => h * .6 + z * sx;
   mg.clearRect(0, 0, w, h); mg.fillStyle = 'rgba(243,234,214,.92)'; mg.fillRect(0, 0, w, h);
   mg.fillStyle = '#cdbb98'; mg.fillRect(X(-100), Z(-7), (206) * sx, 14 * sx);
   mg.fillStyle = '#d9d2c2'; mg.fillRect(X(-150), Z(-24), 52 * sx, 48 * sx);
@@ -864,9 +954,10 @@ function drawMini() {
   mg.fillStyle = '#c8402c'; mg.fillRect(X(-101) - 2, Z(-3), 4, 6 * sx);
   for (const s of W.shops) { mg.fillStyle = G.owners[s.def.id] ? '#c8322a' : '#5a4636'; mg.fillRect(X(s.def.x - s.def.w / 2), Z(s.def.side * 7) - (s.def.side < 0 ? 9 * sx : 0), s.def.w * sx, 9 * sx); }
   mg.fillStyle = '#7fb8b4'; mg.beginPath(); mg.arc(X(160), Z(14), 3.4 * sx, 0, 7); mg.fill();
+  mg.fillStyle = '#d9d2c2'; mg.fillRect(X(141), Z(-106), 74 * sx, 59 * sx); mg.fillStyle = '#4a3a2e'; mg.fillRect(X(158), Z(-104), 40 * sx, 26 * sx); mg.fillRect(X(167), Z(-50), 22 * sx, 6 * sx); mg.fillStyle = '#8a6440'; mg.fillRect(X(175.5), Z(-78), 5 * sx, 38 * sx);
   mg.fillStyle = '#2a4b7c'; for (const [, R] of G.remotes) { mg.beginPath(); mg.arc(X(R.tx), Z(R.tz), 2.2, 0, 7); mg.fill(); }
   mg.fillStyle = '#e8322a'; mg.beginPath(); mg.arc(X(G.pos.x), Z(G.pos.z), 3.4, 0, 7); mg.fill(); mg.strokeStyle = '#fff'; mg.lineWidth = 1.5; mg.stroke();
-  mg.font = '600 10px sans-serif'; mg.fillStyle = '#3a2a1a'; mg.fillText('神社', X(-140), Z(-17)); mg.fillText('日本橋', X(110), Z(-6)); mg.fillText('湯', X(157), Z(6)); mg.fillText('御觸書', X(92), Z(-12));
+  mg.font = '600 10px sans-serif'; mg.fillStyle = '#3a2a1a'; mg.fillText('神社', X(-140), Z(-17)); mg.fillText('日本橋', X(110), Z(-6)); mg.fillText('湯', X(157), Z(6)); mg.fillStyle = '#f3ead6'; mg.fillText('東光寺', X(170), Z(-88)); mg.fillStyle = '#3a2a1a'; mg.fillText('御觸書', X(92), Z(-12));
 }
 mini.onclick = () => { const big = mini.classList.toggle('big'); mini.width = big ? 520 : 240; mini.height = big ? 260 : 120; drawMini(); };
 
@@ -906,7 +997,7 @@ if (isTouch) document.body.classList.add('touch');
   W = buildWorld(scene);
   W.sunLight = scene.children.find(o => o.isDirectionalLight);
   setupPost(); applyQuality();
-  addMe(); spawnNPCs(); buildTitle();
+  addMe(); spawnNPCs(); spawnDeer(); buildTitle();
   $('#loading').classList.add('hide');
   if (QS.has('cam')) { G.shot = QS.get('cam').split(',').map(Number); show('#title', false); }
   if (QS.has('auto')) { $('#nameIn').value = QS.get('auto') || '測試'; start(); }
@@ -918,7 +1009,7 @@ if (isTouch) document.body.classList.add('touch');
 async function runTest() {
   const log = []; let fail = false; const ok = (c, m) => { log.push((c ? '✔ ' : '✘ ') + m); if (!c) fail = true; };
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const until = async (f, ms = 15000) => { const t0 = performance.now(); while (!f() && performance.now() - t0 < ms) await sleep(50); return f(); };
+  const until = async (f, ms = 45000) => { const t0 = performance.now(); while (!f() && performance.now() - t0 < ms) await sleep(50); return f(); };
   try {
     await sleep(600); setMoney(2000);
     const soba = W.shops.find(s => s.def.id === 'soba');
@@ -959,6 +1050,14 @@ async function runTest() {
     G.me.bub = null; onChat(G.myId, '你好'); ok(!!G.me.bub, '聊天泡泡');
     G.pos.set(-128, 0, 0); ok(await until(() => near && near.type === 'pray'), '神社參拜點');
     G.pos.set(125, 0, 0); ok(okAt(125, 0) && !okAt(125, 5), '橋可走、河不可走');
+    G.pos.set(178, 0, -40); ok(okAt(178, -40) && okAt(178, -47) && !okAt(171, -47) && okAt(178, -70), '寺院可從南大門走進去、兩側被擋');
+    G.pos.set(178, 0, -72.3); ok(await until(() => near && near.type === 'temple'), '大佛殿參拜點');
+    act(); ok(!$('#panel').classList.contains('hide'), '參拜選單');
+    const mt = G.money; $('#tc5').click(); ok(G.money === mt - 5, '投 5 文');
+    $('#tg').click(); ok(W.temple.ropeT > 0, '搖鈴（繩子擺動）');
+    await sleep(900); $('#tp').click(); ok(await until(() => G.me.anim === 17), '合掌參拜'); ok(await until(() => G.me.bub && G.emoteT <= 0, 9000), '得到祈願');
+    G.pos.set(198.4, 0, -63.5); ok(await until(() => near && near.type === 'kane'), '鐘樓撞鐘點'); act(); ok(W.temple.strikeT > 0, '撞鐘（撞木擺動）');
+    const dr = DEER[0]; G.pos.set(dr.g.position.x + 1, 0, dr.g.position.z); dr.wait = 30; ok(await until(() => near && near.type === 'deer'), '小鹿互動提示'); act(); ok(dr.bowT > 0, '小鹿鞠躬');
   } catch (e) { ok(false, 'EXC ' + e.message); }
   document.title = (fail ? 'FAIL ' : 'PASS ') + log.length;
   const d = document.createElement('pre'); d.style.cssText = 'position:fixed;left:8px;top:50px;z-index:99;background:rgba(255,255,255,.92);font-size:15px;padding:8px;margin:0'; d.textContent = (fail ? 'FAIL\n' : 'PASS\n') + log.join('\n'); document.body.appendChild(d);

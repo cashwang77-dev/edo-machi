@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as TX from './tex.js';
 import { SHOPS, STREET } from './shops.js';
+import { buildTemple } from './temple.js';
 
 const PI = Math.PI;
 export const ARCH = x => (x > 110 && x < 140) ? 1.7 * Math.sin(PI * (x - 110) / 30) : 0;
@@ -540,7 +541,7 @@ export function buildWorld(scene) {
     for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283 + .2; W.bath.push({ x: cx + Math.cos(a) * 2.6, y: -.35, z: cz + Math.sin(a) * 2.6, r: Math.atan2(-Math.cos(a), -Math.sin(a)), kind: 'bath' }); }
     W.bathSteam = new THREE.Vector3(cx, .4, cz);
     // 湯屋後方小屋
-    for (const [x, z, w] of [[168, -12, 9], [170, -26, 8], [150, -30, 10]]) { const { g: h } = house({ w, d: 7, floors: rand() < .5 ? 2 : 1, wall: '#e3d9c3', rand }); h.position.set(x, 0, z); h.rotation.y = -PI / 2; B.bake(h); box(x - 0, z - w / 2, x + 7.5, z + w / 2); }
+    for (const [x, z, w] of [[168, -12, 9]]) { const { g: h } = house({ w, d: 7, floors: rand() < .5 ? 2 : 1, wall: '#e3d9c3', rand }); h.position.set(x, 0, z); h.rotation.y = -PI / 2; B.bake(h); box(x - 0, z - w / 2, x + 7.5, z + w / 2); }
   }
 
   // 背景街區（instanced）
@@ -552,7 +553,7 @@ export function buildWorld(scene) {
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(); let k = 0;
     for (let gx = -260; gx < 260 && k < n; gx += 11) for (let gz = -170; gz < 170 && k < n; gz += 10) {
       if (Math.abs(gz) < 19) continue; if (gx > 102 && gx < 148) continue; if (gx < -96 && gx > -152 && Math.abs(gz) < 30) continue;
-      if (gx > 140 && gx < 190 && Math.abs(gz) < 34) continue; if (Math.abs(gx - 8) < 6 && Math.abs(gz + 26) < 6) continue;
+      if (gx > 140 && gx < 190 && Math.abs(gz) < 34) continue; if (gx > 132 && gx < 224 && gz < -30 && gz > -114) continue; if (Math.abs(gx - 8) < 6 && Math.abs(gz + 26) < 6) continue;
       if (rand() < .1) continue;
       const w = 6 + rand() * 4, d = 6 + rand() * 3, h = 2.8 + (rand() < .4 ? 2.4 : 0);
       const x = gx + (rand() - .5) * 3, z = gz + (rand() - .5) * 2, ry = rand() < .5 ? 0 : PI / 2;
@@ -585,6 +586,8 @@ export function buildWorld(scene) {
     scene.add(cg);
   }
 
+  buildTemple({ M, boxG, C, std, glow, toro, pine, B, W, col, box, rand, TX, lanternMat, LANTERN_G, scene });
+
   B.finish(scene);
 
   // 河上小舟（動態）
@@ -605,6 +608,8 @@ export function buildWorld(scene) {
   const petals = new Petals(scene), ff = new Fireflies(scene), puffs = new Puffs(scene);
   for (const s of W.shops) { if (s.steam) puffs.emitter(s.steam, s.def.smoke ? 3 : 1.4, s.def.smoke ? 1.4 : .9, s.def.smoke ? '#9a9088' : '#ffffff'); if (s.chimney) puffs.emitter(s.chimney, 1, 2.6, '#a8a098', 1.2); }
   puffs.emitter(W.bathSteam, 5, 3, '#ffffff', .5);
+  if (W.templeSmoke) puffs.emitter(W.templeSmoke, 3.5, 1.2, '#d8d4cc', .5);
+  W.ringRope = () => { W.temple.ropeT = 2.2; }; W.strike = () => { W.temple.strikeT = 1.6; };
 
   let lt = 0; const sunDir = new THREE.Vector3(); const tmp = new THREE.Vector3();
   W.update = (dt, time, tday, focus, camPos, quality) => {
@@ -625,6 +630,12 @@ export function buildWorld(scene) {
     lt -= dt; if (lt < 0) { lt = .4; const near = W.lanterns.map(p => [p, p.distanceToSquared(focus)]).sort((a, b) => a[1] - b[1]).slice(0, pool.length); pool.forEach((l, i) => { if (near[i]) l.position.copy(near[i][0]).add(new THREE.Vector3(0, -.2, 0)); }); }
     pool.forEach((l, i) => l.intensity = D.lan * (quality > 0 ? 28 : 0) * (1 + Math.sin(time * 9 + i * 3) * .04));
     petals.update(dt, time, focus); ff.update(time, D.lan); puffs.update(dt, camPos);
+    // 寺院：搖鈴繩、撞木擺動
+    if (W.temple) {
+      const T = W.temple;
+      if (T.ropeT > 0) { T.ropeT -= dt; const k = T.ropeT / 2.2; T.rope.rotation.x = Math.sin((2.2 - T.ropeT) * 9) * .35 * k; T.rope.rotation.z = Math.sin((2.2 - T.ropeT) * 6.5) * .18 * k; } else T.rope.rotation.x = Math.sin(time * .8) * .02;
+      if (T.striker) { if (T.strikeT > 0) { T.strikeT -= dt; const e = 1.6 - T.strikeT; T.striker.rotation.z = e < .45 ? -Math.sin(e / .45 * PI / 2) * .55 + Math.sin(e / .45 * PI) * .0 : (e < .55 ? -.55 + (e - .45) / .1 * .62 : .07 * Math.cos((e - .55) * 6) * Math.max(0, 1 - (e - .55))); } else T.striker.rotation.z = 0; }
+    }
     // 小舟
     const bz = ((time * 1.6) % 360) - 180; W.boat.position.set(122 + Math.sin(time * .05) * 2, -.95 + Math.sin(time * 1.5) * .04, bz); W.boat.rotation.z = Math.sin(time * 1.2) * .03;
   };
@@ -638,6 +649,7 @@ export function walkable(x, z) {
   if (x >= 103 && x <= 111.6 && Math.abs(z) < 40) return true;
   if (x >= 110 && x <= 140 && Math.abs(z) < 2.15) return true;
   if (x >= 138.4 && x <= 185 && Math.abs(z) < 40) return true;
+  if (x >= 140 && x <= 216 && z <= -38 && z >= -107) return true;
   return false;
 }
 export function heightAt(x, z) { return (x > 110 && x < 140 && Math.abs(z) < 2.6) ? ARCH(x) : 0; }
