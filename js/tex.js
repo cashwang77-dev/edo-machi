@@ -264,7 +264,8 @@ export function faceTex(ey, br, mo, ck, mk) {
   g.translate(512, 0); g.scale(-1, 1);
   const put = (img, cx, cy, w) => { if (!img) return; const h = w * img.height / img.width; g.drawImage(img, cx - w / 2, cy - h / 2, w, h); };
   if (ck) for (const x of [150, 362]) { const gr = g.createRadialGradient(x, 270, 2, x, 270, ck === 2 ? 44 : 34); gr.addColorStop(0, `rgba(240,110,120,${ck === 2 ? .5 : .32})`); gr.addColorStop(1, 'rgba(240,110,120,0)'); g.fillStyle = gr; g.fillRect(x - 50, 220, 100, 100); }
-  put(F.eyes[ey], 256, 192, ey === 0 ? 270 : 290);
+  if (ey === 9) { g.strokeStyle = '#2a1a14'; g.lineWidth = 9; g.lineCap = 'round'; for (const x of [168, 344]) { g.beginPath(); g.arc(x, 168, 52, .35 * Math.PI, .65 * Math.PI); g.stroke(); g.lineWidth = 5; for (const d of [-1, 1]) { g.beginPath(); g.moveTo(x + d * 46, 205); g.lineTo(x + d * 62, 212); g.stroke(); } g.lineWidth = 9; } }
+  else put(F.eyes[ey], 256, 192, ey === 0 ? 270 : 290);
   put(F.brows[br], 256, br === 2 ? 98 : 112, br === 2 ? 200 : 300);
   put(F.mouths[mo], 256, 322, mo === 3 ? 96 : mo === 1 ? 70 : 78);
   if (mk) { g.fillStyle = '#3a2418'; g.beginPath(); g.arc(358, 238, 4, 0, 7); g.fill(); }

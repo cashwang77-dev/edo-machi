@@ -212,7 +212,8 @@ export class Chara {
     if (TX.IMG.face) {
       for (const s of [-1, 1]) this.skinParts.push(mesh(G.ear, skin, F, s * .108, -.012, -.008, 0, 0, 0, .5, 1.15, .8, false));
       this.noseM = mesh(G.nose, skin, F, 0, -.002, .128, 0, 0, 0, 1, 1, 1, false);
-      const tex = TX.faceTex((lk.ey || 0) % 5, (lk.br || 0) % 4, (lk.mo || 0) % 4, lk.ck == null ? 1 : lk.ck % 3, lk.mk ? 1 : 0);
+      this.faceBase = { ey: (lk.ey || 0) % 5, br: (lk.br || 0) % 4, mo: (lk.mo || 0) % 4, ck: lk.ck == null ? 1 : lk.ck % 3, mk: lk.mk ? 1 : 0 }; this.faceKey = '';
+      const b = this.faceBase, tex = TX.faceTex(b.ey, b.br, b.mo, b.ck, b.mk);
       this.decal = mesh(G.decal, new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: .5, polygonOffset: true, polygonOffsetFactor: -2 }), F, 0, 0, 0, 0, 0, 0, 1, 1, 1, false);
       this.mouthM = this.noseM; return;
     }
@@ -375,6 +376,7 @@ export class Chara {
     this.tag.scale.set(1.2, .3, 1); this.tag.position.y = this.gm ? 2.35 : 1.95; this.tag.renderOrder = 10; this.root.add(this.tag);
   }
   say(s, dur = 6) {
+    this.talkT = Math.min(3, .6 + String(s).length * .12);
     if (this.bub) { this.root.remove(this.bub); this.bub.material.map.dispose(); }
     const c = document.createElement('canvas'); c.width = 512; c.height = 160; const g = c.getContext('2d');
     g.font = `500 34px "Noto Sans TC","Microsoft JhengHei",sans-serif`;
@@ -392,7 +394,7 @@ export class Chara {
   }
   // anim: 0站 1走 2跑 3坐 4做菜 5吃 6鞠躬 7揮手 8泡湯 9拍手 10跳舞 11萬歲 12坐地 13指路 14大笑 15站著吃 16舉手 17合掌
   update(dt, speed) {
-    this.t += dt;
+    this.t += dt; this.updFace(dt);
     if (this.bub) { this.bubT -= dt; if (this.bubT < 0) { this.root.remove(this.bub); this.bub.material.map.dispose(); this.bub = null; } }
     if (this.emo) { this.emoT += dt; const f = this.emoT / 2.6; this.emo.position.set(.6, (this.gm ? 2.2 : 1.9) + f * .6, 0); this.emo.material.opacity = f < .15 ? f / .15 : 1 - Math.max(0, (f - .7) / .3); const sc = .75 + Math.sin(Math.min(f * 8, PI)) * .25; this.emo.scale.set(sc, sc, 1); if (f >= 1) { this.root.remove(this.emo); this.emo = null; } }
     const a = this.anim, L = this.legs, K = this.knees, A = this.arms, t = this.t;
@@ -443,6 +445,7 @@ export class Chara {
     if (this.wheel) this.wheel.rotation.z -= dt * (4 + (speed || 0) * 3);
   }
   emoji(e) {
+    const EX = { '😊': 'smile', '😂': 'laugh', '😆': 'laugh', '😍': 'love', '❤️': 'love', '😮': 'wow', '😢': 'sad', '😡': 'angry', '😴': 'sleep', '🤔': 'think', '👍': 'happy', '🎉': 'happy', '✨': 'happy', '🙇': 'calm', '🙏': 'calm' }; if (EX[e]) this.expr(EX[e]);
     if (this.emo) { this.root.remove(this.emo); this.emo.material.map.dispose(); }
     const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
     g.font = '96px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(e, 64, 70);
@@ -451,6 +454,24 @@ export class Chara {
     this.emo.renderOrder = 12; this.emo.position.set(.6, 1.9, 0); this.root.add(this.emo); this.emoT = 0;
   }
   play(a) { if (this.anim !== a) { this.anim = a; this.t = 0; } }
+  // ---- 表情：表情符號、動作、說話、吃東西、眨眼都會讓臉變化 ----
+  expr(k, dur = 2.6) { this.exK = k; this.exT = dur; }
+  updFace(dt) {
+    if (!this.decal || !this.faceBase || !this.decal.visible && !this.faceG.visible) return;
+    const b = this.faceBase; let { ey, br, mo, ck } = b; const a = this.anim, t = this.t;
+    this.exT = (this.exT || 0) - dt; this.talkT = (this.talkT || 0) - dt;
+    const k = this.exT > 0 ? this.exK : [9, 14, 11, 10, 7, 16].includes(a) ? 'happy' : [6, 17].includes(a) ? 'calm' : null;
+    if (k === 'happy') { ey = 4; mo = 1; } else if (k === 'laugh') { ey = 4; mo = 1; ck = 2; } else if (k === 'love') { ey = 4; mo = 0; ck = 2; }
+    else if (k === 'wow') { ey = 0; mo = 2; } else if (k === 'sad') { ey = 2; mo = 3; } else if (k === 'angry') { ey = 3; br = 3; mo = 3; }
+    else if (k === 'sleep' || k === 'calm') { ey = 9; mo = k === 'sleep' ? 2 : 0; } else if (k === 'think') { ey = 1; mo = 3; } else if (k === 'smile') { ey = 4; mo = 0; }
+    if (a === 5 || a === 15) mo = Math.sin(t * 6) > .2 ? 2 : 0; // 咀嚼
+    else if (this.talkT > 0 && k !== 'sleep') mo = Math.sin(t * 14) > 0 ? 1 : mo === 1 ? 0 : mo; // 說話
+    // 眨眼：每 2.5～5 秒眨一次
+    this.blinkT = (this.blinkT ?? 2 + Math.random() * 3) - dt; if (this.blinkT < -.13) this.blinkT = 2.5 + Math.random() * 2.5;
+    if (this.blinkT < 0 && ey !== 9 && ey !== 4) ey = 9;
+    const key = `${ey}_${br}_${mo}_${ck}`; if (key === this.faceKey) return; this.faceKey = key;
+    this.decal.material.map = TX.faceTex(ey, br, mo, ck, b.mk); this.decal.material.needsUpdate = true;
+  }
 }
 function rr(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
 function wrap(g, s, max) { const out = []; let cur = ''; for (const ch of s) { if (g.measureText(cur + ch).width > max) { out.push(cur); cur = ch; } else cur += ch; } if (cur) out.push(cur); return out; }

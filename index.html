@@ -103,7 +103,7 @@ button:not(:disabled):active{transform:translateY(1px)}
 .gmp .ops button:disabled{opacity:.4}
 .gml>div{display:flex;justify-content:space-between;align-items:center;background:#fffaf0;border-radius:6px;padding:4px 8px}
 .gml button{font-size:12px;padding:3px 7px;margin-left:3px}
-body.touch #held{left:12px;bottom:168px;top:auto;flex-wrap:wrap;max-width:60vw}
+body.touch #held{left:12px;bottom:auto;top:100px}
 #act{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:17px;padding:11px 22px;border-radius:30px;box-shadow:0 4px 16px rgba(0,0,0,.35);white-space:nowrap}
 #tools{position:absolute;right:10px;bottom:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:70vw}
 #tools button{background:rgba(243,234,214,.93);font-size:15px;padding:7px 11px}
@@ -128,6 +128,11 @@ body.touch .pop{bottom:70px}
 @keyframes up{to{transform:translate(-50%,-60px);opacity:0}}
 /* 面板 */
 #panel{position:fixed;right:14px;top:50%;transform:translateY(-46%);width:min(380px,94vw);z-index:15;max-height:calc(100vh - 170px);overflow:auto}
+#seatBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + var(--sb,0px));z-index:15;display:flex;gap:6px;align-items:center;background:rgba(243,234,214,.94);border:1.5px solid var(--ink);border-radius:22px;padding:5px 6px 5px 14px;box-shadow:0 3px 10px rgba(0,0,0,.25);font-size:14px;white-space:nowrap}
+#seatBar span{color:var(--red);font-weight:700;max-width:40vw;overflow:hidden;text-overflow:ellipsis}
+#seatBar button{font-size:13px;padding:5px 10px;border-radius:16px}
+#seatBar.hide{display:none}
+body.touch #seatBar{bottom:auto;top:calc(58px + var(--st,0px))}
 #wishIn{font:inherit;font-size:16px;width:100%;padding:10px 12px;border:1.5px solid var(--ink);border-radius:8px;background:#fffaf0;color:var(--ink)}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 2px}
 .chipw{font-size:13px;padding:4px 10px;border-radius:14px;border-width:1px;background:#fffaf0}
@@ -248,7 +253,7 @@ body.touch #tools{right:calc(8px + var(--sr))}
 #act{bottom:calc(14px + var(--sb))}
 body.touch #act{left:calc(168px + var(--sl));bottom:calc(44px + var(--sb))}
 #held{left:calc(14px + var(--sl));bottom:calc(64px + var(--sb))}
-body.touch #held{left:calc(12px + var(--sl));bottom:calc(168px + var(--sb))}
+body.touch #held{left:calc(12px + var(--sl));bottom:auto;top:calc(100px + var(--st));flex-wrap:nowrap;max-width:none}
 #panel,#mg,#pcard{right:calc(14px + var(--sr))}
 #title .logo{top:calc(5vh + var(--st))}
 /* ---- 建立人物面板可上下捲動 ---- */
@@ -290,6 +295,7 @@ body.touch #held{left:calc(12px + var(--sl));bottom:calc(168px + var(--sb))}
   <div id="owner" class="hide"></div>
 </div>
 <div id="panel" class="card hide"></div>
+<div id="seatBar" class="hide"></div>
 <div id="pcard" class="card hide"></div>
 <div id="gmPanel" class="modal hide"><div class="card"></div></div>
 <div id="mg" class="card hide"><div id="mgFlash"></div><div id="mgItem"></div><div id="mgStep"></div><div class="mgbar"><div id="mgFill"></div><div id="mgZone"></div><div id="mgNeedle"></div></div><div id="mgHint"></div><button id="mgBtn">！</button></div>
@@ -333,6 +339,6 @@ body.touch #held{left:calc(12px + var(--sl));bottom:calc(168px + var(--sb))}
 </div></div>
 <div id="toast"></div>
 <script>addEventListener("error",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+e.message+" @"+(e.filename||"").split("/").pop()+":"+e.lineno});addEventListener("unhandledrejection",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+(e.reason&&e.reason.stack||e.reason)})</script>
-<script type="module" src="js/game.js?v=20261114b"></script>
+<script type="module" src="js/game.js?v=20261114d"></script>
 </body>
 </html>

@@ -358,11 +358,17 @@ function openMenu(s) {
   p.innerHTML = `<h2>${d.name}<small>品書き（菜單）</small></h2><p class="sub">${own ? `店主：${ownerName(own)}（玩家）` : 'NPC 掌櫃為您服務'}　身上：<b>${G.gm ? '∞' : G.money}</b> 文</p>
   <div class="menu">${d.menu.map((m, i) => `${m.cat && (i === 0 || d.menu[i - 1].cat !== m.cat) ? `<div class="mcat">${m.cat}</div>` : ''}<button class="mi" data-i="${i}" ${afford(m.p) ? '' : 'disabled'}><span class="jp">${m.n}</span><span class="zh">${m.zh}${m.acc && invGet().includes(m.acc.id) ? '（已擁有）' : ''}</span><span class="pr">${m.p} 文</span></button>`).join('')}</div>
   <div class="btns"><button id="bLeave">🚶 起身離開</button></div>`;
-  show('#panel');
+  show('#panel'); show('#seatBar', false);
   p.querySelectorAll('.mi').forEach(b => b.onclick = () => order(s, d.menu[+b.dataset.i]));
   $('#bLeave').onclick = standUp;
 }
-function closePanels() { show('#panel', false); show('#help', false); show('#fortune', false); show('#ukiyo', false); }
+// 買完東西：只留一條小按鈕列，不再整張菜單擋住人物
+function seatBar(s, msg) {
+  show('#panel', false); const b = $('#seatBar');
+  b.innerHTML = `<span>${msg}</span><button id="sbMenu">📜 再點</button><button id="sbLeave">🚶 離開</button>`; show('#seatBar');
+  $('#sbMenu').onclick = () => { show('#seatBar', false); openMenu(s); }; $('#sbLeave').onclick = standUp;
+}
+function closePanels() { show('#seatBar', false); show('#panel', false); show('#help', false); show('#fortune', false); show('#ukiyo', false); }
 
 // 點餐
 function order(s, item) {
@@ -392,12 +398,12 @@ function served(s, item, q, from) {
   if (item.dish) {
     setHeld(s.def.id + ':' + item.id);
     toast(`拿到「${item.n}」！品質：${gname}　按 🍡 吃掉，或帶著走、送給別人`, 3500);
-    openMenu(s);
+    seatBar(s, `✔ ${item.n}`);
   } else if (item.look) {
     if (item.acc) { invAdd(item.acc.id); if (item.acc.slot === 'm' && G.look.hat === 4) G.look.hat = 0; if (item.acc.slot === 'hs' && G.look.hat === 2) G.look.hat = 0; }
     G.look = { ...G.look, ...item.look }; G.me.setLook(G.look); store.set('look', G.look); net.send({ t: 'look', lk: G.look }); G.me.emoji('✨');
     if (item.acc) toast(`「${item.n}」已收進 🎒 持ち物，可隨時穿戴`, 3000);
-    G.me.say('換好了！好看嗎？'); toast(`完成「${item.zh}」！品質：${gname}`); openMenu(s); closeup(4, { dist: 2.4, h: .95, ang: .2, look: .75, spin: .45, keep: 1 });
+    G.me.say('換好了！好看嗎？'); toast(`完成「${item.zh}」！品質：${gname}`); seatBar(s, `✔ ${item.n}`); closeup(4, { dist: 2.4, h: .95, ang: .2, look: .75, spin: .45, keep: 1 });
   } else if (item.fortune) {
     const arr = FORTUNE[item.fortune]; const [h, t] = arr[Math.floor(Math.random() * arr.length)];
     $('#fortune').innerHTML = `<div class="kuji"><div class="kt">${h}</div><p>${t}</p><button onclick="this.closest('.modal').classList.add('hide')">收下</button></div>`; show('#fortune'); show('#panel', false);
