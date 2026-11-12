@@ -59,7 +59,7 @@ export class Town {
         joined = true;
         let n = cleanText(String(m.n || '旅人').slice(0, 12)).text.replace(/＊/g, '') || '旅人';
         if (!gm && /^GM|管理員/i.test(n)) n = '旅人' + id.slice(1);
-        const p = { ws, n, lk: m.lk || {}, x: +m.x || 0, z: +m.z || 0, y: 0, r: 0, a: 0, dirty: true, gm, strikes: 0, muteUntil: 0 };
+        const p = { ws, n, lk: m.lk || {}, x: +m.x || 0, z: +m.z || 0, y: 0, r: 0, a: 0, dirty: true, gm, strikes: 0, muteUntil: 0, seen: Date.now(), bye: () => bye() };
         this.players.set(id, p);
         const list = [];
         for (const [pid, q] of this.players) if (pid !== id) list.push({ id: pid, n: q.n, lk: q.lk, x: q.x, z: q.z, y: q.y, r: q.r, a: q.a, gm: q.gm });
@@ -67,6 +67,8 @@ export class Town {
         this.bcast({ t: 'join', id, n: p.n, lk: p.lk, x: p.x, z: p.z, gm }, id);
         this.startTick(); return;
       }
+      const pp = this.players.get(id); if (pp) pp.seen = Date.now();
+      if (m.t === 'ping') return;
       this.onMsg(id, m);
     });
     const bye = () => {
@@ -156,6 +158,10 @@ export class Town {
       const arr = [];
       for (const [id, p] of this.players) if (p.dirty) { arr.push([id, Math.round(p.x * 10) / 10, Math.round(p.z * 10) / 10, Math.round(p.y * 10) / 10, Math.round(p.r * 100) / 100, p.a]); p.dirty = false; }
       if (arr.length) this.bcast({ t: 's', p: arr });
+      if ((this.sweep = (this.sweep || 0) + 1) % 25 === 0) { // 每 5 秒清掉 45 秒沒訊號的幽靈連線
+        const now = Date.now();
+        for (const [, p] of [...this.players]) if (now - p.seen > 45000) { try { p.ws.close(1000, 'timeout'); } catch (e) {} p.bye(); }
+      }
     }, TICK);
   }
 }

@@ -287,7 +287,7 @@ function act() {
 }
 function sitAt(seat, kind = 'seat') {
   G.mode = kind; G.seat = seat; G.pos.set(seat.x, seat.y || 0, seat.z); G.ry = seat.r;
-  G.me.play(kind === 'bath' ? 8 : 3); cam.yaw = seat.r + PI + (kind === 'bath' ? 0 : .5); updPrompt();
+  G.me.play(kind === 'bath' ? 8 : 3); cam.yaw = seat.r + PI + (kind === 'bath' ? 0 : .5); cam.pitch = .2; cam.dist = 4.8; updPrompt();
 }
 function standUp() {
   if (G.order) cancelOrder('離開座位，已退款');
@@ -381,7 +381,7 @@ function claim(s) {
 }
 function enterOwner(s) {
   G.mode = 'owner'; G.shop = s; G.queue = []; G.pos.set(s.owner.x, s.owner.y, s.owner.z); G.ry = s.owner.r; G.me.play(0);
-  cam.yaw = s.rot; cam.pitch = .28; cam.dist = 6; G.npcT = 6;
+  cam.yaw = s.rot; cam.pitch = .05; cam.dist = 4.4; G.npcT = 6;
   toast(`「${s.def.name}」開店了！客人點餐後點訂單開始製作`, 3500); sfx(520, .2); setTimeout(() => sfx(780, .3), 150);
   renderOwner(); updPrompt();
 }
@@ -652,6 +652,7 @@ function buildTitle() {
   sync();
   $('#rnd').onclick = () => { G.look = randomLook(); G.look.hat = 0; G.look.c = 0; G.me.setLook(G.look); sync(); };
   $('#go').onclick = start;
+  if (QS.has('embed')) { const a = document.createElement('a'); a.className = 'big'; a.target = '_blank'; a.rel = 'noopener'; a.href = location.origin + location.pathname; a.textContent = '↗ 開新分頁全螢幕玩'; a.style.cssText = 'display:block;text-align:center;margin-top:8px'; $('#go').parentElement.after(a); }
   $('#nameIn').addEventListener('keydown', e => { if (e.key === 'Enter') start(); });
 }
 async function start() {
@@ -674,6 +675,7 @@ async function start() {
 }
 
 // ---------- 連線事件 ----------
+setInterval(() => { if (G.online) net.send({ t: 'ping' }); }, 15000);
 net.on('welcome', m => {
   G.myId = m.id; G.timeOff = m.timeOff || 0; G.owners = m.shops || {};
   if (m.gm) { G.gm = true; G.me.gm = true; G.me.setName('👑 ' + m.n); setMoney(G.money); show('#bGM'); toast('👑 GM 模式：錢用不完、可使用管理面板', 3500); }
@@ -895,4 +897,4 @@ async function runTest() {
   const d = document.createElement('pre'); d.style.cssText = 'position:fixed;left:8px;top:50px;z-index:99;background:rgba(255,255,255,.92);font-size:15px;padding:8px;margin:0'; d.textContent = (fail ? 'FAIL\n' : 'PASS\n') + log.join('\n'); document.body.appendChild(d);
 }
 if (QS.get('test') === 'flow') { store.set('helped', true); setTimeout(runTest, 1500); }
-window.EDO = { openCard, openGM, camera, setHeld };
+window.EDO = { openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };

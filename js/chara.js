@@ -93,16 +93,18 @@ export class Chara {
     this.headM.material = mat(SKINS[lk.s % 3]); this.legSkin.forEach(l => l.material = mat(SKINS[lk.s % 3]));
     this.hairG.clear(); this.accG.clear(); this.carryG.clear(); this.foodG.clear(); this.waistG.clear();
     const H = (g, x, y, z, sx = 1, sy = 1, sz = 1) => { const m = new THREE.Mesh(g, hairMat); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.castShadow = true; this.hairG.add(m); return m; };
-    const cap = new THREE.SphereGeometry(.142, 18, 10, 0, Math.PI * 2, 0, Math.PI * .55);
+    const capTop = new THREE.SphereGeometry(.142, 18, 6, 0, Math.PI * 2, 0, Math.PI * .34);
+    const capBack = new THREE.SphereGeometry(.142, 18, 8, Math.PI / 2 + .95, Math.PI * 2 - 1.9, Math.PI * .33, Math.PI * .3);
+    const HC = (x, y, z, sx, sy, sz) => { H(capTop, x, y, z, sx, sy, sz); H(capBack, x, y, z, sx, sy, sz); };
     switch (lk.h % HAIRS.length) {
       case 0: { // 丁髷：月代＋前に折る髷
-        const side = new THREE.Mesh(new THREE.SphereGeometry(.143, 18, 10, 0, Math.PI * 2, Math.PI * .3, Math.PI * .32), hairMat); this.hairG.add(side);
+        const side = new THREE.Mesh(new THREE.SphereGeometry(.143, 18, 10, Math.PI / 2 + .95, Math.PI * 2 - 1.9, Math.PI * .3, Math.PI * .32), hairMat); this.hairG.add(side);
         const k = H(G.knot, 0, .15, -.02); k.rotation.x = Math.PI / 2 - .3; break;
       }
-      case 1: { H(cap, 0, .01, -.01, 1.05, 1.05, 1.08); H(G.bun, 0, .17, -.03, 1.3, .8, 1); H(G.bun, 0, .05, -.15, 1, .8, .8); break; }
-      case 2: { H(cap, 0, 0, -.01, 1.04, 1.1, 1.1); const k = H(G.knot, 0, .02, -.17); k.rotation.x = .5; k.scale.set(1.5, 1.5, 1.5); break; }
+      case 1: { HC(0, .01, -.01, 1.05, 1.05, 1.08); H(G.bun, 0, .17, -.03, 1.3, .8, 1); H(G.bun, 0, .05, -.15, 1, .8, .8); break; }
+      case 2: { HC(0, 0, -.01, 1.04, 1.1, 1.1); const k = H(G.knot, 0, .02, -.17); k.rotation.x = .5; k.scale.set(1.5, 1.5, 1.5); break; }
       case 3: break;
-      case 4: { H(cap, 0, .01, -.01, 1.05, 1.05, 1.08); H(G.bun, -.11, .14, -.02, .8, .8, .8); H(G.bun, .11, .14, -.02, .8, .8, .8); break; }
+      case 4: { HC(0, .01, -.01, 1.05, 1.05, 1.08); H(G.bun, -.11, .14, -.02, .8, .8, .8); H(G.bun, .11, .14, -.02, .8, .8, .8); break; }
     }
     if (lk.hat === 1) { const h = new THREE.Mesh(G.hatG, mat('#c9a868', { side: THREE.DoubleSide })); h.position.y = .2; h.castShadow = true; this.accG.add(h); }
     if (lk.hat === 2) { for (const s of [-1, 1]) { const p = new THREE.Mesh(G.pin, mat('#d8b24a', { metalness: .6, roughness: .3 })); p.position.set(s * .06, .2, -.06); p.rotation.z = s * 1.2; this.accG.add(p); const b = new THREE.Mesh(new THREE.SphereGeometry(.025, 8, 6), mat('#d23c4c')); b.position.set(s * .15, .24, -.06); this.accG.add(b); } }
@@ -160,7 +162,7 @@ export class Chara {
       if (a === 5) { const e = (Math.sin(t * 3) + 1) / 2; arx = -1.2 - e * .8; alx = -.9; headX = .1 + e * .1; }
       if (a === 8) { alx = arx = -.3; headX = -.15; }
     } else if (a === 12) { lx = rx = -1.5; sitY = -.42; alx = arx = -.4; bend = -.05; }
-    else if (a === 4) { const e = Math.sin(t * 9); alx = -1 + e * .3; arx = -1 - e * .3; bend = .15; headX = .3; }
+    else if (a === 4) { const e = Math.sin(t * 9); alx = -1 + e * .3; arx = -1 - e * .3; bend = .06; headX = .1; }
     else if (a === 6) { const e = Math.min(1, Math.sin(Math.min(t * 2.2, Math.PI)) * 1.5); bend = e * .7; alx = arx = e * .1; }
     else if (a === 7) { arx = -2.6; arz = .3 + Math.sin(t * 10) * .35; }
     else if (a === 9) { const e = (Math.sin(t * 16) + 1) / 2; alx = arx = -1.25; alz = -.25 - e * .35; arz = .25 + e * .35; headX = -.05; }
