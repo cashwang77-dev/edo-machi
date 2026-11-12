@@ -363,7 +363,11 @@ class Puffs {
 // ---------- 建構世界 ----------
 export function buildWorld(scene) {
   const B = new Batcher(); const rand = rng(12345);
-  const W = { shops: [], seats: [], colliders: [], lanterns: [], spots: [], far: [] };
+  const W = { shops: [], seats: [], colliders: [], lanterns: [], spots: [], far: [], blockers: [] };
+  // 鏡頭阻擋框：以群組的區域座標給，轉成世界座標的 AABB
+  const blk = (g, x0, x1, y0, y1, z0, z1) => { g.updateMatrixWorld(true); const a = new THREE.Vector3(x0, y0, z0).applyMatrix4(g.matrixWorld), b = new THREE.Vector3(x1, y1, z1).applyMatrix4(g.matrixWorld);
+    W.blockers.push({ x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), y0: Math.min(a.y, b.y), y1: Math.max(a.y, b.y), z0: Math.min(a.z, b.z), z1: Math.max(a.z, b.z) }); };
+  W.blk = blk; const wblk = (x0, x1, y0, y1, z0, z1) => W.blockers.push({ x0, x1, y0, y1, z0, z1 });
   const col = (x, z, r) => W.colliders.push({ x, z, r });
   const box = (x0, z0, x1, z1) => W.colliders.push({ x0: Math.min(x0, x1), z0: Math.min(z0, z1), x1: Math.max(x0, x1), z1: Math.max(z0, z1) });
 
@@ -442,6 +446,8 @@ export function buildWorld(scene) {
     if (info.chimney) shop.chimney = tw(info.chimney);
     W.lanterns.push(...shop.lanterns);
     if (def.umbrella) { const u = tw({ x: 0, y: 0, z: 3.3 }); col(u.x, u.z, .2); }
+    { const w2 = def.w / 2, top = def.floors === 2 ? 7 : 4.6; blk(g, -w2, w2, 0, top, -2.2, -9.6); blk(g, -w2, -w2 + .25, 0, 3.1, .1, -9); blk(g, w2 - .25, w2, 0, 3.1, .1, -9);
+      if (def.floors === 2) { blk(g, -w2 - .35, w2 + .35, 2.95, 4.1, 1.6, -1.1); blk(g, -w2, w2, 3, 7, -1.1, -9.6); } else blk(g, -w2 - .35, w2 + .35, 3.0, 4.6, 1.6, -2.2); }
     B.bake(g); W.shops.push(shop);
   }
   // 填空民家
@@ -460,6 +466,7 @@ export function buildWorld(scene) {
           g.add(M(new THREE.CylinderGeometry(.42, .38, .8, 12), bm, bx, .4, bz)); g.add(M(new THREE.CylinderGeometry(.32, .3, .5, 12), bm, bx, 1.05, bz)); g.add(M(new THREE.CylinderGeometry(.22, .2, .4, 10), bm, bx, 1.5, bz));
           g.updateMatrixWorld(true); const p = new THREE.Vector3(bx, 0, bz).applyMatrix4(g.matrixWorld); col(p.x, p.z, .45);
         }
+        blk(g, -w / 2, w / 2, 0, 7, -.3, -10.6); blk(g, -w / 2 - .3, w / 2 + .3, 2.95, 4.2, 1.6, -.3);
         B.bake(g); x += w + .2;
       }
       x = Math.max(x, b + .2);
@@ -587,6 +594,9 @@ export function buildWorld(scene) {
   }
 
   buildTemple({ M, boxG, C, std, glow, toro, pine, B, W, col, box, rand, TX, lanternMat, LANTERN_G, scene });
+  wblk(157, 199, 0, 27, -104.5, -77.6); wblk(167.4, 175.3, 0, 21, -50.6, -43.4); wblk(180.7, 188.6, 0, 21, -50.6, -43.4); wblk(165, 191, 9.6, 21, -54, -40);
+  wblk(198, 208, 6.4, 10.5, -71, -61); wblk(-142.5, -129.6, 0, 9, -7, 7); wblk(154.6, 159.2, 1.8, 3.3, 7.6, 11.6);
+  wblk(168, 175.5, 0, 7, -16.5, -7.5);
 
   B.finish(scene);
 

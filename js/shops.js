@@ -17,6 +17,24 @@ const EKI = [S('筮竹', '搖籤', 'mash'), S('占う', '占卜', 'tap')];
 const YU = [S('湯加減', '調水溫', 'hold'), S('番台', '收錢', 'tap')];
 
 const D = (type, ...c) => ({ type, c });
+// 飾品目錄：slot＝裝在哪（hat 頭部、hs 髮飾、m 面具、w 腰間、c 手持、b 背上）
+export const SLOT_NAME = { hat: '頭部', hs: '髮飾', m: '面具', w: '腰間', c: '手持', b: '背上' };
+export const ACC = [
+  { id: 'kasa', n: '菅笠', zh: '斗笠', slot: 'hat', v: 1, p: 30 }, { id: 'amigasa', n: '編笠', zh: '深編笠', slot: 'hat', v: 5, p: 45 },
+  { id: 'jingasa', n: '陣笠', zh: '黑漆陣笠', slot: 'hat', v: 6, p: 80 }, { id: 'tenugui', n: '手拭い被り', zh: '手巾包頭', slot: 'hat', v: 7, p: 20 },
+  { id: 'zukin', n: '頭巾', zh: '頭巾', slot: 'hat', v: 8, p: 35 }, { id: 'hachimaki', n: '鉢巻', zh: '頭巾帶', slot: 'hat', v: 3, p: 20 },
+  { id: 'hanakan', n: '花簪', zh: '花簪', slot: 'hs', v: 1, p: 50 }, { id: 'kushi', n: '鼈甲櫛', zh: '玳瑁梳', slot: 'hs', v: 2, p: 70 },
+  { id: 'chokan', n: '蝶簪', zh: '蝴蝶簪', slot: 'hs', v: 3, p: 55 }, { id: 'tamakan', n: '玉簪', zh: '珊瑚玉簪', slot: 'hs', v: 4, p: 40 },
+  { id: 'kitsune', n: '狐の面', zh: '狐狸面具', slot: 'm', v: 1, p: 60 }, { id: 'hyottoko', n: 'ひょっとこ', zh: '火男面具', slot: 'm', v: 2, p: 50 },
+  { id: 'okame', n: 'おかめ', zh: '阿龜面具', slot: 'm', v: 3, p: 50 }, { id: 'tengu', n: '天狗', zh: '天狗面具', slot: 'm', v: 4, p: 70 },
+  { id: 'inro', n: '印籠', zh: '印籠', slot: 'w', v: 1, p: 80 }, { id: 'kinchaku', n: '巾着', zh: '巾著袋', slot: 'w', v: 2, p: 30 },
+  { id: 'daisho', n: '大小', zh: '武士雙刀', slot: 'w', v: 3, p: 150 }, { id: 'tabako', n: '煙草入れ', zh: '煙草入れ', slot: 'w', v: 4, p: 45 },
+  { id: 'sensu', n: '扇子', zh: '扇子', slot: 'c', v: 1, p: 30 }, { id: 'bangasa', n: '番傘', zh: '紅紙傘', slot: 'c', v: 2, p: 50 },
+  { id: 'janome', n: '蛇の目傘', zh: '蛇之目傘', slot: 'c', v: 3, p: 70 }, { id: 'uchiwa', n: '団扇', zh: '團扇', slot: 'c', v: 4, p: 15 },
+  { id: 'kazaguruma', n: '風車', zh: '風車', slot: 'c', v: 5, p: 12 }, { id: 'chochin', n: '提灯', zh: '提燈', slot: 'c', v: 6, p: 40 },
+  { id: 'furoshiki', n: '風呂敷包み', zh: '唐草包袱', slot: 'b', v: 1, p: 25 }, { id: 'kago', n: '背負い籠', zh: '背簍', slot: 'b', v: 2, p: 35 },
+  { id: 'shamisen', n: '三味線', zh: '三味線', slot: 'b', v: 3, p: 120 },
+];
 export const SHOPS = [
   // 北側（面向南）
   { id: 'soba', name: '信濃屋', kind: '蕎麥麵', sign: 'そば', noren: '#24406e', w: 12, floors: 2, side: -1, x: -54, wall: '#e8e0cc',
@@ -93,17 +111,7 @@ export const SHOPS = [
       { id: 'konpeito', n: '金平糖', zh: '金平糖', p: 12, dish: D('sweet', '#f2b8d0', '#b8d8f2'), steps: KASHI },
     ] },
   { id: 'komamono', name: '紅屋', kind: '小間物（飾品）', sign: '小間物', noren: '#a8323e', w: 10, floors: 2, side: 1, x: 18, wall: '#efe5d0', service: true,
-    menu: [
-      { id: 'kanzashi', n: '簪', zh: '髮簪', p: 40, look: { hat: 2 }, steps: KOMA },
-      { id: 'kasa', n: '菅笠', zh: '斗笠', p: 30, look: { hat: 1 }, steps: KOMA },
-      { id: 'sensu', n: '扇子', zh: '扇子', p: 30, look: { c: 1 }, steps: KOMA },
-      { id: 'bangasa', n: '番傘', zh: '紅紙傘', p: 50, look: { c: 2 }, steps: KOMA },
-      { id: 'kitsune', n: '狐のお面', zh: '狐狸面具', p: 60, look: { hat: 4 }, steps: KOMA },
-      { id: 'hachimaki', n: '鉢巻', zh: '頭巾', p: 20, look: { hat: 3 }, steps: KOMA },
-      { id: 'inro', n: '印籠', zh: '印籠（掛腰間）', p: 80, look: { w: 1 }, steps: KOMA },
-      { id: 'kinchaku', n: '巾着', zh: '巾著袋（掛腰間）', p: 30, look: { w: 2 }, steps: KOMA },
-      { id: 'none', n: '外す', zh: '卸下飾品（免費）', p: 0, look: { hat: 0, c: 0, w: 0 }, steps: [S('外す', '卸下', 'tap')] },
-    ] },
+    menu: ACC.map(a => ({ id: a.id, n: a.n, zh: a.zh, p: a.p, look: { [a.slot]: a.v }, acc: a, cat: SLOT_NAME[a.slot], steps: KOMA })) },
   { id: 'ekisha', name: '八卦見', kind: '占卜', sign: '易', noren: '#4a3a6a', w: 8, floors: 1, side: 1, x: 36, wall: '#e2d8c2', service: true, stall: true,
     menu: [
       { id: 'omikuji', n: 'おみくじ', zh: '求籤', p: 4, fortune: 'kuji', steps: EKI },

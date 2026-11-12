@@ -116,6 +116,10 @@ body.touch .pop{bottom:70px}
 #wishIn{font:inherit;font-size:16px;width:100%;padding:10px 12px;border:1.5px solid var(--ink);border-radius:8px;background:#fffaf0;color:var(--ink)}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 2px}
 .chipw{font-size:13px;padding:4px 10px;border-radius:14px;border-width:1px;background:#fffaf0}
+.chipw small{color:var(--sub);font-size:11px}
+.chipw.on{background:var(--ink);color:var(--paper)}
+.chipw.on small{color:#e8dcc0}
+.mcat{grid-column:1/-1;font-size:13px;color:var(--red);font-weight:700;margin-top:6px;border-bottom:1px dashed var(--line)}
 #panel h2{margin:0 26px 4px 0;font-family:"Yuji Syuku",serif;font-weight:400;font-size:26px}
 #panel h2 small{font-family:"Noto Sans TC",sans-serif;font-size:14px;color:var(--sub);margin-left:10px}
 .sub{margin:0 0 10px;color:var(--sub);font-size:14px}
@@ -235,7 +239,7 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
   <div id="held" class="hide"></div>
   <div id="banner" class="hide"></div>
   <div id="chatBox" class="hide"><div id="phr"></div><input id="chatIn" maxlength="80" placeholder="說點什麼…（Enter 送出）" autocomplete="off"><button id="chatSend">送出</button></div>
-  <div id="tools"><button id="bChat" title="聊天">💬<span class="lb"> 聊天</span></button><button id="bAct" title="動作">🎭<span class="lb"> 動作</span></button><button id="bEmo" title="表情">😊<span class="lb"> 表情</span></button><button id="bView" title="看風景">🌅<span class="lb"> 看風景</span></button><button id="bGM" class="hide" title="GM">👑</button><button id="bFS" title="全螢幕">⛶</button><button id="bHelp" title="說明">❔</button><button id="bSet" title="設定">⚙</button></div>
+  <div id="tools"><button id="bChat" title="聊天">💬<span class="lb"> 聊天</span></button><button id="bAct" title="動作">🎭<span class="lb"> 動作</span></button><button id="bEmo" title="表情">😊<span class="lb"> 表情</span></button><button id="bInv" title="持ち物">🎒<span class="lb"> 持ち物</span></button><button id="bView" title="看風景">🌅<span class="lb"> 看風景</span></button><button id="bGM" class="hide" title="GM">👑</button><button id="bFS" title="全螢幕">⛶</button><button id="bHelp" title="說明">❔</button><button id="bSet" title="設定">⚙</button></div>
   <div id="actMenu" class="pop hide"></div><div id="emoMenu" class="pop hide"></div>
   <div id="joy"><div id="joyK"></div></div>
   <div id="owner" class="hide"></div>

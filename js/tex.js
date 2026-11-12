@@ -196,3 +196,16 @@ export function oiranTex(kind) {
   if (key && IMG[key]) { const k = 'OIX' + kind; if (cache[k]) return cache[k]; const [c, g] = cv(512, 512); g.drawImage(IMG[key], 0, 0, 512, 512); return cache[k] = mk(c, kind === 'out' ? [1.4, 1.4] : [1.6, 1.6]); }
   return oiran(kind);
 }
+
+export function janome() {
+  const k = 'JANOME'; if (cache[k]) return cache[k];
+  const [c, g] = cv(256, 256); g.fillStyle = '#a8232e'; g.fillRect(0, 0, 256, 256); g.fillStyle = '#f4efe2'; g.fillRect(0, 120, 256, 40); g.fillStyle = '#1a1414'; g.fillRect(0, 230, 256, 26);
+  const t = mk(c); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; return cache[k] = t;
+}
+export function karakusa() {
+  const k = 'KARA'; if (cache[k]) return cache[k];
+  const [c, g] = cv(128, 128); g.fillStyle = '#2f6a4a'; g.fillRect(0, 0, 128, 128); g.strokeStyle = '#f4efe2'; g.lineWidth = 4;
+  for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) { g.beginPath(); g.arc(x * 44 + 20, y * 44 + 20, 12, 0, PI2); g.stroke(); g.beginPath(); g.arc(x * 44 + 30, y * 44 + 26, 6, PI2 * .5, PI2 * 1.2); g.stroke(); }
+  return cache[k] = mk(c, [2, 2]);
+}
+const PI2 = Math.PI * 2;

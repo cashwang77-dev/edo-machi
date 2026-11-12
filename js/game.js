@@ -5,8 +5,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { buildWorld, walkable, heightAt } from './world.js';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS } from './chara.js';
-import { SHOPS, FORTUNE } from './shops.js';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES } from './chara.js';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js';
 import { Net } from './net.js';
 import { cleanText } from './filter.js';
 import { SND } from './audio.js';
@@ -101,6 +101,24 @@ const pts = new Map();
 renderer.domElement.addEventListener('pointerdown', e => pts.set(e.pointerId, [e.clientX, e.clientY]));
 renderer.domElement.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; const old = [...pts.values()]; const pd = old.length === 2 ? Math.hypot(old[0][0] - old[1][0], old[0][1] - old[1][1]) : 0; pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 2) { const n = [...pts.values()]; const nd = Math.hypot(n[0][0] - n[1][0], n[0][1] - n[1][1]); if (pd) cam.dist = Math.min(16, Math.max(2.2, cam.dist * pd / nd)); drag = null; } });
 const ptEnd = e => pts.delete(e.pointerId); renderer.domElement.addEventListener('pointerup', ptEnd); renderer.domElement.addEventListener('pointercancel', ptEnd);
+
+// ---------- 鏡頭射線 vs 建築阻擋框（slab 法）----------
+function rayBlock(ox, oy, oz, d, maxT) {
+  let best = maxT;
+  for (const b of W.blockers) {
+    if (ox < b.x0 - maxT - 2 || ox > b.x1 + maxT + 2 || oz < b.z0 - maxT - 2 || oz > b.z1 + maxT + 2) continue;
+    let t0 = 0, t1 = best, ok = true;
+    for (const [o, v, lo, hi] of [[ox, d.x, b.x0, b.x1], [oy, d.y, b.y0, b.y1], [oz, d.z, b.z0, b.z1]]) {
+      if (Math.abs(v) < 1e-6) { if (o < lo || o > hi) { ok = false; break; } continue; }
+      let a = (lo - o) / v, c = (hi - o) / v; if (a > c) [a, c] = [c, a];
+      if (a > t0) t0 = a; if (c < t1) t1 = c; if (t0 > t1) { ok = false; break; }
+    }
+    if (!ok) continue;
+    const inside = ox > b.x0 && ox < b.x1 && oy > b.y0 && oy < b.y1 && oz > b.z0 && oz < b.z1;
+    if (!inside && t0 > .05 && t0 < best) best = t0;
+  }
+  return best;
+}
 
 // ---------- 碰撞 ----------
 function blocked(x, z, r = .3) {
@@ -330,7 +348,7 @@ function openMenu(s) {
   const d = s.def; const own = G.owners[d.id];
   const p = $('#panel');
   p.innerHTML = `<h2>${d.name}<small>品書き（菜單）</small></h2><p class="sub">${own ? `店主：${ownerName(own)}（玩家）` : 'NPC 掌櫃為您服務'}　身上：<b>${G.gm ? '∞' : G.money}</b> 文</p>
-  <div class="menu">${d.menu.map((m, i) => `<button class="mi" data-i="${i}" ${afford(m.p) ? '' : 'disabled'}><span class="jp">${m.n}</span><span class="zh">${m.zh}</span><span class="pr">${m.p} 文</span></button>`).join('')}</div>
+  <div class="menu">${d.menu.map((m, i) => `${m.cat && (i === 0 || d.menu[i - 1].cat !== m.cat) ? `<div class="mcat">${m.cat}</div>` : ''}<button class="mi" data-i="${i}" ${afford(m.p) ? '' : 'disabled'}><span class="jp">${m.n}</span><span class="zh">${m.zh}${m.acc && invGet().includes(m.acc.id) ? '（已擁有）' : ''}</span><span class="pr">${m.p} 文</span></button>`).join('')}</div>
   <div class="btns"><button id="bLeave">🚶 起身離開</button></div>`;
   show('#panel');
   p.querySelectorAll('.mi').forEach(b => b.onclick = () => order(s, d.menu[+b.dataset.i]));
@@ -368,7 +386,9 @@ function served(s, item, q, from) {
     toast(`拿到「${item.n}」！品質：${gname}　按 🍡 吃掉，或帶著走、送給別人`, 3500);
     openMenu(s);
   } else if (item.look) {
+    if (item.acc) { invAdd(item.acc.id); if (item.acc.slot === 'm' && G.look.hat === 4) G.look.hat = 0; if (item.acc.slot === 'hs' && G.look.hat === 2) G.look.hat = 0; }
     G.look = { ...G.look, ...item.look }; G.me.setLook(G.look); store.set('look', G.look); net.send({ t: 'look', lk: G.look }); G.me.emoji('✨');
+    if (item.acc) toast(`「${item.n}」已收進 🎒 持ち物，可隨時穿戴`, 3000);
     G.me.say('換好了！好看嗎？'); toast(`完成「${item.zh}」！品質：${gname}`); openMenu(s); closeup(4, { dist: 2.4, h: .95, ang: .2, look: .75, spin: .45, keep: 1 });
   } else if (item.fortune) {
     const arr = FORTUNE[item.fortune]; const [h, t] = arr[Math.floor(Math.random() * arr.length)];
@@ -390,6 +410,7 @@ function claim(s) {
 function enterOwner(s) {
   G.mode = 'owner'; G.shop = s; G.queue = []; G.pos.set(s.owner.x, s.owner.y, s.owner.z); G.ry = s.owner.r; G.me.play(0);
   cam.yaw = s.rot; cam.pitch = .05; cam.dist = 4.4; G.npcT = 6;
+  if (!G.shopLight) { G.shopLight = new THREE.PointLight('#ffe2b8', 0, 7, 1.4); scene.add(G.shopLight); } G.shopLight.position.set(s.owner.x, 2.6, s.owner.z); G.shopLight.intensity = 6;
   toast(`「${s.def.name}」開店了！客人點餐後點訂單開始製作`, 3500); sfx(520, .2); setTimeout(() => sfx(780, .3), 150);
   renderOwner(); updPrompt();
 }
@@ -397,7 +418,7 @@ function leaveOwner() {
   const s = G.shop; if (!s) return;
   if (G.online) net.send({ t: 'release', s: s.def.id }); delete G.owners[s.def.id];
   for (const c of G.npcCust) scene.remove(c.ch.root); G.npcCust = []; G.queue = []; mgAbort();
-  G.mode = 'walk'; G.pos.set(s.front.x, 0, s.front.z); G.shop = null; show('#owner', false); updPrompt();
+  G.mode = 'walk'; G.pos.set(s.front.x, 0, s.front.z); G.shop = null; show('#owner', false); updPrompt(); if (G.shopLight) G.shopLight.intensity = 0;
 }
 function renderOwner() {
   if (G.mode !== 'owner') return show('#owner', false);
@@ -486,6 +507,28 @@ const mgB = $('#mgBtn');
 mgB.addEventListener('pointerdown', e => { e.preventDefault(); mgPress(true); });
 mgB.addEventListener('pointerup', e => { e.preventDefault(); mgPress(false); });
 mgB.addEventListener('pointerleave', () => { if (MG.st && MG.st.g === 'hold' && MG.st.held) mgPress(false); });
+
+// ---------- 持ち物：買過的飾品可隨時穿戴 ----------
+const SLOTS = ['hat', 'hs', 'm', 'w', 'c', 'b'];
+function invGet() { return store.get('inv_' + (G.name || ''), []); }
+function invAdd(id) { const v = invGet(); if (!v.includes(id)) { v.push(id); store.set('inv_' + G.name, v); } }
+function invMigrate() { for (const a of ACC) if (G.look[a.slot] === a.v) invAdd(a.id); if (G.look.hat === 4) invAdd('kitsune'); if (G.look.hat === 2) invAdd('tamakan'); }
+function equip(a, on) {
+  const lk = { ...G.look };
+  if (a.slot === 'm' && lk.hat === 4) lk.hat = 0; if (a.slot === 'hs' && lk.hat === 2) lk.hat = 0;
+  lk[a.slot] = on ? a.v : 0; G.look = lk; G.me.setLook(lk); store.set('look', lk); net.send({ t: 'look', lk });
+}
+function openInv() {
+  const own = invGet(); const p = $('#panel');
+  const groups = SLOTS.map(sl => { const items = ACC.filter(a => a.slot === sl && own.includes(a.id)); if (!items.length) return '';
+    return `<p class="sub" style="margin:8px 0 4px">${SLOT_NAME[sl]}</p><div class="chips">${items.map(a => `<button class="chipw inv${G.look[a.slot] === a.v ? ' on' : ''}" data-id="${a.id}">${a.n}<small> ${a.zh}</small></button>`).join('')}</div>`; }).join('');
+  p.innerHTML = `<h2>🎒 持ち物<small>點一下穿上／卸下</small></h2>${groups || '<p class="sub">還沒有飾品，去日本橋附近的「紅屋」小間物店逛逛吧！</p>'}
+  <div class="btns" style="margin-top:12px"><button id="invOff">全部卸下</button><button id="invX">關閉</button></div>`;
+  show('#panel');
+  p.querySelectorAll('.inv').forEach(b => b.onclick = () => { const a = ACC.find(x => x.id === b.dataset.id); equip(a, G.look[a.slot] !== a.v); openInv(); closeup(2.8, { dist: 2.4, h: 1.2, ang: .35, look: 1, spin: .5 }); });
+  $('#invOff').onclick = () => { const lk = { ...G.look }; SLOTS.forEach(sl => lk[sl] = 0); if (lk.hat === 2 || lk.hat === 4) lk.hat = 0; G.look = lk; G.me.setLook(lk); store.set('look', lk); net.send({ t: 'look', lk }); openInv(); };
+  $('#invX').onclick = closePanels;
+}
 
 // ---------- 手持食物 ----------
 function itemById(fid) { const [sid, iid] = String(fid || '').split(':'); const sh = SHOPS.find(x => x.id === sid); return sh && sh.menu.find(m => m.id === iid); }
@@ -805,10 +848,11 @@ function toggleView() {
 // ---------- 標題畫面（換裝） ----------
 function buildTitle() {
   $('#nameIn').value = G.name; $('#gmIn').value = store.get('gmk', ''); { let taps = [], lg = document.querySelector('#title .logo h1'); lg.style.pointerEvents = 'auto'; lg.addEventListener('pointerdown', () => { const t = performance.now(); taps = taps.filter(x => t - x < 2500); taps.push(t); if (taps.length >= 5) { taps = []; $('#gmRow').classList.toggle('hide'); } }); }
-  const rows = [['k', '和服', KIMONO.map(k => k[1]), KIMONO.map(k => k[0])], ['p', '花紋', null, PATTERNS], ['o', '腰帶', OBI, null], ['h', '髮型', null, HAIRS], ['s', '膚色', SKINS, null]];
+  const rows = [['k', '和服', KIMONO.map(k => k[1]), KIMONO.map(k => k[0])], ['p', '花紋', null, PATTERNS], ['o', '腰帶', OBI, null], ['h', '髮型', null, HAIRS], ['s', '膚色', SKINS, null], ['ey', '眼睛', null, EYES], ['br', '眉毛', null, BROWS], ['mo', '嘴巴', null, MOUTHS], ['ck', '腮紅', null, CHEEKS], ['mk', '痣', null, MOLES]];
   $('#looks').innerHTML = rows.map(([k, t, cols, names]) => `<div class="lr"><span>${t}</span><div>${(cols || names).map((c, i) => cols ? `<button class="sw" data-k="${k}" data-v="${i}" style="background:${c}" title="${names ? names[i] : ''}"></button>` : `<button class="tx" data-k="${k}" data-v="${i}">${c}</button>`).join('')}</div></div>`).join('');
+  ['ey', 'br', 'mo', 'ck', 'mk'].forEach(k => { if (G.look[k] == null) G.look[k] = k === 'ck' ? 1 : 0; });
   const sync = () => document.querySelectorAll('#looks [data-k]').forEach(b => b.classList.toggle('on', G.look[b.dataset.k] == b.dataset.v));
-  document.querySelectorAll('#looks [data-k]').forEach(b => b.onclick = () => { G.look[b.dataset.k] = +b.dataset.v; G.me.setLook(G.look); sync(); });
+  document.querySelectorAll('#looks [data-k]').forEach(b => b.onclick = () => { G.look[b.dataset.k] = +b.dataset.v; G.me.setLook(G.look); sync(); G.faceZoom = ['ey', 'br', 'mo', 'ck', 'mk', 'h', 's'].includes(b.dataset.k) ? 3.5 : 0; });
   sync();
   $('#rnd').onclick = () => { G.look = randomLook(); G.look.hat = 0; G.look.c = 0; G.me.setLook(G.look); sync(); };
   $('#go').onclick = start;
@@ -852,7 +896,7 @@ async function start() {
   SND.start();
   G.mode = 'walk'; cam.yaw = PI / 2 - .25; cam.pitch = .3; cam.dist = 6.5;
   updCount(); toast(G.online ? `歡迎來到江戶町${['一', '二', '三', '四', '五'][G.room - 1]}丁目！` : '目前為單人模式（伺服器未連線），NPC 會陪你玩', 3500);
-  updHeld();
+  updHeld(); invMigrate();
   if (!store.get('helped', false) && !G.shot && !QS.has('nohelp')) { show('#help'); store.set('helped', true); }
   sfx(660, .3); setTimeout(() => sfx(990, .4), 180);
 }
@@ -919,6 +963,9 @@ function update(dt) {
     const p = G.me.root.position, port = camera.aspect < 1;
     const th = (port ? .03 : .32) + Math.sin(time * .12) * .05, cz = p.z - (port ? .1 : .55);
     camera.position.set(p.x + (port ? 4.2 : 3.4), 1.45, cz); camera.lookAt(p.x + 3.4 - Math.cos(th) * 10, port ? 2.9 : 1.75, cz + Math.sin(th) * 10);
+    // 選五官時鏡頭靠近臉
+    G.fz = (G.fz || 0) + (((G.faceZoom = Math.max(0, (G.faceZoom || 0) - dt)) > 0 ? 1 : 0) - (G.fz || 0)) * Math.min(1, dt * 3);
+    if (G.fz > .01) { const hy = 1.35, fp = new THREE.Vector3(p.x + (port ? .75 : .62), hy + (port ? .12 : .02), p.z + (port ? .02 : .25)); camera.position.lerp(fp, G.fz); const lk = new THREE.Vector3(p.x, hy - (port ? .22 : .02), p.z + (port ? 0 : .15)); const cur = new THREE.Vector3(); camera.getWorldDirection(cur); cur.multiplyScalar(10).add(camera.position); cur.lerp(lk, G.fz); camera.lookAt(cur); G.me.root.rotation.y = PI / 2; }
     G.me.root.rotation.y = PI / 2 + Math.sin(time * .4) * .4; G.me.update(dt, 0);
   } else {
     // 移動
@@ -952,7 +999,8 @@ function update(dt) {
     cam.tx += (tgt.x - cam.tx) * Math.min(1, dt * 8); cam.ty += (tgt.y - cam.ty) * Math.min(1, dt * 8); cam.tz += (tgt.z - cam.tz) * Math.min(1, dt * 8);
     let dist = cam.auto ? 11 : cam.dist;
     const off = new THREE.Vector3(Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch));
-    for (let k = .5; k < dist; k += .25) { const x = cam.tx + off.x * k, y = cam.ty + off.y * k, z = cam.tz + off.z * k; if (y < 7 && x > -98 && x < 101 && Math.abs(z) > 7.4 && Math.abs(z) < 18 && G.mode !== 'owner') { dist = Math.max(1.2, k - .3); break; } }
+    { const hit = rayBlock(cam.tx, cam.ty, cam.tz, off, dist); if (hit < dist) dist = Math.max(.7, hit - .3); }
+    cam.cd = cam.cd == null || dist < cam.cd ? dist : cam.cd + (dist - cam.cd) * Math.min(1, dt * 2.5); dist = cam.cd;
     camera.position.set(cam.tx + off.x * dist, Math.max(.4 + heightAt(cam.tx, cam.tz), cam.ty + off.y * dist), cam.tz + off.z * dist);
     camera.lookAt(cam.tx, cam.ty, cam.tz);
     if (G.cu && len > .3 && G.mode === 'walk' && !G.cu.keep) G.cu = null;
@@ -1036,6 +1084,7 @@ document.querySelectorAll('#emoMenu [data-e]').forEach(b => b.onclick = () => { 
 document.querySelectorAll('#phr button').forEach(b => b.onclick = () => { $('#chatIn').value = b.textContent; sendChat(); });
 $('#bAct').onclick = () => pop('#actMenu'); $('#bEmo').onclick = () => pop('#emoMenu');
 $('#bView').onclick = toggleView;
+$('#bInv').onclick = () => { pop(null); openInv(); };
 $('#bGM').onclick = openGM;
 $('#bHelp').onclick = () => show('#help');
 $('#bFS').onclick = toggleFS;
@@ -1096,7 +1145,7 @@ async function runTest() {
     eatHeld(); ok(await until(() => G.me.anim === 5), '坐著吃'); ok(await until(() => !G.look.f), '吃完手上清空');
     standUp();
     const ko = W.shops.find(s => s.def.id === 'komamono'); openShop(ko); $('#bCust').click(); order(ko, ko.def.menu.find(m => m.id === 'kitsune'));
-    ok(await until(() => G.look.hat === 4 && G.me.accG.children.length > 0), '狐狸面具戴在頭上'); order(ko, ko.def.menu.find(m => m.id === 'inro')); ok(await until(() => G.look.w === 1 && G.me.waistG.children.length > 0), '印籠掛腰間'); standUp();
+    ok(await until(() => G.look.m === 1 && G.me.accG.children.length > 0), '狐狸面具戴在頭上'); ok(invGet().includes('kitsune'), '飾品收進持ち物'); openInv(); ok(!!document.querySelector('.inv'), '持ち物面板'); closePanels(); order(ko, ko.def.menu.find(m => m.id === 'inro')); ok(await until(() => G.look.w === 1 && G.me.waistG.children.length > 0), '印籠掛腰間'); standUp();
     const dg = W.shops.find(s => s.def.id === 'dango'); openShop(dg); $('#bCust').click(); order(dg, dg.def.menu[1]); ok(await until(() => G.look.f === 'dango:sanshoku'), '買糰子'); standUp();
     G.pos.set(dg.front.x, 0, dg.front.z - 2); eatHeld(); ok(await until(() => G.me.anim === 15), '邊走邊吃（站著吃）'); ok(await until(() => !G.look.f), '吃完');
     ok(cleanText('幹你娘').bad && cleanText('他媽的').bad && cleanText('f u c k').bad && !cleanText('幹部開會').bad && !cleanText('你好，一起去吃糰子').bad, '髒話過濾（幹部不誤判）'); ok(G.mode === 'walk', '起身');
