@@ -1310,6 +1310,8 @@ if (isTouch) document.body.classList.add('touch');
     if (d === 'menu') { const sh = W.shops.find(x => x.def.id === 'soba'); G.pos.set(sh.front.x, 0, sh.front.z); openShop(sh); $('#bCust').click(); }
     if (d === 'sit') { const sh = W.shops.find(x => x.def.id === 'soba'); G.pos.set(sh.front.x, 0, sh.front.z); openShop(sh); $('#bCust').click(); closePanels(); cam.yaw = sh.rot + 2.1; cam.pitch = .12; cam.dist = 3.2; }
     if (d === 'bench') { const sh = W.shops.find(x => x.def.id === 'chaya'); const seat = sh.seats[0]; sitAt(seat); cam.yaw = seat.r + 1.6; cam.pitch = .1; cam.dist = 3; }
+    if (d === 'face') { G.look = { ...G.look, h: +(QS.get('h') || 1), fc: +(QS.get('fc') || 0), k: +(QS.get('k') || 1), p: +(QS.get('p') || 5), hat: 0, m: 0, hs: 0, c: 0 }; G.me.setLook(G.look); G.pos.set(20, 0, 0); G.ry = 0;
+      setTimeout(() => { G.me.expr(QS.get('ex') || '', 999); const p = G.me.root.position, y = G.me.headG.getWorldPosition(p.clone()).y, z = +(QS.get('z') || .65); G.shot = [p.x + z * .2, y + .05, p.z + z, p.x, y - (z > 1 ? .4 : 0), p.z]; }, 2500); }
     if (d === 'eat') { G.pos.set(-40, 0, 1); G.ry = -PI / 2; setHeld('dango:sanshoku'); setTimeout(eatHeld, 300); }
     if (d === 'pray') { G.pos.set(178, 0, -72.3); G.ry = PI; doWish('願大家平安喜樂', 17); }
     if (d === 'wish') { G.pos.set(178, 0, -72.3); G.ry = PI; cam.yaw = .5; cam.pitch = .22; cam.dist = 4.8; openTemple(); $('#tp').click(); }

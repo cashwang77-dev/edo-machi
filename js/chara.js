@@ -22,8 +22,11 @@ export const MOLES = ['無', '淚痣'];
 export const FACES = ['精緻', 'Q版'];
 // 精緻臉：3D 生成的真人頭部（依髮型對應）；沒有對應模型的髮型維持原本做法
 export const HEAD3D = { 1: 'head_bijin' };
+// 3D 頭的表情貼圖（同一張臉的表情差分，UV 相同直接換貼圖）
+const H3EX = { head_bijin: ['calm', 'laugh', 'wow', 'sad'] }; const H3T = {}; const tl = new THREE.TextureLoader();
+function exTex(n, ex) { const k = n + '_' + ex; if (!H3T[k]) { const t = H3T[k] = tl.load(`img/${k}.jpg?v=2`); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; } return H3T[k]; }
 const H3 = {}; const gltf = new GLTFLoader();
-function loadHead(n) { return H3[n] || (H3[n] = gltf.loadAsync(`img/${n}.glb?v=1`).then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material.roughness = .6; o.material.metalness = 0; } }); return g.scene; }).catch(() => null)); }
+function loadHead(n) { return H3[n] || (H3[n] = gltf.loadAsync(`img/${n}.glb?v=2`).then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material.roughness = .6; o.material.metalness = 0; } }); return g.scene; }).catch(() => null)); }
 const PI = Math.PI;
 
 export function randomLook(r = Math.random) {
@@ -361,7 +364,7 @@ export class Chara {
     const show = v => { this.headM.visible = this.hairG.visible = v; this.faceG.visible = v; };
     show(true); if (!n) return;
     const tok = this.h3tok = {};
-    loadHead(n).then(sc => { if (!sc || this.h3tok !== tok) return; this.h3 = sc.clone(); this.h3.scale.setScalar(.44); this.h3.position.set(0, .005, .006); this.headG.add(this.h3); show(false); });
+    loadHead(n).then(sc => { if (!sc || this.h3tok !== tok) return; this.h3 = sc.clone(); this.h3n = n; this.h3ex = ''; this.h3.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); this.h3mat = o.material; this.h3base = o.material.map; } }); this.h3.scale.setScalar(.44); this.h3.position.set(0, .005, .006); this.headG.add(this.h3); show(false); });
   }
   lod(d) { const near = d < 16; this.faceG.visible = d < 13 && !this.h3; this.detailG.visible = near; this.legs.forEach(l => { l.userData.teeth.forEach(t => t.visible = near); }); }
   setName(n, npc) {
@@ -456,7 +459,18 @@ export class Chara {
   play(a) { if (this.anim !== a) { this.anim = a; this.t = 0; } }
   // ---- 表情：表情符號、動作、說話、吃東西、眨眼都會讓臉變化 ----
   expr(k, dur = 2.6) { this.exK = k; this.exT = dur; }
+  updFace3d(dt) {
+    this.exT = (this.exT || 0) - dt; const a = this.anim;
+    const k = this.exT > 0 ? this.exK : [9, 14, 11, 10, 7, 16].includes(a) ? 'happy' : [6, 17].includes(a) ? 'calm' : null;
+    let ex = { happy: 'laugh', laugh: 'laugh', love: 'laugh', smile: 'laugh', wow: 'wow', sad: 'sad', sleep: 'calm', calm: 'calm', think: '', angry: '' }[k] || '';
+    this.blinkT = (this.blinkT ?? 2 + Math.random() * 3) - dt; if (this.blinkT < -.15) this.blinkT = 2.5 + Math.random() * 2.5;
+    if (!ex && this.blinkT < 0) ex = 'calm';
+    if (ex && !(H3EX[this.h3n] || []).includes(ex)) ex = '';
+    if (ex === this.h3ex) return; this.h3ex = ex;
+    this.h3mat.map = ex ? exTex(this.h3n, ex) : this.h3base; this.h3mat.needsUpdate = true;
+  }
   updFace(dt) {
+    if (this.h3 && this.h3mat) return this.updFace3d(dt);
     if (!this.decal || !this.faceBase || !this.decal.visible && !this.faceG.visible) return;
     const b = this.faceBase; let { ey, br, mo, ck } = b; const a = this.anim, t = this.t;
     this.exT = (this.exT || 0) - dt; this.talkT = (this.talkT || 0) - dt;

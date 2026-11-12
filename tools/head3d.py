@@ -58,20 +58,23 @@ cheekC = tuple(int(v) for v in np.median(samp, 0)); hairC = tuple(int(v) for v i
 img = img.copy(); from PIL import ImageDraw; dr = ImageDraw.Draw(img); dr.rectangle([0, 0, 15, 15], fill=cheekC); dr.rectangle([16, 0, 31, 15], fill=(28, 24, 26))
 def edge_uv(i): return (8 / W, 1 - 8 / H)
 print('cheek color', cheekC)
-newV, newUV, newF = [], [], []
+newV, newUV, newF, newN = [], [], [], []
 for fi, tri in enumerate(F):
     front = FN[fi, 2] > -.05 and not lt[tri].any()
     cy = py[tri].mean(); cz = V[tri, 2].mean()
     cxp, cyp = int(np.clip(px[tri].mean(), 0, W - 1)), int(np.clip(cy, 0, H - 1)); dark = a[cyp, cxp].sum() < 260
-    cheek = eyeY < cy < neckY + 15 and cz > zc and (dark or not front or abs(FN[fi, 0]) > .7)
+    cxm = abs(V[tri, 0].mean() - (b0[0] + b1[0]) / 2) / (b1[0] - b0[0])  # 0＝中線，.5＝最外側
+    lim = .2 + .07 * min(1, max(0, (cy - eyeY) / max(1, neckY - eyeY)))  # 越往下巴越寬
+    cheek = eyeY < cy < neckY + 15 and cz > zc and (dark or not front) and cxm < lim
     if not cheek and eyeY + (neckY - eyeY) * .62 < cy < neckY + 40 and cz > zc - (b1[2] - b0[2]) * .28 and (dark or not front): cheek = True  # 下顎、頸側
     for k in range(3):
-        newV.append(V[tri[k]]); newUV.append(edge_uv(tri[k]) if cheek else pu[tri[k]] if front else (skinUV if cy > neckY else hairUV))
+        newN.append(N[tri[k]]); newV.append(V[tri[k]]); newUV.append(edge_uv(tri[k]) if cheek else pu[tri[k]] if front else (skinUV if cy > neckY else hairUV))
     newF.append([fi * 3, fi * 3 + 1, fi * 3 + 2])
 V = np.array(newV); uv = np.array(newUV)
-mesh = trimesh.Trimesh(V, np.array(newF), process=False)
+mesh = trimesh.Trimesh(V, np.array(newF), vertex_normals=np.array(newN), process=False)
 # 把模型移到原點：頭的中心在 (0,0,0)，高度縮成 1
 c = (b0 + b1) / 2; mesh.vertices = (V - c) / (b1[1] - b0[1])
+mesh.vertex_normals = np.array(newN)
 mesh.merge_vertices(merge_tex=False, merge_norm=True) if False else None
 tex = img.resize((1024, 1024), Image.LANCZOS).convert('RGB')
 mat = trimesh.visual.material.PBRMaterial(baseColorTexture=tex, roughnessFactor=.55, metallicFactor=0)
