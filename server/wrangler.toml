@@ -9,3 +9,6 @@ class_name = "Town"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Town"]
+
+workers_dev = true
+preview_urls = false
