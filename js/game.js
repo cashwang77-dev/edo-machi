@@ -885,7 +885,7 @@ $('#bView').onclick = toggleView;
 $('#bGM').onclick = openGM;
 $('#bHelp').onclick = () => show('#help');
 $('#bFS').onclick = toggleFS;
-document.querySelectorAll('[data-donate]').forEach(b => b.onclick = () => { show('#settings', false); show('#donate'); });
+document.querySelectorAll('[data-donate]').forEach(b => b.onclick = () => { show('#settings', false); show('#donate'); SND.pluck(660, .06); });
 $('#bSet').onclick = () => { show('#settings'); document.querySelectorAll('#settings [data-q]').forEach(b => b.classList.toggle('on', +b.dataset.q === quality)); };
 const sndBtns = () => document.querySelectorAll('#settings [data-snd]').forEach(b => b.classList.toggle('on', !!SND.on[b.dataset.snd]));
 document.querySelectorAll('#settings [data-snd]').forEach(b => b.onclick = () => { SND.start(); SND.setOn(b.dataset.snd, !SND.on[b.dataset.snd]); sndBtns(); });

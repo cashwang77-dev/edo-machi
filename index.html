@@ -165,6 +165,11 @@ body.touch .pop{bottom:70px}
 .uk img{max-height:72vh;max-width:90vw;border-radius:4px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
 #settings .card{max-width:380px}
 #settings button.on{background:var(--ink);color:var(--paper)}
+.kchip{font:inherit;font-size:14px;cursor:pointer;color:var(--red);border-color:rgba(184,48,42,.55);background:rgba(250,240,222,.94);line-height:1.35}
+.kchip:hover{background:#fff6e6}
+.lb3{display:none}
+@media (max-width:640px){.kchip{font-size:12px;padding:3px 9px}}
+@media (max-width:480px){.kchip .lb2{display:none}.kchip .lb3{display:inline}}
 .kofi{display:block;text-align:center;margin-top:9px;font-size:14px;color:var(--red);text-decoration:none}
 .kofi:hover{text-decoration:underline}
 /* 搖桿 */
@@ -213,7 +218,7 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
   </div>
 </div>
 <div id="hud" class="hide">
-  <div id="topbar"><span class="chip" id="clock"></span><span class="chip">💰 <b id="mon">0</b> 文</span><span class="chip" id="online"></span></div>
+  <div id="topbar"><span class="chip" id="clock"></span><span class="chip">💰 <b id="mon">0</b> 文</span><span class="chip" id="online"></span><button class="chip kchip" id="bKofi" data-donate>☕<span class="lb2"> 支持作者</span><span class="lb3"> 支持</span></button></div>
   <canvas id="mini" width="240" height="120"></canvas>
   <div id="log"></div>
   <button id="act" class="hide"></button>
