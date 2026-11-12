@@ -4,7 +4,7 @@ const names = ['阿花', '小明', '太郎', '花子', '源五郎', 'お菊', '�
 const lines = ['こんにちは！', '好漂亮的街道', '一起去吃蕎麥麵吧', '我開了糰子店喔', '夕陽好美～', 'いらっしゃい！', '要不要去泡湯？'];
 const emos = ['😊', '🌸', '🍵', '👍', '😂', '🏮'];
 for (let i = 0; i < N; i++) {
-  const ws = new WebSocket(URL + '?room=edo1');
+  const ws = new WebSocket(URL + '?room=' + (process.env.ROOMS ? 'edo' + (1 + i % +process.env.ROOMS) : 'edo1'));
   let x = 70 + Math.random() * 25, z = (Math.random() - .5) * 8, tx = x, tz = z, r = 0;
   const lk = { k: i % 10, p: i % 6, o: i % 6, h: i % 5, s: i % 3, hat: i % 7 === 0 ? 1 : 0, c: i % 5 === 0 ? 2 : 0 };
   ws.onopen = () => ws.send(JSON.stringify({ t: 'hi', n: names[i % names.length], lk, x, z }));

@@ -86,6 +86,21 @@ button:not(:disabled):active{transform:translateY(1px)}
 #gmPanel .row{display:flex;gap:6px}
 #gmPanel input{flex:1;font:inherit;padding:8px;border:1.5px solid var(--ink);border-radius:8px;background:#fffaf0}
 .gml{display:flex;flex-direction:column;gap:4px;max-height:30vh;overflow:auto}
+#gmPanel .card{width:min(640px,94vw);max-height:86dvh;display:flex;flex-direction:column;border-top:5px solid var(--red);background:var(--paper) repeating-linear-gradient(0deg,rgba(120,90,50,.035) 0 2px,transparent 2px 5px)}
+#gmPanel h3{font-family:"Yuji Syuku",serif;letter-spacing:.12em}
+.gmtabs,.gmrooms{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.gmtabs button,.gmrooms button{font-size:13px;padding:5px 12px;border-radius:16px;background:#fffaf0}
+.gmtabs button.on,.gmrooms button.on{background:var(--ink);color:var(--paper)}
+.gmhead{display:flex;gap:8px;align-items:center}
+#gmBody{overflow:auto;min-height:0}
+.gml2{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.gmp{border:1px solid var(--line);border-left:4px solid var(--ai);border-radius:6px;padding:7px 9px;background:#fffaf0}
+.gmp.muted{border-left-color:var(--red);opacity:.85}
+.gmp .who b{font-size:15px}.gmp .who small{display:block;color:var(--sub);font-size:12px;margin-top:2px}
+.gmp .ops{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.gmp .ops button{font-size:12px;padding:3px 8px;border-radius:12px;border-width:1px;background:#fff}
+.gmp .ops button.danger{color:var(--red);border-color:var(--red)}
+.gmp .ops button:disabled{opacity:.4}
 .gml>div{display:flex;justify-content:space-between;align-items:center;background:#fffaf0;border-radius:6px;padding:4px 8px}
 .gml button{font-size:12px;padding:3px 7px;margin-left:3px}
 body.touch #held{left:12px;bottom:168px;top:auto;flex-wrap:wrap;max-width:60vw}
@@ -318,6 +333,6 @@ body.touch #held{left:calc(12px + var(--sl));bottom:calc(168px + var(--sb))}
 </div></div>
 <div id="toast"></div>
 <script>addEventListener("error",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+e.message+" @"+(e.filename||"").split("/").pop()+":"+e.lineno});addEventListener("unhandledrejection",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+(e.reason&&e.reason.stack||e.reason)})</script>
-<script type="module" src="js/game.js?v=20261113d"></script>
+<script type="module" src="js/game.js?v=20261114a"></script>
 </body>
 </html>

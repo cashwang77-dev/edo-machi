@@ -33,6 +33,10 @@ export class Town {
   async fetch(req) {
     const url = new URL(req.url);
     if (url.pathname === '/count') return new Response(JSON.stringify({ n: this.players.size, max: MAX }));
+    // 只有同一個 Worker 內的其他街（Durable Object）呼叫得到，外部網址不會轉到這裡
+    if (url.pathname === '/roster') return new Response(JSON.stringify(this.roster()));
+    if (url.pathname === '/act') { const m = await req.json(); return new Response(JSON.stringify({ r: this.doAct(m) })); }
+    if (!this.room) this.room = (url.searchParams.get('room') || 'edo1').replace(/[^a-z0-9]/gi, '').slice(0, 12) || 'edo1';
     const pair = new WebSocketPair(); const [client, server] = Object.values(pair);
     server.accept(); this.onOpen(server, req.headers.get('CF-Connecting-IP') || 'local');
     return new Response(null, { status: 101, webSocket: client });
@@ -41,6 +45,55 @@ export class Town {
   bcast(obj, exceptId) { const s = JSON.stringify(obj); for (const [id, p] of this.players) if (id !== exceptId) { try { p.ws.send(s); } catch (e) {} } }
   byName(n) { n = String(n || '').trim(); for (const [id, p] of this.players) if (p.n === n) return [id, p]; for (const [id, p] of this.players) if (p.n.includes(n) && n) return [id, p]; return [null, null]; }
   sys(ws, s) { this.send(ws, { t: 'sys', s }); }
+
+  // ---- GM 遠端管理 ----
+  roster() {
+    const now = Date.now(), shopOf = {}; for (const k in this.shops) shopOf[this.shops[k]] = k;
+    return [...this.players].map(([id, p]) => ({ id, n: p.n, x: Math.round(p.x), z: Math.round(p.z), gm: p.gm ? 1 : 0, mute: p.muteUntil > now ? Math.ceil((p.muteUntil - now) / 60000) : 0, st: p.strikes, shop: shopOf[id] || '', t: Math.round((now - (p.t0 || now)) / 60000) }));
+  }
+  doAct(m) {
+    const tp = this.players.get(String(m.id || '')); const a = m.a;
+    if (a === 'announce') { this.bcast({ t: 'announce', s: String(m.v || '').slice(0, 120), n: m.from }); return 'ok'; }
+    if (!tp) return '找不到這位玩家（可能已離線）';
+    switch (a) {
+      case 'kick': if (tp.gm) return '不能踢 GM'; this.send(tp.ws, { t: 'kicked' }); try { tp.ws.close(1000, 'kick'); } catch (e) {} tp.bye && tp.bye(); return `已踢出 ${tp.n}`;
+      case 'mute': { if (tp.gm) return '不能禁言 GM'; const min = Math.max(1, Math.min(1440, +m.v || 10)); tp.muteUntil = Date.now() + min * 60000; this.send(tp.ws, { t: 'muted', until: tp.muteUntil }); return `已禁言 ${tp.n} ${min} 分鐘`; }
+      case 'unmute': tp.muteUntil = 0; tp.strikes = 0; this.sys(tp.ws, '你已被解除禁言'); return `已解除 ${tp.n} 禁言`;
+      case 'give': { const v = Math.max(1, Math.min(99999, +m.v || 100)); this.send(tp.ws, { t: 'gift', v, n: m.from || 'GM', gm: 1 }); return `已給 ${tp.n} ${v} 文`; }
+      case 'warn': this.send(tp.ws, { t: 'announce', s: String(m.v || '請遵守町內規矩，文明聊天、友善待人。').slice(0, 120), n: 'GM 提醒你' }); return `已提醒 ${tp.n}`;
+      case 'summon': this.send(tp.ws, { t: 'tp', x: (+m.x || 0) + 1, z: +m.z || 0 }); return `已召喚 ${tp.n}`;
+      case 'where': return { x: tp.x, z: tp.z };
+    }
+    return '未知指令';
+  }
+  async gmList(p) {
+    const rooms = {}; rooms[this.room || 'edo1'] = this.roster();
+    await Promise.all([1, 2, 3, 4, 5].map(i => 'edo' + i).filter(r => r !== (this.room || 'edo1')).map(async r => {
+      try { const res = await this.env.TOWN.get(this.env.TOWN.idFromName(r)).fetch(new Request('https://x/roster')); rooms[r] = await res.json(); } catch (e) { rooms[r] = []; }
+    }));
+    this.send(p.ws, { t: 'gml', room: this.room || 'edo1', rooms });
+  }
+  async gmAct(p, m) {
+    const room = String(m.room || this.room || 'edo1').replace(/[^a-z0-9]/gi, '').slice(0, 12); const here = room === (this.room || 'edo1');
+    const body = { a: m.a, id: m.id, v: m.v, from: p.n, x: p.x, z: p.z };
+    if (m.a === 'tp') { // 傳送到玩家身邊：同街直接走過去，別街先換街
+      let w = here ? this.doAct({ a: 'where', id: m.id }) : null;
+      if (!here) { try { const res = await this.env.TOWN.get(this.env.TOWN.idFromName(room)).fetch(new Request('https://x/act', { method: 'POST', body: JSON.stringify({ a: 'where', id: m.id }) })); w = (await res.json()).r; } catch (e) {} }
+      if (w && typeof w === 'object') this.send(p.ws, here ? { t: 'tp', x: w.x + 1, z: w.z } : { t: 'gmgo', room, x: w.x + 1, z: w.z });
+      else this.sys(p.ws, '找不到這位玩家（可能已離線）');
+      return;
+    }
+    if (m.a === 'announceAll') {
+      const rs = [1, 2, 3, 4, 5].map(i => 'edo' + i);
+      await Promise.all(rs.map(r => r === (this.room || 'edo1') ? this.doAct({ a: 'announce', v: m.v, from: p.n }) : this.env.TOWN.get(this.env.TOWN.idFromName(r)).fetch(new Request('https://x/act', { method: 'POST', body: JSON.stringify({ a: 'announce', v: m.v, from: p.n }) })).catch(() => 0)));
+      this.sys(p.ws, '已向五條街全體公告'); return;
+    }
+    if (m.a === 'summon' && !here) { this.sys(p.ws, '召喚只能叫同一條街的人，請先「前往」那條街'); return; }
+    let r;
+    if (here) r = this.doAct(body);
+    else { try { const res = await this.env.TOWN.get(this.env.TOWN.idFromName(room)).fetch(new Request('https://x/act', { method: 'POST', body: JSON.stringify(body) })); r = (await res.json()).r; } catch (e) { r = '連線失敗'; } }
+    this.sys(p.ws, String(r)); this.gmList(p);
+  }
 
   onOpen(ws, ip) {
     const id = 'p' + (this.seq++); let joined = false;
@@ -59,7 +112,7 @@ export class Town {
         joined = true;
         let n = cleanText(String(m.n || '旅人').slice(0, 12)).text.replace(/＊/g, '') || '旅人';
         if (!gm && /^GM|管理員/i.test(n)) n = '旅人' + id.slice(1);
-        const p = { ws, n, lk: m.lk || {}, x: +m.x || 0, z: +m.z || 0, y: 0, r: 0, a: 0, dirty: true, gm, strikes: 0, muteUntil: 0, seen: Date.now(), bye: () => bye() };
+        const p = { ws, n, lk: m.lk || {}, x: +m.x || 0, z: +m.z || 0, y: 0, r: 0, a: 0, dirty: true, gm, strikes: 0, muteUntil: 0, seen: Date.now(), t0: Date.now(), bye: () => bye() };
         this.players.set(id, p);
         const list = [];
         for (const [pid, q] of this.players) if (pid !== id) list.push({ id: pid, n: q.n, lk: q.lk, x: q.x, z: q.z, y: q.y, r: q.r, a: q.a, gm: q.gm });
@@ -122,6 +175,8 @@ export class Town {
         const q = this.players.get(m.to); if (!q) break; const s = this.speak(id, p, m.s); if (s == null) break;
         this.send(q.ws, { t: 'w', from: id, n: p.n, s }); this.send(p.ws, { t: 'w', from: id, to: m.to, n: p.n, s, self: 1 }); break;
       }
+      case 'gml': if (p.gm) this.gmList(p); break;
+      case 'gma': if (p.gm) this.gmAct(p, m); break;
       case 'emote': this.bcast({ t: 'emote', id, e: String(m.e || '').slice(0, 10) }, id); break;
       case 'look': p.lk = m.lk || {}; this.bcast({ t: 'look', id, lk: p.lk }, id); break;
       case 'act': { // 玩家對玩家：打招呼、擊掌、送禮、送食物

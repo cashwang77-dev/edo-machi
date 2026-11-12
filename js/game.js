@@ -639,19 +639,69 @@ function fxFor(id, a, dur) { if (id === G.myId) { if (G.mode === 'walk') emote(a
 function logLine(html, cls) { const log = $('#log'); const li = document.createElement('div'); li.innerHTML = html; if (cls) li.className = cls; log.appendChild(li); while (log.children.length > 8) log.firstChild.remove(); setTimeout(() => li.classList.add('old'), 20000); }
 function announce(s, n) { const b = $('#banner'); b.innerHTML = `<small>📜 ${esc(n || 'GM')} 公告</small>${esc(s)}`; b.classList.remove('hide'); clearTimeout(announce.h); announce.h = setTimeout(() => b.classList.add('hide'), 8000); logLine(`📜 <b>公告</b>：${esc(s)}`, 'sys'); sfx(660, .3); setTimeout(() => sfx(880, .4), 200); }
 
-// ---------- GM 面板 ----------
+// ---------- GM 面板：五條街線上名單＋遠端管理（不用走到玩家旁邊）----------
+const ROOM_ZH = { edo1: '一丁目', edo2: '二丁目', edo3: '三丁目', edo4: '四丁目', edo5: '五丁目' };
+const GMS = { tab: 'all', q: '', rooms: null, timer: null };
+function placeName(x, z) {
+  if (x > 140 && z < -38) return '東光寺'; if (x > 100 && x < 118) return '日本橋'; if (z < -20) return '神社一帶'; if (x < -90) return '町西';
+  let best = '大街', bd = 9e9; for (const sh of SHOPS) { const d = Math.abs(sh.x - x) + Math.abs((sh.side || 1) * 11 - z); if (d < bd) { bd = d; best = sh.name || best; } } return bd < 14 ? best + '前' : '大街';
+}
 function openGM() {
   const el = $('#gmPanel .card');
-  el.innerHTML = `<button class="close" data-close>✕</button><h3>👑 GM 管理</h3>
-  <div class="row"><input id="gmAnn" placeholder="公告內容"><button id="gmAnnB">📜 公告</button></div>
-  <p class="sub">全服時間</p><div class="btns">${[['🌅 清晨', .27], ['☀ 正午', .5], ['🌇 黃昏', .755], ['🌙 夜晚', .9]].map(([t, v]) => `<button data-t="${v}">${t}</button>`).join('')}</div>
-  <p class="sub" style="margin-top:12px">線上玩家（${G.remotes.size + 1} 人）— 點名字旁的按鈕管理</p>
-  <div class="gml">${[...G.remotes.entries()].map(([id, r]) => `<div><b>${esc(r.n)}</b><span><button data-c="傳送" data-n="${esc(r.n)}">傳送</button><button data-c="召喚" data-n="${esc(r.n)}">召喚</button><button data-c="給" data-n="${esc(r.n)}">+100</button><button data-c="禁言" data-n="${esc(r.n)}">禁言</button><button data-c="踢" data-n="${esc(r.n)}">踢</button></span></div>`).join('') || '<p class="sub">目前只有你</p>'}</div>
-  <p class="sub" style="margin-top:10px">聊天框也能打指令：/公告 文字、/時間 0.75、/傳送 名字、/召喚 名字、/給 名字 數量、/禁言 名字 分鐘、/解禁 名字、/踢 名字</p>`;
-  show('#gmPanel'); el.querySelector('[data-close]').onclick = () => show('#gmPanel', false);
-  $('#gmAnnB').onclick = () => { const v = $('#gmAnn').value.trim(); if (v) net.send({ t: 'chat', s: '/公告 ' + v }); $('#gmAnn').value = ''; };
-  el.querySelectorAll('[data-t]').forEach(b => b.onclick = () => net.send({ t: 'chat', s: '/時間 ' + b.dataset.t }));
-  el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => net.send({ t: 'chat', s: `/${b.dataset.c} ${b.dataset.n}` }));
+  el.innerHTML = `<button class="close" data-close>✕</button><h3>👑 町奉行所（GM 管理）</h3>
+  <div class="gmtabs"><button data-gt="list" class="on">📜 人別帳</button><button data-gt="town">🏮 全町</button></div>
+  <div id="gmBody"></div>`;
+  show('#gmPanel');
+  el.querySelector('[data-close]').onclick = () => { show('#gmPanel', false); clearInterval(GMS.timer); };
+  el.querySelectorAll('[data-gt]').forEach(b => b.onclick = () => { el.querySelectorAll('[data-gt]').forEach(x => x.classList.toggle('on', x === b)); GMS.view = b.dataset.gt; drawGM(); });
+  GMS.view = 'list'; drawGM(); net.send({ t: 'gml' });
+  clearInterval(GMS.timer); GMS.timer = setInterval(() => { if ($('#gmPanel').classList.contains('hide')) return clearInterval(GMS.timer); net.send({ t: 'gml' }); }, 4000);
+}
+function gmAct(room, id, a, v) { net.send({ t: 'gma', room, id, a, v }); }
+function drawGM() {
+  const b = $('#gmBody'); if (!b) return;
+  if (GMS.view === 'town') {
+    b.innerHTML = `<p class="sub">全町公告（五條街同時看到）</p><div class="row"><input id="gmAnn" placeholder="公告內容" maxlength="120"><button id="gmAnnB">📜 本街</button><button id="gmAnnAll">📣 全町</button></div>
+    <p class="sub" style="margin-top:12px">本街時間</p><div class="btns">${[['🌅 清晨', .27], ['☀ 正午', .5], ['🌇 黃昏', .755], ['🌙 夜晚', .9]].map(([t, v]) => `<button data-t="${v}">${t}</button>`).join('')}</div>
+    <p class="sub" style="margin-top:12px">前往其他街</p><div class="btns">${[1, 2, 3, 4, 5].map(i => `<button data-go="${i}" ${G.room === i ? 'disabled' : ''}>${ROOM_ZH['edo' + i]}</button>`).join('')}</div>
+    <p class="sub" style="margin-top:10px">聊天框也能打指令：/公告 文字、/時間 0.75、/傳送 名字、/召喚 名字、/給 名字 數量、/禁言 名字 分鐘、/解禁 名字、/踢 名字</p>`;
+    $('#gmAnnB').onclick = () => { const v = $('#gmAnn').value.trim(); if (v) net.send({ t: 'chat', s: '/公告 ' + v }); $('#gmAnn').value = ''; };
+    $('#gmAnnAll').onclick = () => { const v = $('#gmAnn').value.trim(); if (v) net.send({ t: 'gma', a: 'announceAll', v }); $('#gmAnn').value = ''; };
+    b.querySelectorAll('[data-t]').forEach(x => x.onclick = () => net.send({ t: 'chat', s: '/時間 ' + x.dataset.t }));
+    b.querySelectorAll('[data-go]').forEach(x => x.onclick = () => switchRoom(+x.dataset.go));
+    return;
+  }
+  const R = GMS.rooms; if (!R) { b.innerHTML = '<p class="sub">讀取人別帳中…</p>'; return; }
+  const all = Object.entries(R).sort().flatMap(([r, l]) => l.map(p => ({ ...p, room: r })));
+  const counts = Object.fromEntries(Object.entries(R).map(([r, l]) => [r, l.length]));
+  const q = GMS.q.trim(); const list = all.filter(p => (GMS.tab === 'all' || p.room === GMS.tab) && (!q || p.n.includes(q)));
+  const myRoom = 'edo' + G.room;
+  b.innerHTML = `<div class="gmhead"><input id="gmQ" placeholder="🔍 找名字" value="${esc(q)}"><span class="sub">共 ${all.length} 人在線</span></div>
+  <div class="gmrooms"><button data-rt="all" class="${GMS.tab === 'all' ? 'on' : ''}">全部 ${all.length}</button>${Object.keys(ROOM_ZH).map(r => `<button data-rt="${r}" class="${GMS.tab === r ? 'on' : ''}">${ROOM_ZH[r]} ${counts[r] || 0}${r === myRoom ? ' ★' : ''}</button>`).join('')}</div>
+  <div class="gml2">${list.map(p => `<div class="gmp${p.mute ? ' muted' : ''}" data-id="${p.id}" data-room="${p.room}">
+    <div class="who"><b>${p.gm ? '👑 ' : ''}${esc(p.n)}</b><small>${ROOM_ZH[p.room] || p.room}・${placeName(p.x, p.z)}${p.shop ? '・🏮 開店中' : ''}・${p.t} 分鐘${p.mute ? `・🔇 禁言 ${p.mute} 分` : ''}${p.st ? `・⚠ ${p.st}` : ''}</small></div>
+    ${p.gm ? '' : `<div class="ops"><button data-a="tp" title="傳送到他身邊">🚶 前往</button><button data-a="summon" title="叫他過來（同街）" ${p.room !== myRoom ? 'disabled' : ''}>🫴 召喚</button><button data-a="give">💰 +100</button><button data-a="warn">📢 提醒</button>${p.mute ? '<button data-a="unmute">🔊 解禁</button>' : '<button data-a="mute">🔇 禁言10分</button>'}<button data-a="kick" class="danger">🚪 踢出</button></div>`}
+  </div>`).join('') || '<p class="sub">沒有符合的玩家</p>'}</div>`;
+  const qi = $('#gmQ'); qi.oninput = () => { GMS.q = qi.value; const pos = qi.selectionStart; drawGM(); const n = $('#gmQ'); n.focus(); n.setSelectionRange(pos, pos); };
+  b.querySelectorAll('[data-rt]').forEach(x => x.onclick = () => { GMS.tab = x.dataset.rt; drawGM(); });
+  b.querySelectorAll('.gmp [data-a]').forEach(x => x.onclick = () => {
+    const row = x.closest('.gmp'), a = x.dataset.a, n = row.querySelector('b').textContent;
+    if (a === 'kick' && x.dataset.sure !== '1') { x.dataset.sure = '1'; x.textContent = '再按一次確認'; setTimeout(() => { if (x.isConnected) { x.dataset.sure = ''; x.textContent = '🚪 踢出'; } }, 3000); return; }
+    gmAct(row.dataset.room, row.dataset.id, a, a === 'mute' ? 10 : a === 'give' ? 100 : undefined);
+    if (a === 'tp') toast(`前往 ${n} 身邊…`);
+  });
+}
+net.on('gml', m => { GMS.rooms = m.rooms; if (!$('#gmPanel').classList.contains('hide') && GMS.view === 'list' && document.activeElement?.id !== 'gmQ') drawGM(); });
+net.on('gmgo', m => switchRoom(+String(m.room).replace('edo', ''), m.x, m.z));
+async function switchRoom(i, x, z) {
+  if (!G.online || i === G.room) return;
+  toast(`前往江戶町${ROOM_ZH['edo' + i]}…`);
+  G.switching = true; try { net.ws.onclose = null; net.ok = false; net.ws.close(); } catch (e) {}
+  for (const id of [...G.remotes.keys()]) delRemote(id); for (const k in G.owners) if (G.owners[k] !== G.myId) delete G.owners[k];
+  const r = await net.connect({ n: G.name, lk: G.look, x: x ?? G.pos.x, z: z ?? G.pos.z, k: store.get('gmk', '') }, 'edo' + i);
+  G.switching = false;
+  if (r !== 'ok') { toast(r === 'full' ? '那條街客滿了' : '連線失敗'); G.online = r === 'full' ? G.online : false; if (r === 'full') await net.connect({ n: G.name, lk: G.look, x: G.pos.x, z: G.pos.z, k: store.get('gmk', '') }, 'edo' + G.room); return; }
+  G.online = true; G.room = i; if (x != null) { G.pos.set(x, heightAt(x, z), z); } updCount(); toast(`已到江戶町${ROOM_ZH['edo' + i]}`);
 }
 
 // ---------- 東光寺：參拜・投幣・搖鈴・撞鐘 ----------
