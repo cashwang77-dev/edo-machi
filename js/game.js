@@ -681,7 +681,29 @@ function buildTitle() {
   if (QS.has('embed')) { const a = document.createElement('a'); a.className = 'big'; a.target = '_blank'; a.rel = 'noopener'; a.href = location.origin + location.pathname; a.textContent = '↗ 開新分頁全螢幕玩'; a.style.cssText = 'display:block;text-align:center;margin-top:8px'; $('#go').parentElement.after(a); }
   $('#nameIn').addEventListener('keydown', e => { if (e.key === 'Enter') start(); });
 }
+// ---------- 防止手機連點／雙指放大網頁 ----------
+for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', e => { if (e.touches.length > 1 && e.target.tagName !== 'CANVAS') e.preventDefault(); }, { passive: false });
+let lastTouchEnd = 0;
+document.addEventListener('touchend', e => { const now = Date.now(); if (now - lastTouchEnd < 350 && !e.target.closest('button,input,a,.mi,.oi')) e.preventDefault(); lastTouchEnd = now; }, { passive: false });
+
+// ---------- 全螢幕（沒有網址列） ----------
+const standalone = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone;
+const canFS = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+function enterFS() {
+  if (standalone || document.fullscreenElement || document.webkitFullscreenElement || !canFS || G.shot || QS.has('test')) return;
+  const el = document.documentElement; const r = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : el.webkitRequestFullscreen();
+  if (r && r.catch) r.catch(() => {});
+}
+function toggleFS() { if (document.fullscreenElement || document.webkitFullscreenElement) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); store.set('nofs', true); } else { store.set('nofs', false); enterFS(); } }
+// 手機上若被手勢退出全螢幕，下次點畫面自動回到全螢幕
+addEventListener('pointerdown', () => { if (isTouch && G.mode !== 'title' && !store.get('nofs', false)) enterFS(); }, true);
+if (/iPhone|iPod/.test(navigator.userAgent) && !standalone && !canFS) document.getElementById('iosTip').classList.remove('hide');
+if (!canFS && !standalone) document.getElementById('bFS').classList.add('hide');
+
 async function start() {
+  if (!store.get('nofs', false)) enterFS();
   const n = $('#nameIn').value.trim().slice(0, 12);
   if (!n) { $('#nameIn').focus(); return toast('請先取一個暱稱'); }
   if (cleanText(n).bad) { $('#nameIn').focus(); return toast('暱稱含有不雅字詞，請換一個'); }
@@ -861,6 +883,7 @@ $('#bAct').onclick = () => pop('#actMenu'); $('#bEmo').onclick = () => pop('#emo
 $('#bView').onclick = toggleView;
 $('#bGM').onclick = openGM;
 $('#bHelp').onclick = () => show('#help');
+$('#bFS').onclick = toggleFS;
 $('#bSet').onclick = () => { show('#settings'); document.querySelectorAll('#settings [data-q]').forEach(b => b.classList.toggle('on', +b.dataset.q === quality)); };
 const sndBtns = () => document.querySelectorAll('#settings [data-snd]').forEach(b => b.classList.toggle('on', !!SND.on[b.dataset.snd]));
 document.querySelectorAll('#settings [data-snd]').forEach(b => b.onclick = () => { SND.start(); SND.setOn(b.dataset.snd, !SND.on[b.dataset.snd]); sndBtns(); });

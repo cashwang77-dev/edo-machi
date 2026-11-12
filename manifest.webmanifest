@@ -1,0 +1,14 @@
+{
+  "name": "江戶町 — 江戶時代多人小鎮",
+  "short_name": "江戶町",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#15111c",
+  "theme_color": "#15111c",
+  "icons": [
+    { "src": "img/icon192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "img/icon512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

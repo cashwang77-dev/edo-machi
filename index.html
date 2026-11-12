@@ -10,13 +10,22 @@
 <meta property="og:image" content="https://cashwang77-dev.github.io/edo-machi/og.png">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="江戶町">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta name="theme-color" content="#15111c">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Noto+Sans+TC:wght@400;600;700&display=swap" rel="stylesheet">
 <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
 <script src="config.js"></script>
 <style>
 :root{--paper:#f3ead6;--paper2:#e9dcc0;--ink:#2a1d12;--sub:#6a5440;--red:#b8302a;--ai:#24406e;--line:rgba(42,29,18,.35)}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+canvas,#joy,#mgBtn{touch-action:none}
+html,body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
 html,body{margin:0;height:100%;overflow:hidden;background:#1a1420;font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;color:var(--ink);touch-action:none;user-select:none;-webkit-user-select:none}
 canvas{display:block}
 button,a.big{font:inherit;cursor:pointer;border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:8px;padding:8px 14px;text-decoration:none;display:inline-block}
@@ -197,6 +206,7 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
     <div id="gmRow" class="hide"><input id="gmIn" type="password" placeholder="通行證" autocomplete="off"></div>
     <div id="looks"></div>
     <div class="row"><button id="rnd">🎲 隨機</button><button id="go">入町 ▶</button></div>
+    <p id="iosTip" class="sub hide" style="margin:8px 0 0;font-size:13px">📱 iPhone 小提醒：按 Safari 下方「分享」→「加入主畫面」，從主畫面打開就是全螢幕，沒有網址列。</p>
   </div>
 </div>
 <div id="hud" class="hide">
@@ -207,7 +217,7 @@ body.viewmode #hud>*:not(#toast){opacity:0;pointer-events:none}
   <div id="held" class="hide"></div>
   <div id="banner" class="hide"></div>
   <div id="chatBox" class="hide"><div id="phr"></div><input id="chatIn" maxlength="80" placeholder="說點什麼…（Enter 送出）" autocomplete="off"><button id="chatSend">送出</button></div>
-  <div id="tools"><button id="bChat" title="聊天">💬<span class="lb"> 聊天</span></button><button id="bAct" title="動作">🎭<span class="lb"> 動作</span></button><button id="bEmo" title="表情">😊<span class="lb"> 表情</span></button><button id="bView" title="看風景">🌅<span class="lb"> 看風景</span></button><button id="bGM" class="hide" title="GM">👑</button><button id="bHelp" title="說明">❔</button><button id="bSet" title="設定">⚙</button></div>
+  <div id="tools"><button id="bChat" title="聊天">💬<span class="lb"> 聊天</span></button><button id="bAct" title="動作">🎭<span class="lb"> 動作</span></button><button id="bEmo" title="表情">😊<span class="lb"> 表情</span></button><button id="bView" title="看風景">🌅<span class="lb"> 看風景</span></button><button id="bGM" class="hide" title="GM">👑</button><button id="bFS" title="全螢幕">⛶</button><button id="bHelp" title="說明">❔</button><button id="bSet" title="設定">⚙</button></div>
   <div id="actMenu" class="pop hide"></div><div id="emoMenu" class="pop hide"></div>
   <div id="joy"><div id="joyK"></div></div>
   <div id="owner" class="hide"></div>
