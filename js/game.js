@@ -153,7 +153,7 @@ function addRemote(p) {
   updCount();
 }
 function delRemote(id) { const r = G.remotes.get(id); if (!r) return; scene.remove(r.ch.root); G.remotes.delete(id); updCount(); }
-function updCount() { $('#online').textContent = G.online ? `👥 ${G.remotes.size + 1} / 80 人在線` : '🏮 單人模式（離線）'; }
+function updCount() { $('#online').textContent = G.online ? `👥 ${G.remotes.size + 1} / 80 人在線 ▾` : '🏮 單人模式（離線）'; }
 
 // NPC 町人（人少時代替玩家逛街、吃東西、聊天）、掌櫃
 const NPCS = []; const keepers = {};
@@ -658,7 +658,7 @@ function announce(s, n) { const b = $('#banner'); b.innerHTML = `<small>📜 ${e
 
 // ---------- GM 面板：五條街線上名單＋遠端管理（不用走到玩家旁邊）----------
 const ROOM_ZH = { edo1: '一丁目', edo2: '二丁目', edo3: '三丁目', edo4: '四丁目', edo5: '五丁目' };
-const GMS = { tab: 'all', q: '', rooms: null, timer: null };
+const GMS = { tab: 'all', q: '', rooms: null, timer: null, open: new Set() };
 function placeName(x, z) {
   if (x > 140 && z < -38) return '東光寺'; if (x > 100 && x < 118) return '日本橋'; if (z < -20) return '神社一帶'; if (x < -90) return '町西';
   let best = '大街', bd = 9e9; for (const sh of SHOPS) { const d = Math.abs(sh.x - x) + Math.abs((sh.side || 1) * 11 - z); if (d < bd) { bd = d; best = sh.name || best; } } return bd < 14 ? best + '前' : '大街';
@@ -696,11 +696,12 @@ function drawGM() {
   b.innerHTML = `<div class="gmhead"><input id="gmQ" placeholder="🔍 找名字" value="${esc(q)}"><span class="sub">共 ${all.length} 人在線</span></div>
   <div class="gmrooms"><button data-rt="all" class="${GMS.tab === 'all' ? 'on' : ''}">全部 ${all.length}</button>${Object.keys(ROOM_ZH).map(r => `<button data-rt="${r}" class="${GMS.tab === r ? 'on' : ''}">${ROOM_ZH[r]} ${counts[r] || 0}${r === myRoom ? ' ★' : ''}</button>`).join('')}</div>
   <div class="gml2">${list.map(p => `<div class="gmp${p.mute ? ' muted' : ''}" data-id="${p.id}" data-room="${p.room}">
-    <div class="who"><b>${p.gm ? '👑 ' : ''}${esc(p.n)}</b><small>${ROOM_ZH[p.room] || p.room}・${placeName(p.x, p.z)}${p.shop ? '・🏮 開店中' : ''}・${p.t} 分鐘${p.mute ? `・🔇 禁言 ${p.mute} 分` : ''}${p.st ? `・⚠ ${p.st}` : ''}</small></div>
-    ${p.gm ? '' : `<div class="ops"><button data-a="tp" title="傳送到他身邊">🚶 前往</button><button data-a="summon" title="叫他過來（同街）" ${p.room !== myRoom ? 'disabled' : ''}>🫴 召喚</button><button data-a="give">💰 +100</button><button data-a="warn">📢 提醒</button>${p.mute ? '<button data-a="unmute">🔊 解禁</button>' : '<button data-a="mute">🔇 禁言10分</button>'}<button data-a="kick" class="danger">🚪 踢出</button></div>`}
+    <div class="who" data-open="${p.room}:${p.id}"><b>${p.gm ? '👑 ' : ''}${esc(p.n)}</b>${p.gm ? '' : `<i class="tog">${GMS.open.has(p.room + ':' + p.id) ? '▾ 收起' : '▸ 管理'}</i>`}<small>${ROOM_ZH[p.room] || p.room}・${placeName(p.x, p.z)}${p.shop ? '・🏮 開店中' : ''}・${p.t} 分鐘${p.mute ? `・🔇 禁言 ${p.mute} 分` : ''}${p.st ? `・⚠ ${p.st}` : ''}</small></div>
+    ${p.gm || !GMS.open.has(p.room + ':' + p.id) ? '' : `<div class="ops"><button data-a="tp" title="傳送到他身邊">🚶 前往</button><button data-a="summon" title="叫他過來（同街）" ${p.room !== myRoom ? 'disabled' : ''}>🫴 召喚</button><button data-a="give">💰 +100</button><button data-a="warn">📢 提醒</button>${p.mute ? '<button data-a="unmute">🔊 解禁</button>' : '<button data-a="mute">🔇 禁言10分</button>'}<button data-a="kick" class="danger">🚪 踢出</button></div>`}
   </div>`).join('') || '<p class="sub">沒有符合的玩家</p>'}</div>`;
   const qi = $('#gmQ'); qi.oninput = () => { GMS.q = qi.value; const pos = qi.selectionStart; drawGM(); const n = $('#gmQ'); n.focus(); n.setSelectionRange(pos, pos); };
   b.querySelectorAll('[data-rt]').forEach(x => x.onclick = () => { GMS.tab = x.dataset.rt; drawGM(); });
+  b.querySelectorAll('.who[data-open]').forEach(x => x.onclick = () => { const k = x.dataset.open; GMS.open.has(k) ? GMS.open.delete(k) : GMS.open.add(k); drawGM(); });
   b.querySelectorAll('.gmp [data-a]').forEach(x => x.onclick = () => {
     const row = x.closest('.gmp'), a = x.dataset.a, n = row.querySelector('b').textContent;
     if (a === 'kick' && x.dataset.sure !== '1') { x.dataset.sure = '1'; x.textContent = '再按一次確認'; setTimeout(() => { if (x.isConnected) { x.dataset.sure = ''; x.textContent = '🚪 踢出'; } }, 3000); return; }
@@ -732,18 +733,47 @@ function drawRide() {
   const p = $('#panel'); const myRoom = 'edo' + G.room;
   const all = RIDE.rooms ? Object.entries(RIDE.rooms).sort().flatMap(([r, l]) => l.filter(q => !(q.id === G.myId && r === myRoom)).map(q => ({ ...q, room: r }))) : null;
   p.innerHTML = `<h2>🛺 人力車<small>車夫拉你到玩家身邊</small></h2>
-  <p class="sub">同一條街 ${G.gm ? '免費' : RIDE.fare + ' 文'}・到別條街 ${G.gm ? '免費' : RIDE.fare2 + ' 文'}　身上：<b>${G.gm ? '∞' : G.money}</b> 文</p>
+  <p class="sub">車資：同一條街 ${RIDE.fare} 文・到別條街 ${RIDE.fare2} 文　身上：<b>${G.gm ? '∞' : G.money}</b> 文<br>叫車後車夫會從街上跑過來載你</p>
   <div class="rlist">${!all ? '<p class="sub">車夫正在打聽大家在哪裡…</p>' : all.length ? all.map(q => { const same = q.room === myRoom, fee = same ? RIDE.fare : RIDE.fare2;
-    return `<button class="rp" data-id="${q.id}" data-room="${q.room}" ${afford(fee) ? '' : 'disabled'}><b>${q.gm ? '👑 ' : ''}${esc(q.n)}</b><small>${ROOM_ZH[q.room] || q.room}・${placeName(q.x, q.z)}</small><span>${G.gm ? '乘車' : fee + ' 文'}</span></button>`; }).join('') : '<p class="sub">現在沒有其他真人玩家在線，晚點再來吧！</p>'}</div>
+    return `<button class="rp" data-id="${q.id}" data-room="${q.room}" ${afford(fee) ? '' : 'disabled'}><b>${q.gm ? '👑 ' : ''}${esc(q.n)}</b><small>${ROOM_ZH[q.room] || q.room}・${placeName(q.x, q.z)}</small><span>${fee} 文</span></button>`; }).join('') : '<p class="sub">現在沒有其他真人玩家在線，晚點再來吧！</p>'}</div>
   <div class="btns"><button id="rX">算了</button></div>`;
   show('#panel'); $('#rX').onclick = closePanels;
-  p.querySelectorAll('.rp').forEach(b => b.onclick = () => { const q = all.find(x => x.id === b.dataset.id && x.room === b.dataset.room); startRide(q); });
+  p.querySelectorAll('.rp').forEach(b => b.onclick = () => { const q = all.find(x => x.id === b.dataset.id && x.room === b.dataset.room); hailRide(q); });
 }
 net.on('who', m => { RIDE.rooms = m.rooms; if (!$('#panel').classList.contains('hide') && $('#panel .rlist')) drawRide(); });
-function startRide(q) {
+// 空車：借用 Chara 的人力車模型（車＋車夫），掛在獨立的 Group 上
+function makeCart(x, z, ry) { const c = { root: new THREE.Group() }; Chara.prototype.setRide.call(c, true, Chara); c.kuruma.position.y = 0; c.root.position.set(x, heightAt(x, z), z); c.root.rotation.y = ry; scene.add(c.root); return c; }
+function dropCart(c) { if (c) scene.remove(c.root); }
+function hailRide(q) {
   const same = q.room === 'edo' + G.room, fee = same ? RIDE.fare : RIDE.fare2;
-  if (!afford(fee)) return toast('錢不夠喔');
+  if (!afford(fee)) return toast(`錢不夠喔（車資 ${fee} 文）`);
   addMoney(-fee, '人力車'); closePanels(); G.follow = null;
+  // 從大街上離玩家約 22 公尺的地方出發，跑到玩家身邊
+  const onSt = G.pos.x > -98 && G.pos.x < 104 && Math.abs(G.pos.z) < 8;
+  const sx = onSt ? Math.max(-95, Math.min(100, G.pos.x + (G.pos.x > 0 ? -22 : 22))) : G.pos.x + 14, sz = onSt ? 0 : G.pos.z;
+  const cart = makeCart(sx, sz, Math.atan2(G.pos.x - sx, G.pos.z - sz));
+  RIDE.hail = { cart, q, fee, same, sp: 0, t: 0 }; G.mode = 'hail'; G.me.play(16); G.me.say('人力車～這邊！', 2.5);
+  toast(`🛺 已叫車（${fee} 文），車夫正跑過來…　走開會取消並退錢`, 3500); sfx(600, .15);
+}
+function cancelHail(msg) { const H = RIDE.hail; if (!H) return; RIDE.leave = { cart: H.cart, t: 0 }; addMoney(H.fee, '退款'); RIDE.hail = null; G.mode = 'walk'; toast(msg || '已取消叫車，退回車資'); }
+function updHail(dt, moveLen) {
+  const H = RIDE.hail; if (!H) return;
+  if (moveLen > .5) return cancelHail();
+  H.t += dt; const c = H.cart, p = c.root.position;
+  const side = { x: G.pos.x + Math.cos(G.ry) * 1.1, z: G.pos.z - Math.sin(G.ry) * 1.1 }; // 停在玩家側邊
+  const dx = side.x - p.x, dz = side.z - p.z, d = Math.hypot(dx, dz);
+  H.sp = Math.min(6, H.sp + dt * 5, Math.max(.8, d * 1.6));
+  if (d > .3) { const st = Math.min(d, H.sp * dt); p.x += dx / d * st; p.z += dz / d * st; p.y = heightAt(p.x, p.z); c.root.rotation.y = angLerp(c.root.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 5)); }
+  Chara.prototype.updRide.call(c, dt, d > .3 ? H.sp : 0);
+  if (d <= .3 || H.t > 25) { // 上車
+    G.pos.x = p.x; G.pos.z = p.z; G.ry = c.root.rotation.y; dropCart(c); RIDE.hail = null; G.me.say('麻煩了！', 2); startRide(H.q, true);
+  }
+}
+function updLeave(dt) { const L = RIDE.leave; if (!L) return; L.t += dt; const c = L.cart, ry = c.root.rotation.y; c.root.position.x += Math.sin(ry) * 5 * dt; c.root.position.z += Math.cos(ry) * 5 * dt; Chara.prototype.updRide.call(c, dt, 5); if (L.t > 5) { dropCart(c); RIDE.leave = null; } }
+function startRide(q, paid) {
+  const same = q.room === 'edo' + G.room, fee = same ? RIDE.fare : RIDE.fare2;
+  if (!paid) { if (!afford(fee)) return toast('錢不夠喔'); addMoney(-fee, '人力車'); }
+  closePanels(); G.follow = null;
   G.mode = 'ride'; G.me.setRide(true, Chara); net.send({ t: 'ride', on: 1 });
   G.pos.y = RIDE_Y; const from = { x: G.pos.x, z: G.pos.z };
   // 路線：先拉到大街中央，沿著大街跑，再轉進目的地
@@ -772,6 +802,7 @@ function updRide(dt) {
   if (d > .05) { G.pos.x += dx / d * step; G.pos.z += dz / d * step; G.ry = angLerp(G.ry, Math.atan2(dx, dz), Math.min(1, dt * 6)); }
   if (d < .35) { if (!last) C.i++; else { // 到了
     RIDE.cur = null; G.me.setRide(false); G.mode = 'walk'; G.pos.y = heightAt(G.pos.x, G.pos.z); net.send({ t: 'ride', on: 0 });
+    RIDE.leave = { cart: makeCart(G.pos.x, G.pos.z, G.ry), t: 0 }; G.pos.x -= Math.cos(G.ry) * 1.0; G.pos.z += Math.sin(G.ry) * 1.0;
     const R = G.remotes.get(C.q.id); if (R) faceTo(R.ch.root.position); toast(`🛺 到了！「${C.q.n}」就在旁邊`); G.me.say('謝謝車夫！'); sfx(660, .2); return 0; } }
   G.pos.y = RIDE_Y; return C.sp;
 }
@@ -1253,6 +1284,7 @@ function update(dt) {
     }
     if (G.mode === 'walk') G.pos.y = heightAt(G.pos.x, G.pos.z);
     const rideSp = updRide(dt); if (G.mode === 'ride') anim = 3;
+    if (G.mode === 'hail') { updHail(dt, len); if (G.mode === 'hail') anim = 16; } updLeave(dt);
     if (G.emoteT > 0) { G.emoteT -= dt; anim = G.emote; }
     if (G.mode === 'seat') anim = 3;
     if (G.eatT > 0) { const fd = G.me.foodG.children[0]; if (fd && fd.userData.bites) { const b = fd.userData.bites, k = Math.floor((1 - G.eatT / 4) * (b.length + .5)); b.forEach((m, i) => m.visible = i >= k); }
@@ -1356,6 +1388,7 @@ $('#bAct').onclick = () => pop('#actMenu'); $('#bEmo').onclick = () => pop('#emo
 $('#bView').onclick = toggleView;
 $('#bInv').onclick = () => { pop(null); openInv(); };
 $('#bRide').onclick = () => { pop(null); openRide(); };
+$('#online').onclick = () => { pop(null); if (!G.online) return toast('目前是單人模式，沒有其他玩家'); G.gm ? openGM() : openRide(); };
 $('#bGM').onclick = openGM;
 $('#bHelp').onclick = () => show('#help');
 $('#bFS').onclick = toggleFS;
@@ -1465,4 +1498,4 @@ async function runTest() {
   const d = document.createElement('pre'); d.style.cssText = 'position:fixed;left:8px;top:50px;z-index:99;background:rgba(255,255,255,.92);font-size:15px;padding:8px;margin:0'; d.textContent = (fail ? 'FAIL\n' : 'PASS\n') + log.join('\n'); document.body.appendChild(d);
 }
 if (QS.get('test') === 'flow') { store.set('helped', true); setTimeout(runTest, 1500); }
-window.EDO = { RIDE, switchRoom, startRide, upd: dt => update(dt), render, renderer, scene, NPCS, keepers, step: n => { for (let i = 0; i < n; i++) update(1 / 30); render(); }, SND, openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };
+window.EDO = { RIDE, switchRoom, startRide, hailRide, upd: dt => update(dt), render, renderer, scene, NPCS, keepers, step: n => { for (let i = 0; i < n; i++) update(1 / 30); render(); }, SND, openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };
