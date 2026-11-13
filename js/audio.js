@@ -17,7 +17,7 @@ export const SND = {
     // 配樂：白天／夜晚兩首交叉淡入
     this.tracks = {};
     for (const k of ['day', 'night']) {
-      const el = new Audio('audio/' + k + '.mp3'); el.loop = true; el.crossOrigin = 'anonymous'; el.preload = 'auto';
+      const el = new Audio('audio/' + k + '.mp3'); el.loop = true; el.crossOrigin = 'anonymous'; el.preload = 'none'; // 要播才下載（白天／夜晚同時只需一首）
       const g = ac.createGain(); g.gain.value = 0;
       try { ac.createMediaElementSource(el).connect(g); } catch (e) {}
       g.connect(this.musicG); this.tracks[k] = { el, g, playing: false };

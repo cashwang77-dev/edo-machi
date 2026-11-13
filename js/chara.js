@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import * as TX from './tex.js';
 import { GLTFLoader } from '../vendor/addons/loaders/GLTFLoader.js';
+import { mergeGeometries } from '../vendor/addons/utils/BufferGeometryUtils.js';
 
 export const KIMONO = [
   ['藍', '#2a4b7c'], ['紅梅', '#c24a62'], ['若竹', '#5c9a68'], ['墨', '#2f2e35'], ['山吹', '#dba23a'],
@@ -103,6 +104,17 @@ const G = {
   stick: new THREE.CylinderGeometry(.012, .012, .9, 5),
 };
 const M = {};
+// 把群組裡「同材質、不會單獨動」的直屬零件合成一個網格，減少繪製次數（頭髮、飾品每次換裝都重建，可以安全合併）
+function mergeGroup(gr) {
+  const by = new Map();
+  for (const o of [...gr.children]) { if (!o.isMesh || o.userData.dyn || Array.isArray(o.material)) continue; const k = o.material.uuid + (o.userData.minor ? 'm' : ''); if (!by.has(k)) by.set(k, []); by.get(k).push(o); }
+  for (const list of by.values()) {
+    if (list.length < 2) continue;
+    const geos = list.map(o => { o.updateMatrix(); let g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); for (const a of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(a)) g.deleteAttribute(a); if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2)); if (!g.attributes.normal) g.computeVertexNormals(); return g.applyMatrix4(o.matrix); });
+    let mg; try { mg = mergeGeometries(geos, false); } catch (e) { mg = null; } if (!mg) continue;
+    const m = new THREE.Mesh(mg, list[0].material); m.userData.minor = !!list[0].userData.minor; m.userData.merged = 1; list.forEach(o => gr.remove(o)); gr.add(m);
+  }
+}
 const BLOB_G = new THREE.CircleGeometry(.36, 16), BLOB_M = new THREE.MeshBasicMaterial({ map: TX.radial('blob', 'rgba(0,0,0,.42)', 'rgba(0,0,0,0)'), transparent: true, depthWrite: false });
 // 卡通著色（動畫風）：三階明暗，成本與標準材質相同
 const GRAD = (() => { const d = new Uint8Array([120, 120, 120, 255, 200, 200, 200, 255, 255, 255, 255, 255]); const t = new THREE.DataTexture(d, 3, 1); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
@@ -180,7 +192,8 @@ export class Chara {
     this.setLook(look);
     this.name = name; if (name) this.setName(name);
   }
-  setLook(lk) {
+  setLook(lk) { this._setLook(lk); mergeGroup(this.hairG); mergeGroup(this.accG); this.tier = -1; }
+  _setLook(lk) {
     this.tier = -1;
     lk = Object.assign({ k: 0, p: 0, o: 0, h: 0, s: 0, hat: 0, c: 0, w: 0, f: '' }, lk || {});
     this.look = lk;

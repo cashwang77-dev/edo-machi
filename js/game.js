@@ -251,6 +251,7 @@ function updNPCs(dt) {
       }
     }
     else if (n.st === 'walk') {
+      if (G.mode === 'walk' && !(n.hiCD > performance.now()) && Math.random() < .02 && p.distanceTo(G.pos) < 3.2) { n.hiCD = performance.now() + 40000; n.st = 'talk'; n.t = 0; n.ch.root.rotation.y = Math.atan2(G.pos.x - p.x, G.pos.z - p.z); n.ch.say(['你好呀～', '今天天氣真好！', 'こんにちは！', '逛街嗎？'][Math.floor(Math.random() * 4)], 2.5); n.ch.play(7); n.ch.update(dt, 0); continue; }
       const dx = n.tx - p.x, dz = n.tz - p.z, d = Math.hypot(dx, dz);
       if (d < .45) npcArrive(n);
       else {
@@ -960,6 +961,25 @@ function updRetinue(dt) {
   }
 }
 
+// ---------- 街上跑來跑去的小孩（人少時也熱鬧）----------
+const KIDS = [];
+function spawnKids() {
+  [{ k: 1, p: 2, o: 2, h: 4, s: 0, ey: 4, mo: 1, ck: 2, fc: 1 }, { k: 4, p: 1, o: 4, h: 0, s: 1, ey: 0, mo: 1, ck: 1, fc: 1 }].forEach((lk, i) => {
+    const ch = new Chara(lk, ''); ch.root.scale.setScalar(.62); ch.root.position.set(-20 + i * 30, 0, (i - .5) * 3); scene.add(ch.root); KIDS.push({ ch, tx: 0, tz: 0, wait: i });
+  });
+}
+function updKids(dt) {
+  for (const [i, k] of KIDS.entries()) {
+    const p = k.ch.root.position;
+    if (k.wait > 0) { k.wait -= dt; k.ch.play(FEST.on ? 10 : 0); k.ch.update(dt, 0); if (k.wait <= 0) { const o = KIDS[1 - i].ch.root.position; const chase = Math.random() < .5; k.tx = chase ? o.x + (Math.random() - .5) * 2 : -80 + Math.random() * 170; k.tz = chase ? o.z : (Math.random() - .5) * 8; } continue; }
+    const dx = k.tx - p.x, dz = k.tz - p.z, d = Math.hypot(dx, dz);
+    if (d < .5) { k.wait = 1 + Math.random() * 4; if (Math.random() < .4) k.ch.emoji(['😆', '🎵', '✨'][Math.floor(Math.random() * 3)]); continue; }
+    const sp = 3.4, vx = dx / d * sp * dt, vz = dz / d * sp * dt;
+    if (okAt(p.x + vx, p.z + vz)) { p.x += vx; p.z += vz; } else { k.wait = .5; }
+    p.y = heightAt(p.x, p.z); k.ch.root.rotation.y = angLerp(k.ch.root.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 8)); k.ch.play(2); k.ch.update(dt, sp);
+  }
+}
+
 // ---------- 掌櫃叫賣 ----------
 const CALLS = {
   soba: ['そば〜、あったかいそばはいかが〜', '熱騰騰的蕎麥麵喔～'], chaya: ['いらっしゃい、お茶でも一服どうぞ〜', '進來喝杯茶歇歇腳吧～'],
@@ -1260,10 +1280,11 @@ function update(dt) {
     // 標題：從東邊拍角色，背景是街道盡頭的富士山
     const p = G.me.root.position, port = camera.aspect < 1;
     const th = (port ? .03 : .32) + Math.sin(time * .12) * .05, cz = p.z - (port ? .1 : .55);
-    camera.position.set(p.x + (port ? 4.2 : 3.4), 1.45, cz); camera.lookAt(p.x + 3.4 - Math.cos(th) * 10, port ? 2.9 : 1.75, cz + Math.sin(th) * 10);
+    if (port) { camera.position.set(p.x + 3.9, 1.25, p.z + .15); camera.lookAt(p.x, .9, p.z); } // 直式：正對人物全身
+    else { camera.position.set(p.x + 3.4, 1.45, cz); camera.lookAt(p.x + 3.4 - Math.cos(th) * 10, 1.75, cz + Math.sin(th) * 10); }
     // 選五官時鏡頭靠近臉
     G.fz = (G.fz || 0) + (((G.faceZoom = Math.max(0, (G.faceZoom || 0) - dt)) > 0 ? 1 : 0) - (G.fz || 0)) * Math.min(1, dt * 3);
-    if (G.fz > .01) { const hy = 1.35, fp = new THREE.Vector3(p.x + (port ? .75 : .62), hy + (port ? .12 : .02), p.z + (port ? .02 : .25)); camera.position.lerp(fp, G.fz); const lk = new THREE.Vector3(p.x, hy - (port ? .22 : .02), p.z + (port ? 0 : .15)); const cur = new THREE.Vector3(); camera.getWorldDirection(cur); cur.multiplyScalar(10).add(camera.position); cur.lerp(lk, G.fz); camera.lookAt(cur); G.me.root.rotation.y = PI / 2; }
+    if (G.fz > .01) { const hy = 1.35, fp = new THREE.Vector3(p.x + (port ? 1.2 : .62), hy + (port ? .06 : .02), p.z + (port ? .02 : .25)); camera.position.lerp(fp, G.fz); const lk = new THREE.Vector3(p.x, hy - (port ? .04 : .02), p.z + (port ? 0 : .15)); const cur = new THREE.Vector3(); camera.getWorldDirection(cur); cur.multiplyScalar(10).add(camera.position); cur.lerp(lk, G.fz); camera.lookAt(cur); G.me.root.rotation.y = PI / 2; }
     G.me.root.rotation.y = PI / 2 + Math.sin(time * .4) * .4; G.me.update(dt, 0);
   } else {
     // 移動
@@ -1323,8 +1344,8 @@ function update(dt) {
     if (R.ovT > 0) { R.ovT -= dt; R.ch.play(R.ov); } else R.ch.play(R.a); { const sp = Math.hypot(p.x - ox, p.z - oz) / Math.max(dt, .001); R.ch.update(dt, sp); R.ch.updRide(dt, sp); }
   }
   for (const c of G.npcCust) c.ch.update(dt, 0);
-  updNPCs(dt); updDeer(dt); updRetinue(dt);
-  if ((lodT = (lodT || 0) - dt) < 0) { lodT = .3; const cp = camera.position; const all = [G.me, ...[...G.remotes.values()].map(r => r.ch), ...NPCS.map(n => n.ch), ...Object.values(keepers), ...G.npcCust.map(c => c.ch), ...[...RETINUE.values()].flatMap(r => r.mem.map(m => m.ch))]; for (const ch of all) if (ch && ch.lod) ch.lod(ch.root.position.distanceTo(cp)); }
+  updNPCs(dt); updDeer(dt); updRetinue(dt); updKids(dt);
+  if ((lodT = (lodT || 0) - dt) < 0) { lodT = .3; const cp = camera.position; const all = [G.me, ...[...G.remotes.values()].map(r => r.ch), ...NPCS.map(n => n.ch), ...Object.values(keepers), ...G.npcCust.map(c => c.ch), ...[...RETINUE.values()].flatMap(r => r.mem.map(m => m.ch)), ...KIDS.map(k => k.ch)]; for (const ch of all) if (ch && ch.lod) ch.lod(ch.root.position.distanceTo(cp)); }
   if (G.mode !== 'title' && W) {
     const near = [...G.remotes.values()].filter(r => r.ch.root.position.distanceTo(G.pos) < 15).length + NPCS.filter(n => n.ch.root.visible && n.ch.root.position.distanceTo(G.pos) < 15).length;
     SND.update(dt, tday(), W.night || 0, Math.max(0, Math.abs(G.pos.x - 125) - 13), near, Math.abs(G.pos.z) < 12 && G.pos.x > -100 && G.pos.x < 104);
@@ -1336,6 +1357,9 @@ function update(dt) {
 let viewOff = 0;
 function updViewOffset() {
   let target = 0;
+  if (G.mode === 'title' && camera.aspect < 1) { // 直式建立人物：人物移到面板上方的空白區正中央
+    const c = $('#title .card'); if (c) { const r = c.getBoundingClientRect(); target = Math.max(0, innerHeight - r.top) * .5 - innerHeight * .04; }
+  }
   if (innerWidth <= 700 && G.mode !== 'title') {
     for (const id of ['#panel', '#mg', '#pcard', '#chatBox']) { const el = $(id); if (el && !el.classList.contains('hide')) { const r = el.getBoundingClientRect(); if (r.top > innerHeight * .35) target = Math.max(target, (innerHeight - r.top) * .55); } }
   }
@@ -1408,18 +1432,19 @@ if (isTouch) document.body.classList.add('touch');
 (async () => {
   try { await Promise.race([document.fonts.load('700 64px "Yuji Syuku"'), new Promise(r => setTimeout(r, 3000))]); } catch (e) {}
   const loadImg = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
-  const art = await Promise.all(['roof', 'plaster', 'wood', 'dirt'].map(k => loadImg('img/tex/' + k + '.jpg')).concat([...Array(11).keys()].map(i => loadImg('img/tex/kanban' + i + '.png'))));
-  ['roof', 'plaster', 'wood', 'dirt'].forEach((k, i) => TX.IMG[k] = art[i]); TX.IMG.kanban = art.slice(4);
-  [TX.IMG.oiranOut, TX.IMG.oiranIn] = await Promise.all([loadImg('img/tex/oiran_out.jpg'), loadImg('img/tex/oiran_in.jpg')]);
+  // 全部素材同時下載（原本分三批依序等）；花魁貼圖只有 GM 用，背景載入不擋開場
+  Promise.all([loadImg('img/tex/oiran_out.jpg'), loadImg('img/tex/oiran_in.jpg')]).then(([a, b]) => { TX.IMG.oiranOut = a; TX.IMG.oiranIn = b; if (G.me && G.me.gm) G.me.setLook(G.look); });
   const L = (pre, n, ext) => Promise.all([...Array(n).keys()].map(i => loadImg(`img/tex/${pre}${i}.${ext}`)));
-  const [ey, br, mo, mt, ob] = await Promise.all([L('eyes', 5, 'png'), L('brows', 4, 'png'), L('mouths', 4, 'png'), L('motif', 9, 'png'), L('obi', 6, 'jpg')]);
+  const [art, ey, br, mo, mt, ob] = await Promise.all([Promise.all(['roof', 'plaster', 'wood', 'dirt'].map(k => loadImg('img/tex/' + k + '.jpg')).concat([...Array(11).keys()].map(i => loadImg('img/tex/kanban' + i + '.png')))), L('eyes', 5, 'png'), L('brows', 4, 'png'), L('mouths', 4, 'png'), L('motif', 9, 'png'), L('obi', 6, 'jpg')]);
+  ['roof', 'plaster', 'wood', 'dirt'].forEach((k, i) => TX.IMG[k] = art[i]); TX.IMG.kanban = art.slice(4);
   if (ey.every(Boolean) && br.every(Boolean) && mo.every(Boolean)) TX.IMG.face = { eyes: ey, brows: br, mouths: mo };
   if (mt.every(Boolean)) TX.IMG.motifs = mt; if (ob.every(Boolean)) TX.IMG.obi = ob;
   W = buildWorld(scene);
   W.sunLight = scene.children.find(o => o.isDirectionalLight);
   setupPost(); applyQuality();
   addMe(); spawnNPCs(); spawnDeer(); buildTitle();
-  initMatsuri({ scene, Chara, SND, announce, toast, pos: () => G.pos, night: () => W.night || 0 });
+  initMatsuri({ scene, Chara, SND, announce, toast, pos: () => G.pos, night: () => W.night || 0, gift: v => addMoney(v, '福餅') });
+  spawnKids();
   $('#loading').classList.add('hide');
   if (QS.has('cam')) { G.shot = QS.get('cam').split(',').map(Number); show('#title', false); }
   if (QS.has('oiran') && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { G.me.gm = true; G.me.setLook(G.look); G.me.setName('👑 花魁'); }

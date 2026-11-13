@@ -59,9 +59,19 @@ class Batcher {
     rm.forEach(o => o.parent && o.parent.remove(o));
   }
   finish(scene) {
+    // 依位置切成 CELL 公尺一區再合併：鏡頭與影子都能裁掉看不到的區塊（大物件如地面、富士山留在同一塊）
+    const CELL = 110;
     for (const [mat, list] of this.m) {
-      const g = mergeGeometries(list, false); const mesh = new THREE.Mesh(g, mat);
-      mesh.castShadow = !mat.userData.noShadow; mesh.receiveShadow = true; mesh.frustumCulled = false; scene.add(mesh);
+      const cells = new Map();
+      for (const g of list) {
+        g.computeBoundingBox(); const b = g.boundingBox, sx = b.max.x - b.min.x, sz = b.max.z - b.min.z;
+        const key = (sx > CELL * 1.5 || sz > CELL * 1.5) ? 'big' : Math.floor((b.min.x + b.max.x) / 2 / CELL) + ',' + Math.floor((b.min.z + b.max.z) / 2 / CELL);
+        if (!cells.has(key)) cells.set(key, []); cells.get(key).push(g);
+      }
+      for (const [key, gs] of cells) {
+        const g = mergeGeometries(gs, false); g.computeBoundingSphere(); const mesh = new THREE.Mesh(g, mat);
+        mesh.castShadow = !mat.userData.noShadow; mesh.receiveShadow = true; mesh.frustumCulled = key !== 'big'; scene.add(mesh);
+      }
     }
   }
 }
