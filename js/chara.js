@@ -55,18 +55,18 @@ function deformHead(g, r) {
 const HEADP = (x, y, z, r = .125) => headShape(x / r, y / r, z / r).map(v => v * r);
 // ---------- 共用幾何 ----------
 const G = {
-  torso: new THREE.LatheGeometry(V2([[0, .16], [.183, .16], [.17, .26], [.172, .36], [.176, .44], [.168, .5], [.14, .55], [.098, .59], [.06, .615], [.035, .628], [0, .632]]), 36),
-  skirt: new THREE.LatheGeometry(V2([[0, -.44], [.168, -.44], [.176, -.435], [.18, -.42], [.184, -.34], [.19, -.22], [.194, -.1], [.192, -.03], [.19, 0], [.188, .08], [.184, .17]]), 36),
-  fuki: new THREE.TorusGeometry(.176, .011, 6, 36),
-  skirtLow: new THREE.LatheGeometry(V2([[0, -.2], [.16, -.2], [.175, -.19], [.17, -.14], [.165, -.06], [.16, .02]]), 26),
-  thigh: new THREE.CylinderGeometry(.062, .054, .25, 14),
-  shin: new THREE.CylinderGeometry(.042, .036, .17, 14),
+  torso: new THREE.LatheGeometry(V2([[0, .16], [.183, .16], [.17, .26], [.172, .36], [.176, .44], [.168, .5], [.14, .55], [.098, .59], [.06, .615], [.035, .628], [0, .632]]), 20),
+  skirt: new THREE.LatheGeometry(V2([[0, -.44], [.168, -.44], [.176, -.435], [.18, -.42], [.184, -.34], [.19, -.22], [.194, -.1], [.192, -.03], [.19, 0], [.188, .08], [.184, .17]]), 20),
+  fuki: new THREE.TorusGeometry(.176, .011, 5, 20),
+  skirtLow: new THREE.LatheGeometry(V2([[0, -.2], [.16, -.2], [.175, -.19], [.17, -.14], [.165, -.06], [.16, .02]]), 20),
+  thigh: new THREE.CylinderGeometry(.062, .054, .25, 10),
+  shin: new THREE.CylinderGeometry(.042, .036, .17, 10),
   tabi: new THREE.BoxGeometry(.07, .05, .13),
   geta: new THREE.BoxGeometry(.085, .025, .19),
   tooth: new THREE.BoxGeometry(.08, .04, .025),
   strap: new THREE.TorusGeometry(.03, .006, 4, 10, PI),
-  obi: new THREE.CylinderGeometry(.19, .192, .19, 32),
-  cord: new THREE.TorusGeometry(.19, .008, 4, 24),
+  obi: new THREE.CylinderGeometry(.19, .192, .19, 10),
+  cord: new THREE.TorusGeometry(.19, .008, 4, 20),
   taiko: (() => { const sh = new THREE.Shape(), w = .29, h = .24; sh.moveTo(-w / 2, -h / 2); sh.lineTo(w / 2, -h / 2); sh.lineTo(w / 2, h / 2 - .06); sh.quadraticCurveTo(w / 2, h / 2 + .03, 0, h / 2 + .035); sh.quadraticCurveTo(-w / 2, h / 2 + .03, -w / 2, h / 2 - .06); sh.closePath();
     const g = new THREE.ExtrudeGeometry(sh, { depth: .05, bevelEnabled: true, bevelThickness: .02, bevelSize: .015, bevelSegments: 4, curveSegments: 14 }); g.translate(0, 0, -.025); g.computeVertexNormals(); const U = g.attributes.uv; for (let i = 0; i < U.count; i++) U.setXY(i, U.getX(i) * 3.2 + .5, U.getY(i) * 3.2 + .5); return g; })(),
   knotB: new THREE.BoxGeometry(.12, .07, .05),
@@ -77,11 +77,11 @@ const G = {
     // 袖口上緣收窄、下方鼓起：越往下越厚，像布料自然下垂
     const P = g.attributes.position; for (let i = 0; i < P.count; i++) { const y = P.getY(i), t = Math.min(1, -y / .36); P.setX(i, P.getX(i) * (.55 + .6 * t)); P.setZ(i, P.getZ(i) + .012 * Math.sin(t * PI)); }
     g.computeVertexNormals(); return g; })(),
-  arm: new THREE.CylinderGeometry(.04, .036, .26, 12),
+  arm: new THREE.CylinderGeometry(.04, .036, .26, 10),
   hand: new THREE.CapsuleGeometry(.026, .04, 4, 10),
   neck: new THREE.CylinderGeometry(.045, .05, .08, 10),
-  head: deformHead(new THREE.SphereGeometry(.125, 32, 24), .125),
-  decal: deformHead(new THREE.SphereGeometry(.1265, 40, 32, PI / 2 - .9, 1.8, PI * .28, PI * .5), .1265),
+  head: deformHead(new THREE.SphereGeometry(.125, 18, 12), .125),
+  decal: deformHead(new THREE.SphereGeometry(.1265, 18, 12, PI / 2 - .9, 1.8, PI * .28, PI * .5), .1265),
   ear: new THREE.SphereGeometry(.024, 8, 6),
   nose: (() => { const sh = new THREE.Shape(); sh.moveTo(-.011, 0); sh.lineTo(.011, 0); sh.lineTo(0, .034); sh.closePath(); const g = new THREE.ExtrudeGeometry(sh, { depth: .016, bevelEnabled: true, bevelThickness: .004, bevelSize: .004, bevelSegments: 2 }); g.translate(0, -.034, -.008); g.rotateX(-.25); return g; })(),
   eye: new THREE.SphereGeometry(.018, 10, 8),
@@ -91,9 +91,9 @@ const G = {
   cheek: new THREE.CircleGeometry(.022, 12),
   collar: new THREE.BoxGeometry(.04, .24, .015),
   eri: new THREE.BoxGeometry(.03, .3, .012),
-  capTop: deformHead(new THREE.SphereGeometry(.133, 28, 10, 0, PI * 2, 0, PI * .37), .133),
-  capBack: deformHead(new THREE.SphereGeometry(.133, 24, 11, PI / 2 + .9, PI * 2 - 1.8, PI * .32, PI * .4), .133),
-  side: deformHead(new THREE.SphereGeometry(.134, 24, 11, PI / 2 + .9, PI * 2 - 1.8, PI * .3, PI * .3), .134),
+  capTop: deformHead(new THREE.SphereGeometry(.133, 18, 10, 0, PI * 2, 0, PI * .37), .133),
+  capBack: deformHead(new THREE.SphereGeometry(.133, 18, 11, PI / 2 + .9, PI * 2 - 1.8, PI * .32, PI * .4), .133),
+  side: deformHead(new THREE.SphereGeometry(.134, 18, 11, PI / 2 + .9, PI * 2 - 1.8, PI * .3, PI * .3), .134),
   knot: new THREE.CylinderGeometry(.022, .028, .16, 8),
   bun: new THREE.SphereGeometry(.085, 14, 10),
   hatG: new THREE.ConeGeometry(.34, .16, 24, 1, true),
@@ -103,6 +103,7 @@ const G = {
   stick: new THREE.CylinderGeometry(.012, .012, .9, 5),
 };
 const M = {};
+const BLOB_G = new THREE.CircleGeometry(.36, 16), BLOB_M = new THREE.MeshBasicMaterial({ map: TX.radial('blob', 'rgba(0,0,0,.42)', 'rgba(0,0,0,0)'), transparent: true, depthWrite: false });
 // 卡通著色（動畫風）：三階明暗，成本與標準材質相同
 const GRAD = (() => { const d = new Uint8Array([120, 120, 120, 255, 200, 200, 200, 255, 255, 255, 255, 255]); const t = new THREE.DataTexture(d, 3, 1); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
 function TM(o = {}) { const { roughness, metalness, ...r } = o; return new THREE.MeshToonMaterial({ gradientMap: GRAD, ...r }); }
@@ -114,12 +115,13 @@ function fabricMat(lk) {
 }
 function obiMat(i) { const k = 'OBI' + i; return M[k] || (M[k] = TM({ map: TX.obiTex(OBI[i], i), roughness: .5, metalness: .08 })); }
 function mesh(g, m, par, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1, shadow = true) {
-  const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.scale.set(sx, sy, sz); o.castShadow = shadow; par.add(o); return o;
+  const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.scale.set(sx, sy, sz); o.castShadow = false; o.userData.minor = !shadow; par.add(o); return o; // 人物改用腳下圓影；shadow=false 的是小零件，中遠距離隱藏
 }
 
 export class Chara {
   constructor(look, name = '') {
     this.root = new THREE.Group();
+    this.blob = new THREE.Mesh(BLOB_G, BLOB_M); this.blob.rotation.x = -PI / 2; this.blob.position.y = .012; this.blob.renderOrder = -1; this.root.add(this.blob);
     this.phase = Math.random() * 6; this.anim = 0; this.t = 0; this.lift = 0;
     // 腿：髖→大腿→膝→小腿→足袋木屐
     this.legs = []; this.knees = []; this.feet = [];
@@ -133,7 +135,7 @@ export class Chara {
       const geta = mesh(G.geta, mat('#7a5634'), foot, 0, -.032, .03);
       const teeth = [mesh(G.tooth, mat('#5a3e26'), foot, 0, -.06, .085), mesh(G.tooth, mat('#5a3e26'), foot, 0, -.06, -.02)];
       mesh(G.strap, mat('#b8302a'), foot, 0, -.01, .07, 0, 0, 0, 1, 1, 1, false);
-      hip.userData = { th, sh, geta, teeth }; this.legs.push(hip); this.knees.push(knee); this.feet.push(foot);
+      th.userData.minor = sh.userData.minor = true; hip.userData = { th, sh, geta, teeth }; this.legs.push(hip); this.knees.push(knee); this.feet.push(foot);
     }
     // 上身（髖為原點）
     this.upper = new THREE.Group(); this.upper.position.y = .5; this.root.add(this.upper);
@@ -142,7 +144,7 @@ export class Chara {
     this.skirtM = mesh(G.skirt, mat('#888'), this.skirtG);
     this.lowG = new THREE.Group(); this.upper.add(this.lowG); this.skirtLowM = mesh(G.skirtLow, mat('#888'), this.lowG); this.lowG.visible = false;
     this.obiM = mesh(G.obi, mat('#888'), this.upper, 0, .25, 0);
-    this.obiageM = mesh(new THREE.CylinderGeometry(.18, .186, .024, 32), mat('#888'), this.upper, 0, .352, 0, 0, 0, 0, 1, 1, 1, false);
+    this.obiageM = mesh(new THREE.CylinderGeometry(.18, .186, .024, 10), mat('#888'), this.upper, 0, .352, 0, 0, 0, 0, 1, 1, 1, false);
     this.cordM = mesh(G.cord, mat('#c8322a'), this.upper, 0, .245, 0, PI / 2, 0, 0, 1.02, 1.02, 1, false);
     this.bowM = mesh(G.taiko, mat('#888'), this.upper, 0, .25, -.2);
     this.detailG = new THREE.Group(); this.upper.add(this.detailG);
@@ -179,12 +181,13 @@ export class Chara {
     this.name = name; if (name) this.setName(name);
   }
   setLook(lk) {
+    this.tier = -1;
     lk = Object.assign({ k: 0, p: 0, o: 0, h: 0, s: 0, hat: 0, c: 0, w: 0, f: '' }, lk || {});
     this.look = lk;
     const km = fabricMat(lk), skin = mat(SKINS[lk.s % 3], { roughness: .55, emissive: '#6a2a18', emissiveIntensity: .07 }), obi = obiMat(lk.o % OBI.length);
     this.obiageM.material = mat(['#e8889a', '#f2d27a', '#8ab4d8', '#f4f0e4', '#c8a0d8', '#a8d8b0'][(lk.o + 3) % 6], { roughness: .7 });
     this.torsoM.material = this.skirtM.material = km; this.legs.forEach(l => { l.userData.th.material = km; l.userData.sh.material = skin; l.userData.geta.material = mat('#7a5634'); l.userData.geta.scale.y = 1; l.userData.teeth.forEach((t, i) => { t.material = mat('#5a3e26'); t.scale.set(1, 1, 1); t.position.y = -.06; t.visible = true; }); });
-    this.collarC.forEach(c => c.material = km); this.skirtLowM.material = km; this.arms.forEach(a => { a.userData.sl.material = km; a.userData.arm.material = km; a.userData.sl.scale.set(1, 1, 1); a.userData.h.material = a.userData.th.material = skin; a.userData.lin.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4]); a.userData.lin.visible = true; });
+    this.collarC.forEach(c => c.material = km); this.skirtLowM.material = km; this.arms.forEach(a => { a.userData.sl.material = km; a.userData.arm.material = km; a.userData.sl.scale.set(1, 1, 1); a.userData.h.material = a.userData.th.material = skin; a.userData.lin.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4]); a.userData.lin.visible = true; a.userData.lin.userData.minor = true; });
     this.fukiM.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4], { roughness: .6 });
     this.obiM.material = obi; this.bowM.material = obi; this.headM.material = skin; this.neckM.material = skin; this.buildFace(lk, skin); this.apply3d(lk);
     this.cordM.material = mat(['#c8322a', '#e8c56a', '#3a6a8a', '#f4f0e4', '#8a3a6a', '#2f6a4a'][(lk.o + 2) % 6]);
@@ -212,9 +215,9 @@ export class Chara {
       case 3: { mesh(G.capTop, mat('#d6bba3', { roughness: .65 }), this.hairG, 0, .004, -.004, 1.01, 1.0, 1.02); break; } // 坊主
       case 4: { HC(); H(G.bun, 0, .092, .07, .54, .34, .42); for (const s of [-1, 1]) { H(G.bun, s * .1, .15, -.02, .78, .78, .78); mesh(G.pin, mat('#d8b24a', { metalness: .6, roughness: .3 }), this.hairG, s * .1, .15, -.02, 0, 0, PI / 2, 1, .9, 1); } break; } // 唐輪
     }
-    if (lk.hat === 1) { const h = mesh(G.hatG, mat('#c9a868', { side: THREE.DoubleSide }), this.accG, 0, .2, 0); for (let i = 0; i < 6; i++) mesh(new THREE.TorusGeometry(.34 - i * .05, .004, 3, 24), mat('#8a6a3a'), this.accG, 0, .13 + i * .022, 0, PI / 2, 0, 0, 1, 1, 1, false); mesh(new THREE.CylinderGeometry(.003, .003, .3, 3), mat('#5a3a2a'), this.accG, 0, -.06, .1, .3, 0, 0, 1, 1, 1, false); }
+    if (lk.hat === 1) { const h = mesh(G.hatG, mat('#c9a868', { side: THREE.DoubleSide }), this.accG, 0, .2, 0); for (let i = 0; i < 6; i++) mesh(new THREE.TorusGeometry(.34 - i * .05, .004, 3, 20), mat('#8a6a3a'), this.accG, 0, .13 + i * .022, 0, PI / 2, 0, 0, 1, 1, 1, false); mesh(new THREE.CylinderGeometry(.003, .003, .3, 3), mat('#5a3a2a'), this.accG, 0, -.06, .1, .3, 0, 0, 1, 1, 1, false); }
     if (lk.hat === 2) { for (const s of [-1, 1]) { mesh(G.pin, mat('#d8b24a', { metalness: .7, roughness: .25 }), this.accG, s * .06, .19, -.06, 0, 0, s * 1.2); mesh(new THREE.SphereGeometry(.024, 10, 8), mat('#d23c4c', { roughness: .3 }), this.accG, s * .15, .23, -.06); for (let i = 0; i < 3; i++) mesh(new THREE.BoxGeometry(.004, .05, .004), mat('#d8b24a', { metalness: .7, roughness: .25 }), this.accG, s * (.15 + (i - 1) * .012), .19, -.06, 0, 0, 0, 1, 1, 1, false); } }
-    if (lk.hat === 3) { mesh(new THREE.TorusGeometry(.133, .02, 6, 28), mat('#f4efe4'), this.accG, 0, .05, 0, PI / 2 - .15, 0, 0); mesh(new THREE.BoxGeometry(.07, .05, .05), mat('#f4efe4'), this.accG, 0, .07, -.14); mesh(new THREE.BoxGeometry(.02, .09, .01), mat('#f4efe4'), this.accG, .03, .02, -.15, 0, 0, .3); }
+    if (lk.hat === 3) { mesh(new THREE.TorusGeometry(.133, .02, 5, 20), mat('#f4efe4'), this.accG, 0, .05, 0, PI / 2 - .15, 0, 0); mesh(new THREE.BoxGeometry(.07, .05, .05), mat('#f4efe4'), this.accG, 0, .07, -.14); mesh(new THREE.BoxGeometry(.02, .09, .01), mat('#f4efe4'), this.accG, .03, .02, -.15, 0, 0, .3); }
     if (lk.hat === 4) { const f = new THREE.Group(); mesh(new THREE.SphereGeometry(.095, 14, 10, 0, PI * 2, 0, PI / 2), mat('#f7f3ea', { roughness: .4 }), f, 0, 0, 0, PI / 2, 0, 0);
       mesh(new THREE.ConeGeometry(.035, .07, 10), mat('#f7f3ea', { roughness: .4 }), f, 0, -.02, .1, PI / 2, 0, 0);
       for (const s of [-1, 1]) { mesh(new THREE.ConeGeometry(.03, .08, 4), mat('#f7f3ea'), f, s * .055, .085, 0); mesh(new THREE.BoxGeometry(.035, .008, .01), mat('#c8322a'), f, s * .04, .02, .085, 0, 0, s * .4); mesh(new THREE.BoxGeometry(.02, .006, .01), mat('#c8322a'), f, s * .055, -.01, .075, 0, 0, s * -.3); }
@@ -260,7 +263,7 @@ export class Chara {
     const lip = mat('#a5463a');
     if (mo === 0) this.mouthM = mesh(G.mouth, lip, F, 0, -.052, .112, 0, 0, PI, 1, 1, 1, false);
     else if (mo === 1) { this.mouthM = mesh(new THREE.CircleGeometry(.021, 14, PI, PI), mat('#7a2a24'), F, 0, -.046, .1195, 0, 0, 0, 1, .9, 1, false); mesh(new THREE.CircleGeometry(.012, 10, PI, PI), mat('#e8707a'), F, 0, -.058, .12, 0, 0, 0, 1, .7, 1, false); }
-    else if (mo === 2) this.mouthM = mesh(new THREE.TorusGeometry(.008, .0035, 6, 12), lip, F, 0, -.054, .115, 0, 0, 0, 1, 1.2, 1, false);
+    else if (mo === 2) this.mouthM = mesh(new THREE.TorusGeometry(.008, .0035, 5, 12), lip, F, 0, -.054, .115, 0, 0, 0, 1, 1.2, 1, false);
     else this.mouthM = mesh(new THREE.BoxGeometry(.03, .005, .006), lip, F, 0, -.052, .116, 0, 0, 0, 1, 1, 1, false);
   }
   // ---------- 飾品（頭部 hat、髮飾 hs、面具 m、腰間 w、手持 c、背上 b）----------
@@ -268,7 +271,7 @@ export class Chara {
     const gold = mat('#d8b24a', { metalness: .75, roughness: .25 }), straw = mat('#c9a868', { side: THREE.DoubleSide, roughness: .9 });
     const A = this.accG, W = this.waistG, C = this.carryG, B = this.backG;
     // 頭部
-    if (lk.hat === 5) { mesh(new THREE.SphereGeometry(.2, 18, 8, 0, PI * 2, 0, PI / 2), straw, A, 0, .02, 0, 0, 0, 0, 1, .85, 1); mesh(new THREE.TorusGeometry(.2, .012, 4, 24), mat('#8a6a3a'), A, 0, .02, 0, PI / 2, 0, 0, 1, 1, 1, false); for (let i = 0; i < 5; i++) mesh(new THREE.TorusGeometry(.19 - i * .03, .003, 3, 20), mat('#8a6a3a'), A, 0, .05 + i * .028, 0, PI / 2, 0, 0, 1, 1, 1, false); }
+    if (lk.hat === 5) { mesh(new THREE.SphereGeometry(.2, 18, 8, 0, PI * 2, 0, PI / 2), straw, A, 0, .02, 0, 0, 0, 0, 1, .85, 1); mesh(new THREE.TorusGeometry(.2, .012, 4, 20), mat('#8a6a3a'), A, 0, .02, 0, PI / 2, 0, 0, 1, 1, 1, false); for (let i = 0; i < 5; i++) mesh(new THREE.TorusGeometry(.19 - i * .03, .003, 3, 20), mat('#8a6a3a'), A, 0, .05 + i * .028, 0, PI / 2, 0, 0, 1, 1, 1, false); }
     if (lk.hat === 6) { mesh(new THREE.ConeGeometry(.27, .09, 24), mat('#141012', { roughness: .2, metalness: .3 }), A, 0, .16, 0); mesh(new THREE.CircleGeometry(.045, 16), gold, A, 0, .205, .001, -PI / 2 + .3, 0, 0, 1, 1, 1, false); }
     if (lk.hat === 7) { mesh(new THREE.SphereGeometry(.142, 18, 8, 0, PI * 2, 0, PI * .45), TM({ map: TX.pattern(2, '#2a4b7c', '#f4efe2'), roughness: .9 }), A, 0, .01, -.01, 0, 0, 0, 1.05, 1.08, 1.08); mesh(new THREE.BoxGeometry(.06, .04, .04), mat('#2a4b7c'), A, 0, .14, .1); }
     if (lk.hat === 8) { mesh(new THREE.SphereGeometry(.15, 18, 10, 0, PI * 2, 0, PI * .62), mat('#3a3a44', { side: THREE.DoubleSide }), A, 0, .0, -.012, 0, 0, 0, 1.06, 1.12, 1.1); }
@@ -285,12 +288,12 @@ export class Chara {
       const base = { 1: '#f7f3ea', 2: '#f0c9a0', 3: '#fbf6ee', 4: '#c8322a', 5: '#efe6d0', 6: '#b8282e', 7: '#fbfaf6', 8: '#c8322a' }[m];
       mesh(new THREE.SphereGeometry(.095, 14, 10, 0, PI * 2, 0, PI / 2), mat(base, { roughness: .4 }), f, 0, 0, 0, PI / 2, 0, 0);
       if (m === 1) { mesh(new THREE.ConeGeometry(.035, .07, 10), mat(base), f, 0, -.02, .1, PI / 2, 0, 0); for (const s of [-1, 1]) { mesh(new THREE.ConeGeometry(.03, .08, 4), mat(base), f, s * .055, .085, 0); mesh(new THREE.BoxGeometry(.035, .008, .01), mat('#c8322a'), f, s * .04, .02, .085, 0, 0, s * .4); } }
-      if (m === 2) { mesh(new THREE.TorusGeometry(.016, .007, 6, 12), mat('#c8322a'), f, .02, -.04, .09); for (const s of [-1, 1]) mesh(new THREE.SphereGeometry(.014, 8, 6), mat('#1a1210'), f, s * .035 + (s > 0 ? .012 : 0), .02, .085, 0, 0, 0, 1, s > 0 ? .6 : 1, .5); }
+      if (m === 2) { mesh(new THREE.TorusGeometry(.016, .007, 5, 12), mat('#c8322a'), f, .02, -.04, .09); for (const s of [-1, 1]) mesh(new THREE.SphereGeometry(.014, 8, 6), mat('#1a1210'), f, s * .035 + (s > 0 ? .012 : 0), .02, .085, 0, 0, 0, 1, s > 0 ? .6 : 1, .5); }
       if (m === 3) { for (const s of [-1, 1]) { mesh(new THREE.CircleGeometry(.022, 12), mat('#f07a8a'), f, s * .05, -.015, .09, 0, s * .4, 0, 1, 1, 1, false); mesh(new THREE.BoxGeometry(.025, .005, .004), mat('#1a1210'), f, s * .035, .02, .093, 0, 0, s * .2); } mesh(new THREE.SphereGeometry(.009, 6, 4), mat('#c8322a'), f, 0, -.04, .094); }
       if (m === 5) { for (const s of [-1, 1]) { mesh(new THREE.ConeGeometry(.015, .1, 8), gold, f, s * .06, .1, .02, 0, 0, -s * .5); mesh(new THREE.BoxGeometry(.035, .01, .008), gold, f, s * .035, .02, .09, 0, 0, s * .45); } mesh(new THREE.BoxGeometry(.07, .02, .008), mat('#7a1a1a'), f, 0, -.045, .09); mesh(new THREE.BoxGeometry(.06, .006, .009), mat('#ffffff'), f, 0, -.04, .093); }
       if (m === 6) { for (const s of [-1, 1]) { mesh(new THREE.ConeGeometry(.018, .08, 8), mat('#f2e6c8'), f, s * .05, .1, .02, 0, 0, -s * .3); mesh(new THREE.ConeGeometry(.008, .025, 6), mat('#ffffff'), f, s * .025, -.055, .09, PI, 0, 0); mesh(new THREE.SphereGeometry(.013, 8, 6), mat('#f2d27a'), f, s * .035, .02, .088); } }
       if (m === 7) { for (const s of [-1, 1]) { mesh(new THREE.ConeGeometry(.03, .06, 4), mat(base), f, s * .055, .085, 0); mesh(new THREE.ConeGeometry(.015, .03, 4), mat('#f2a0b0'), f, s * .055, .08, .015); for (let w = 0; w < 3; w++) mesh(new THREE.BoxGeometry(.05, .002, .002), mat('#1a1210'), f, s * .06, -.02 + w * .01, .088, 0, 0, s * (w - 1) * .2, 1, 1, 1, false); mesh(new THREE.BoxGeometry(.025, .006, .004), mat('#1a1210'), f, s * .035, .02, .09, 0, 0, -s * .3); } mesh(new THREE.SphereGeometry(.01, 6, 4), mat('#f2a0b0'), f, 0, -.01, .095); }
-      if (m === 8) { mesh(new THREE.SphereGeometry(.03, 10, 8), mat('#c8322a'), f, 0, -.01, .1); for (const s of [-1, 1]) { mesh(new THREE.SphereGeometry(.018, 8, 6), gold, f, s * .04, .03, .085); mesh(new THREE.TorusGeometry(.025, .008, 6, 12, PI), mat('#1a1a1a'), f, s * .04, .05, .08); } mesh(new THREE.BoxGeometry(.08, .015, .01), mat('#ffffff'), f, 0, -.05, .088); mesh(new THREE.TorusGeometry(.11, .02, 6, 18, PI * 1.4), mat('#2f6a4a'), f, 0, 0, -.01, 0, 0, -PI * .2); }
+      if (m === 8) { mesh(new THREE.SphereGeometry(.03, 10, 8), mat('#c8322a'), f, 0, -.01, .1); for (const s of [-1, 1]) { mesh(new THREE.SphereGeometry(.018, 8, 6), gold, f, s * .04, .03, .085); mesh(new THREE.TorusGeometry(.025, .008, 5, 12, PI), mat('#1a1a1a'), f, s * .04, .05, .08); } mesh(new THREE.BoxGeometry(.08, .015, .01), mat('#ffffff'), f, 0, -.05, .088); mesh(new THREE.TorusGeometry(.11, .02, 5, 18, PI * 1.4), mat('#2f6a4a'), f, 0, 0, -.01, 0, 0, -PI * .2); }
       if (m === 4) { mesh(new THREE.CylinderGeometry(.012, .022, .12, 8), mat('#c8322a'), f, 0, -.005, .15, PI / 2, 0, 0); for (const s of [-1, 1]) mesh(new THREE.BoxGeometry(.04, .012, .008), mat('#1a1210'), f, s * .04, .035, .088, 0, 0, s * .35); }
     }
     // 腰間
@@ -305,8 +308,8 @@ export class Chara {
       for (let i = 0; i < 2; i++) { const fish = new THREE.Group(); fish.position.set(-.02 + i * .04, -.47 - i * .02, .1); fish.rotation.y = i * 2; C.add(fish); mesh(new THREE.SphereGeometry(.015, 8, 6), mat('#f05a28'), fish, 0, 0, 0, 0, 0, 0, 1.4, .8, .8, false); mesh(new THREE.ConeGeometry(.012, .02, 4), mat('#f05a28'), fish, -.025, 0, 0, 0, 0, PI / 2, 1, 1, .4, false); } }
     if (lk.c === 6) { mesh(new THREE.CylinderGeometry(.006, .006, .3, 4), mat('#4a3424'), C, 0, -.2, .18, 1.1, 0, 0); const lan = mesh(new THREE.SphereGeometry(.08, 12, 10), TM({ color: '#f4e4c0', emissive: '#ffb050', emissiveIntensity: .8 }), C, 0, -.28, .36, 0, 0, 0, 1, 1.3, 1); }
     // 背上
-    if (lk.b === 1) { mesh(new THREE.SphereGeometry(.15, 12, 10), TM({ map: TX.karakusa(), roughness: .9 }), B, 0, .02, -.08, 0, 0, 0, 1.1, .85, .7); mesh(new THREE.TorusGeometry(.12, .015, 6, 16, PI), mat('#3a7a4a'), B, 0, .14, .14, -PI / 2, 0, 0); }
-    if (lk.b === 2) { mesh(new THREE.CylinderGeometry(.13, .1, .3, 12, 1, true), mat('#9a7a4a', { side: THREE.DoubleSide, roughness: 1 }), B, 0, 0, -.1); for (let i = 0; i < 4; i++) mesh(new THREE.TorusGeometry(.125 - i * .008, .006, 3, 16), mat('#6a4a2a'), B, 0, -.12 + i * .08, -.1, PI / 2, 0, 0, 1, 1, 1, false); }
+    if (lk.b === 1) { mesh(new THREE.SphereGeometry(.15, 12, 10), TM({ map: TX.karakusa(), roughness: .9 }), B, 0, .02, -.08, 0, 0, 0, 1.1, .85, .7); mesh(new THREE.TorusGeometry(.12, .015, 5, 16, PI), mat('#3a7a4a'), B, 0, .14, .14, -PI / 2, 0, 0); }
+    if (lk.b === 2) { mesh(new THREE.CylinderGeometry(.13, .1, .3, 10, 1, true), mat('#9a7a4a', { side: THREE.DoubleSide, roughness: 1 }), B, 0, 0, -.1); for (let i = 0; i < 4; i++) mesh(new THREE.TorusGeometry(.125 - i * .008, .006, 3, 16), mat('#6a4a2a'), B, 0, -.12 + i * .08, -.1, PI / 2, 0, 0, 1, 1, 1, false); }
     if (lk.b === 3) { mesh(new THREE.BoxGeometry(.18, .18, .07), mat('#3a2418', { roughness: .4 }), B, .02, -.12, -.06, 0, 0, .25); mesh(new THREE.CylinderGeometry(.012, .012, .62, 6), mat('#2a1810'), B, -.06, .22, -.07, 0, 0, .25); mesh(new THREE.CircleGeometry(.065, 12), mat('#f4efe2'), B, .02, -.12, -.024, 0, 0, 0, 1, 1, 1, false); }
   }
   addHeld(lk) { if (lk.f && Chara.foodModel) { const d = Chara.foodModel(lk.f); if (d) { d.scale.multiplyScalar(1.15); this.foodG.add(d); } } }
@@ -320,7 +323,7 @@ export class Chara {
     const skin = mat('#f8f4ef', { roughness: .4 });
     this.torsoM.material = this.skirtM.material = inner; this.collarC.forEach(c => c.material = redM);
     this.legs.forEach(l => { l.userData.th.material = inner; l.userData.sh.material = skin; });
-    this.skirtLowM.material = inner; this.arms.forEach(a => { a.userData.lin.visible = false; a.userData.th.material = skin; a.userData.sl.material = robe; a.userData.arm.material = robe; a.userData.sl.scale.set(1.3, 1.45, 1.45); a.userData.h.material = skin; });
+    this.skirtLowM.material = inner; this.arms.forEach(a => { a.userData.lin.visible = false; a.userData.lin.userData.minor = false; a.userData.th.material = skin; a.userData.sl.material = robe; a.userData.arm.material = robe; a.userData.sl.scale.set(1.3, 1.45, 1.45); a.userData.h.material = skin; });
     this.headM.material = skin; this.skinParts.forEach(p => p.material = skin);
     this.obiM.material = goldM; this.bowM.material = goldM; this.bowM.geometry = G.knotB; this.cordM.material = redM;
     // 袖口多層衣緣
@@ -328,7 +331,7 @@ export class Chara {
     // 打掛：拖地外罩（前開）＋紅色厚下襬（ふき）＋後襬
     const pts = V2([[.0, -.52], [.4, -.52], [.37, -.3], [.3, .05], [.27, .4], [.24, .58], [.16, .66], [0, .67]]);
     P(new THREE.LatheGeometry(pts, 28, PI * .3, PI * 1.4), robe, 0, 0, -.02, 0, 0, 0, 1, 1, 1.18);
-    P(new THREE.TorusGeometry(.395, .022, 8, 32, PI * 1.4), redM, 0, -.51, -.02, PI / 2, 0, PI * .3, 1, 1.18, 1);
+    P(new THREE.TorusGeometry(.395, .022, 5, 20, PI * 1.4), redM, 0, -.51, -.02, PI / 2, 0, PI * .3, 1, 1.18, 1);
     P(new THREE.CircleGeometry(.48, 24, PI * .1, PI * .8), robe, 0, -.515, -.32, -PI / 2, 0, PI, 1, 1, 1);
     // 前結帶：大蝴蝶結＋長垂帶＋流蘇
     const obiTex = TM({ map: TX.oiranTex('obi'), metalness: .55, roughness: .3 });
@@ -386,6 +389,12 @@ export class Chara {
       if (hc[2]) { const sk = mat(hc[2], { roughness: .55 }); this.neckM.material = sk; this.arms.forEach(a => { a.userData.h.material = a.userData.th.material = sk; }); this.legs.forEach(l => l.userData.sh.material = sk); } this.headG.add(this.h3); show(false); this.faceG.visible = false; });
   }
   lod(d) {
+    // 太遠的人不畫：只隱藏底下的零件（root.visible 另有用途：NPC 是否在街上、掌櫃是否在店裡）
+    const far = d > 70;
+    if (far !== !!this.farOff) { this.farOff = far; if (far) { this._vis = this.root.children.map(c => [c, c.visible]); this.root.children.forEach(c => c.visible = false); } else if (this._vis) { this._vis.forEach(([c, v]) => c.visible = v); this._vis = null; } }
+    if (far) return;
+    const tier = d < 12 || this.anim === 3 || this.anim === 5 || this.anim === 8 || this.anim === 12 ? 0 : 1; // 坐著時腿看得到，維持完整
+    if (tier !== this.tier) { this.tier = tier; this.root.traverse(o => { if (o.userData.minor) o.visible = tier === 0; }); if (this.blob) this.blob.visible = true; }
     // 3D 真人頭只給近處的人（遠處改回輕量頭部），避免一整條街幾十顆高面數頭拖慢
     if (this.h3) { const n3 = d < 14; if (this.h3.visible !== n3) { this.h3.visible = n3; this.headM.visible = this.hairG.visible = !n3; } }
     const near = d < 16; this.faceG.visible = d < 13 && !(this.h3 && this.h3.visible); this.detailG.visible = near; this.legs.forEach(l => { l.userData.teeth.forEach(t => t.visible = near); }); }
@@ -487,18 +496,18 @@ export class Chara {
     if (!on) return;
     const K = this.kuruma = new THREE.Group(); K.position.y = -RIDE_Y; this.root.add(K);
     const lac = mat('#16100e', { roughness: .25, metalness: .1 }), red = mat('#a8232e', { roughness: .6 }), wood = mat('#6a4a2e', { roughness: .7 }), brass = mat('#c9a24a', { metalness: .7, roughness: .3 }), hood = mat('#1e1a24', { roughness: .8, side: THREE.DoubleSide });
-    const box = (w, h, d, m, x, y, z, rx = 0) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.rotation.x = rx; o.castShadow = true; K.add(o); return o; };
+    const box = (w, h, d, m, x, y, z, rx = 0) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.rotation.x = rx; K.add(o); return o; };
     box(.66, .08, .62, lac, 0, .66, -.02); box(.6, .1, .5, red, 0, .73, -.02); box(.66, .46, .07, lac, 0, .94, -.33, -.18); box(.6, .38, .03, red, 0, .95, -.29, -.18);
     for (const s of [-1, 1]) { box(.05, .26, .58, lac, s * .33, .8, -.02); box(.05, .05, .5, brass, s * .33, .94, -.02); }
     box(.5, .05, .3, lac, 0, .36, .34, -.5); box(.46, .03, .22, red, 0, .4, .36, -.5); // 踏板
     // 車篷（折起在椅背後）
-    const hd = new THREE.Mesh(new THREE.CylinderGeometry(.42, .42, .64, 16, 1, true, -PI / 2, PI), hood); hd.rotation.z = PI / 2; hd.rotation.y = PI / 2; hd.scale.set(1, 1, .55); hd.position.set(0, 1.08, -.42); K.add(hd);
+    const hd = new THREE.Mesh(new THREE.CylinderGeometry(.42, .42, .64, 10, 1, true, -PI / 2, PI), hood); hd.rotation.z = PI / 2; hd.rotation.y = PI / 2; hd.scale.set(1, 1, .55); hd.position.set(0, 1.08, -.42); K.add(hd);
     // 大木輪
     this.wheels = [];
     for (const s of [-1, 1]) {
       const w = new THREE.Group(); w.position.set(s * .42, .5, -.05); K.add(w); this.wheels.push(w);
-      const rim = new THREE.Mesh(new THREE.TorusGeometry(.48, .025, 6, 32), lac); rim.rotation.y = PI / 2; w.add(rim);
-      const tire = new THREE.Mesh(new THREE.TorusGeometry(.5, .018, 6, 32), mat('#2a2a2a', { roughness: .9 })); tire.rotation.y = PI / 2; w.add(tire);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(.48, .025, 5, 20), lac); rim.rotation.y = PI / 2; w.add(rim);
+      const tire = new THREE.Mesh(new THREE.TorusGeometry(.5, .018, 5, 20), mat('#2a2a2a', { roughness: .9 })); tire.rotation.y = PI / 2; w.add(tire);
       for (let i = 0; i < 12; i++) { const sp = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .94, 4), wood); sp.rotation.x = i / 12 * PI; w.add(sp); }
       const hub = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .1, 10), brass); hub.rotation.z = PI / 2; w.add(hub);
     }

@@ -23,6 +23,7 @@ const PI = Math.PI;
 
 // ---------- 渲染器 ----------
 let quality = store.get('q', isTouch ? 1 : 2);
+const AQ = { f: 0, t: 0, warm: 0 };
 const renderer = new THREE.WebGLRenderer({ antialias: quality > 0, powerPreference: 'high-performance' });
 renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
 renderer.shadowMap.enabled = quality > 0; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -35,10 +36,18 @@ function setupPost() {
   bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), .4, .55, .92); composer.addPass(bloom); composer.addPass(new OutputPass());
 }
 function applyQuality() {
-  const pr = Math.min(devicePixelRatio, quality === 2 ? 2 : quality === 1 ? 1.5 : 1);
+  const pr = Math.min(devicePixelRatio, quality === 2 ? 2 : quality === 1 ? 1.5 : 1) * (quality === 0 && AQ.soft ? .7 : 1);
   renderer.setPixelRatio(pr); renderer.shadowMap.enabled = quality > 0;
   if (W && W.sunLight) W.sunLight.shadow.mapSize.set(quality === 2 ? 2048 : 1024, quality === 2 ? 2048 : 1024);
   resize();
+}
+// 自動畫質：沒有顯示卡（軟體繪圖）直接用低畫質；FPS 持續太低就自動降一級（玩家手動選過就不動）
+(() => { try { const gl = renderer.getContext(), e = gl.getExtension('WEBGL_debug_renderer_info'); const gpu = e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : ''; AQ.gpu = gpu;
+  AQ.soft = /Basic Render|SwiftShader|llvmpipe|Software/i.test(gpu); if (AQ.soft && !store.get('qUser', false)) quality = 0; } catch (e) {} })();
+function autoQuality(dt) {
+  if (store.get('qUser', false) || quality === 0) return;
+  AQ.warm += dt; if (AQ.warm < 6) return; AQ.f++; AQ.t += dt;
+  if (AQ.t >= 4) { const fps = AQ.f / AQ.t; AQ.f = 0; AQ.t = 0; if (fps < 24) { quality--; store.set('q', quality); applyQuality(); AQ.warm = 0; toast(`畫面有點卡，已自動調低畫質（可在 ⚙ 設定改回）`, 3500); } }
 }
 function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); if (composer) composer.setSize(w, h); }
 addEventListener('resize', resize);
@@ -1295,7 +1304,7 @@ let miniT = 0, lodT = 0;
 let frameN = 0;
 function loop() {
   if (QS.has('test')) { const now = performance.now(), tdt = Math.min(.25, Math.max(1 / 30, (now - (loop.lt || now)) / 1000)); loop.lt = now; let left = tdt; while (left > 1e-4) { const st = Math.min(1 / 20, left); update(st); left -= st; } if (frameN++ % 15 === 0) render(); setTimeout(loop, 33); return; }
-  const dt = Math.min(.05, clock.getDelta()); update(dt); render(); requestAnimationFrame(loop);
+  const raw = clock.getDelta(), dt = Math.min(.05, raw); update(dt); render(); autoQuality(Math.min(raw, .5)); requestAnimationFrame(loop);
 }
 
 // ---------- 小地圖 ----------
@@ -1342,7 +1351,7 @@ $('#bSet').onclick = () => { show('#settings'); document.querySelectorAll('#sett
 const sndBtns = () => document.querySelectorAll('#settings [data-snd]').forEach(b => b.classList.toggle('on', !!SND.on[b.dataset.snd]));
 document.querySelectorAll('#settings [data-snd]').forEach(b => b.onclick = () => { SND.start(); SND.setOn(b.dataset.snd, !SND.on[b.dataset.snd]); sndBtns(); });
 sndBtns();
-document.querySelectorAll('#settings [data-q]').forEach(b => b.onclick = () => { quality = +b.dataset.q; store.set('q', quality); applyQuality(); document.querySelectorAll('#settings [data-q]').forEach(x => x.classList.toggle('on', +x.dataset.q === quality)); });
+document.querySelectorAll('#settings [data-q]').forEach(b => b.onclick = () => { quality = +b.dataset.q; store.set('q', quality); store.set('qUser', true); applyQuality(); document.querySelectorAll('#settings [data-q]').forEach(x => x.classList.toggle('on', +x.dataset.q === quality)); });
 document.querySelectorAll('.modal').forEach(m => m.addEventListener('pointerdown', e => { if (e.target === m) m.classList.add('hide'); }));
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('.modal').classList.add('hide'));
 if (isTouch) document.body.classList.add('touch');
@@ -1442,4 +1451,4 @@ async function runTest() {
   const d = document.createElement('pre'); d.style.cssText = 'position:fixed;left:8px;top:50px;z-index:99;background:rgba(255,255,255,.92);font-size:15px;padding:8px;margin:0'; d.textContent = (fail ? 'FAIL\n' : 'PASS\n') + log.join('\n'); document.body.appendChild(d);
 }
 if (QS.get('test') === 'flow') { store.set('helped', true); setTimeout(runTest, 1500); }
-window.EDO = { RIDE, switchRoom, startRide, step: n => { for (let i = 0; i < n; i++) update(1 / 30); render(); }, SND, openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };
+window.EDO = { RIDE, switchRoom, startRide, upd: dt => update(dt), render, renderer, scene, NPCS, keepers, step: n => { for (let i = 0; i < n; i++) update(1 / 30); render(); }, SND, openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };
