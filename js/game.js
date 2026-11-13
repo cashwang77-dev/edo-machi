@@ -1433,9 +1433,10 @@ function updViewOffset() {
   viewOff += (target - viewOff) * .15; viewOffX += (tx - viewOffX) * .15;
   if (viewOff > 1 || viewOffX < -1) camera.setViewOffset(innerWidth, innerHeight, viewOffX, viewOff, innerWidth, innerHeight); else if (camera.view && camera.view.enabled) camera.clearViewOffset();
 }
-const PERF = new URLSearchParams(location.search).has('perf'); let perfF = 0, perfT = performance.now();
+let shadowF = 0; const PERF = new URLSearchParams(location.search).has('perf'); let perfF = 0, perfT = performance.now();
 if (PERF) renderer.info.autoReset = false;
 function render() { if (PERF) { renderer.info.reset(); perfF++; const n = performance.now(); if (n - perfT > 2000) { const i = renderer.info; let meshes = 0, chars = 0; scene.traverseVisible(o => { if (o.isMesh) meshes++; }); document.title = 'PERF ' + JSON.stringify({ fps: +(perfF * 1000 / (n - perfT)).toFixed(1), calls: i.render.calls, tris: i.render.triangles, geo: i.memory.geometries, tex: i.memory.textures, meshes, npcs: NPCS.length, q: quality }); perfF = 0; perfT = n; } }
+  renderer.shadowMap.autoUpdate = quality !== 1; if (quality === 1) renderer.shadowMap.needsUpdate = (shadowF = (shadowF + 1) % 2) === 0 || G.mode === 'title'; // 中畫質：陰影隔格更新
   updViewOffset(); if (G.shot) { const v = G.shot; camera.position.set(v[0], v[1], v[2]); camera.lookAt(v[3], v[4], v[5]); } if (quality === 2 && composer) composer.render(); else renderer.render(scene, camera); }
 let miniT = 0, lodT = 0;
 let frameN = 0;

@@ -18,7 +18,7 @@ function boxG(w, h, d, s = 2) {
   return g;
 }
 const MAT = {}; export const GLOW = []; // 夜間發光材質
-function std(key, o) { return MAT[key] || (MAT[key] = new THREE.MeshStandardMaterial({ roughness: .88, ...o })); }
+function std(key, o) { if (!MAT[key]) { MAT[key] = new THREE.MeshStandardMaterial({ roughness: .88, ...o }); MAT[key].name = key; } return MAT[key]; }
 function glow(key, o, k = 1) { if (MAT[key]) return MAT[key]; const m = std(key, o); m.userData.k = k; GLOW.push(m); return m; }
 const C = {
   plaster: c => std('pl' + c, { map: TX.plaster('pl' + c, c) }),
@@ -61,7 +61,7 @@ class Batcher {
   }
   finish(scene) {
     // 依位置切成 CELL 公尺一區再合併：鏡頭與影子都能裁掉看不到的區塊（大物件如地面、富士山留在同一塊）
-    const CELL = 110;
+    const CELL = 110; // 極小扁平物件（≤12 面：暖簾/看板/幟）不投影，省陰影繪製
     for (const [mat, list] of this.m) {
       const cells = new Map();
       for (const g of list) {
@@ -71,7 +71,7 @@ class Batcher {
       }
       for (const [key, gs] of cells) {
         const g = mergeGeometries(gs, false); g.computeBoundingSphere(); const mesh = new THREE.Mesh(g, mat);
-        mesh.castShadow = !mat.userData.noShadow; mesh.receiveShadow = true; mesh.frustumCulled = key !== 'big'; scene.add(mesh);
+        const ntri = (g.index ? g.index.count : g.attributes.position.count) / 3; mesh.castShadow = !mat.userData.noShadow && ntri > 12; mesh.receiveShadow = true; mesh.frustumCulled = key !== 'big'; scene.add(mesh);
       }
     }
   }
