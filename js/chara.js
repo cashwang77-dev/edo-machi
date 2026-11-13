@@ -1,7 +1,6 @@
 // 江戶人物（程式建模 v2）：有膝蓋的雙腿、上身＋下襬、細緻臉部、和服袖、足袋木屐、髮型、配件、花魁
 import * as THREE from 'three';
 import * as TX from './tex.js';
-import { GLTFLoader } from '../vendor/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from '../vendor/addons/utils/BufferGeometryUtils.js';
 
 export const KIMONO = [
@@ -20,19 +19,11 @@ export const BROWS = ['細眉', '粗眉', '麻呂眉', '劍眉'];
 export const MOUTHS = ['微笑', '開口笑', '小O嘴', '一字嘴'];
 export const CHEEKS = ['無', '淡', '濃'];
 export const MOLES = ['無', '淚痣'];
-export const FACES = ['精緻', 'Q版'];
-// 精緻臉：3D 生成的真人頭部（依髮型對應）；沒有對應模型的髮型維持原本做法
-export const HEAD3D = { 0: 'head_chonmage', 1: 'head_bijin', 2: 'head_sohatsu', 3: 'head_bozu' };
-// 各模型的縮放與上下位置（模型高度含脖子／肩膀，比例不同）
-const H3CFG = { head_bijin: [.44, .005, '#efd3c4'], head_chonmage: [.42, .01, '#dcae90'], head_sohatsu: [.35, -.005, '#d8a98a'], head_bozu: [.34, -.005, '#d2a183'] };
-// 3D 頭的表情貼圖（同一張臉的表情差分，UV 相同直接換貼圖）
-const H3EX = { head_bijin: ['calm', 'laugh', 'wow', 'sad'], head_chonmage: ['calm', 'laugh', 'wow', 'sad'] }; const H3T = {}; const tl = new THREE.TextureLoader();
-function exTex(n, ex) { const k = n + '_' + ex; if (!H3T[k]) { const t = H3T[k] = tl.load(`img/${k}.jpg?v=5`); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; } return H3T[k]; }
-const H3 = {}; const gltf = new GLTFLoader();
-function loadHead(n) { return H3[n] || (H3[n] = gltf.loadAsync(`img/${n}.glb?v=4`).then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = false; o.material.roughness = .6; o.material.metalness = 0; } }); return g.scene; }).catch(() => null)); }
+export const FACES = ['Q版'];
 const PI = Math.PI;
-export const RIDE_Y = .7;
-const BODY_W = .84; // 身體寬度比例（配合寫實頭部，肩寬約兩個頭寬） // 坐在人力車上時角色根部的高度
+export const RIDE_Y = .7; // 坐在人力車上時角色根部的高度
+const BODY_W = .84; // 身體寬度比例
+const BODY_S = .86; // 身體整體比例（頭部另外反向補償，頭身比更像 Q 版）
 
 export function randomLook(r = Math.random) {
   const pick = n => Math.floor(r() * n);
@@ -79,10 +70,10 @@ const G = {
     const P = g.attributes.position; for (let i = 0; i < P.count; i++) { const y = P.getY(i), t = Math.min(1, -y / .36); P.setX(i, P.getX(i) * (.55 + .6 * t)); P.setZ(i, P.getZ(i) + .012 * Math.sin(t * PI)); }
     g.computeVertexNormals(); return g; })(),
   arm: new THREE.CylinderGeometry(.04, .036, .26, 10),
-  hand: new THREE.CapsuleGeometry(.026, .04, 4, 10),
+  hand: new THREE.CapsuleGeometry(.034, .036, 4, 10),
   neck: new THREE.CylinderGeometry(.045, .05, .08, 10),
-  head: deformHead(new THREE.SphereGeometry(.125, 18, 12), .125),
-  decal: deformHead(new THREE.SphereGeometry(.1265, 18, 12, PI / 2 - .9, 1.8, PI * .28, PI * .5), .1265),
+  head: deformHead(new THREE.SphereGeometry(.125, 28, 20), .125),
+  decal: deformHead(new THREE.SphereGeometry(.1265, 24, 18, PI / 2 - .9, 1.8, PI * .28, PI * .5), .1265),
   ear: new THREE.SphereGeometry(.024, 8, 6),
   nose: (() => { const sh = new THREE.Shape(); sh.moveTo(-.011, 0); sh.lineTo(.011, 0); sh.lineTo(0, .034); sh.closePath(); const g = new THREE.ExtrudeGeometry(sh, { depth: .016, bevelEnabled: true, bevelThickness: .004, bevelSize: .004, bevelSegments: 2 }); g.translate(0, -.034, -.008); g.rotateX(-.25); return g; })(),
   eye: new THREE.SphereGeometry(.018, 10, 8),
@@ -133,12 +124,13 @@ function mesh(g, m, par, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy
 export class Chara {
   constructor(look, name = '') {
     this.root = new THREE.Group();
+    this.body = new THREE.Group(); this.body.scale.setScalar(BODY_S); this.root.add(this.body); // Q 版：身體縮小、頭維持原大
     this.blob = new THREE.Mesh(BLOB_G, BLOB_M); this.blob.rotation.x = -PI / 2; this.blob.position.y = .012; this.blob.renderOrder = -1; this.root.add(this.blob);
     this.phase = Math.random() * 6; this.anim = 0; this.t = 0; this.lift = 0;
     // 腿：髖→大腿→膝→小腿→足袋木屐
     this.legs = []; this.knees = []; this.feet = [];
     for (const s of [-1, 1]) {
-      const hip = new THREE.Group(); hip.position.set(s * .075, .5, 0); this.root.add(hip);
+      const hip = new THREE.Group(); hip.position.set(s * .075, .5, 0); this.body.add(hip);
       const th = mesh(G.thigh, mat('#888'), hip, 0, -.125, 0);
       const knee = new THREE.Group(); knee.position.y = -.25; hip.add(knee);
       const sh = mesh(G.shin, mat('#f1d2b6'), knee, 0, -.085, 0);
@@ -150,7 +142,7 @@ export class Chara {
       th.userData.minor = sh.userData.minor = true; hip.userData = { th, sh, geta, teeth }; this.legs.push(hip); this.knees.push(knee); this.feet.push(foot);
     }
     // 上身（髖為原點）
-    this.upper = new THREE.Group(); this.upper.position.y = .5; this.root.add(this.upper);
+    this.upper = new THREE.Group(); this.upper.position.y = .5; this.body.add(this.upper);
     this.torsoM = mesh(G.torso, mat('#888'), this.upper);
     this.skirtG = new THREE.Group(); this.upper.add(this.skirtG);
     this.skirtM = mesh(G.skirt, mat('#888'), this.skirtG);
@@ -202,7 +194,7 @@ export class Chara {
     this.torsoM.material = this.skirtM.material = km; this.legs.forEach(l => { l.userData.th.material = km; l.userData.sh.material = skin; l.userData.geta.material = mat('#7a5634'); l.userData.geta.scale.y = 1; l.userData.teeth.forEach((t, i) => { t.material = mat('#5a3e26'); t.scale.set(1, 1, 1); t.position.y = -.06; t.visible = true; }); });
     this.collarC.forEach(c => c.material = km); this.skirtLowM.material = km; this.arms.forEach(a => { a.userData.sl.material = km; a.userData.arm.material = km; a.userData.sl.scale.set(1, 1, 1); a.userData.h.material = a.userData.th.material = skin; a.userData.lin.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4]); a.userData.lin.visible = true; a.userData.lin.userData.minor = true; });
     this.fukiM.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4], { roughness: .6 });
-    this.obiM.material = obi; this.bowM.material = obi; this.headM.material = skin; this.neckM.material = skin; this.buildFace(lk, skin); this.apply3d(lk);
+    this.obiM.material = obi; this.bowM.material = obi; this.headM.material = skin; this.neckM.material = skin; this.buildFace(lk, skin); this.apply3d();
     this.cordM.material = mat(['#c8322a', '#e8c56a', '#3a6a8a', '#f4f0e4', '#8a3a6a', '#2f6a4a'][(lk.o + 2) % 6]);
     const female = lk.h === 1 || lk.h === 4;
     this.obiM.scale.set(1, female ? 1 : .5, 1); this.obiM.position.y = female ? .25 : .19; this.obiageM.visible = female; this.cordM.visible = female; this.fukiM.visible = female;
@@ -215,7 +207,6 @@ export class Chara {
     const HC = (y = .005, s = 1.04) => { H(G.capTop, 0, y, -.008, s, s * 1.02, s * 1.05); H(G.capBack, 0, y - .005, -.01, s * 1.02, s * 1.04, s * 1.06); };
     switch (lk.h % HAIRS.length) {
       case 0: { // 丁髷：剃過的月代（青灰）、兩側鬢髮、向前折的髷
-        mesh(G.capTop, mat('#c9b4a0', { roughness: .7 }), this.hairG, 0, .006, -.006, 1.01, 1.0, 1.02);
         H(G.side, 0, 0, -.005, 1.06, 1.05, 1.07);
         const k = H(G.knot, 0, .145, -.03); k.rotation.x = PI / 2 - .25; H(G.bun, 0, .12, -.1, .35, .35, .5); break;
       }
@@ -225,7 +216,7 @@ export class Chara {
         break;
       }
       case 2: { HC(0, 1.05); const k = H(G.knot, 0, .02, -.16); k.rotation.x = .55; k.scale.set(1.6, 1.4, 1.6); H(G.bun, 0, -.06, -.2, .35, .9, .35); break; } // 総髪
-      case 3: { mesh(G.capTop, mat('#d6bba3', { roughness: .65 }), this.hairG, 0, .004, -.004, 1.01, 1.0, 1.02); break; } // 坊主
+      case 3: { break; } // 坊主：光頭就是頭皮本身，不另外加片
       case 4: { HC(); H(G.bun, 0, .092, .07, .54, .34, .42); for (const s of [-1, 1]) { H(G.bun, s * .1, .15, -.02, .78, .78, .78); mesh(G.pin, mat('#d8b24a', { metalness: .6, roughness: .3 }), this.hairG, s * .1, .15, -.02, 0, 0, PI / 2, 1, .9, 1); } break; } // 唐輪
     }
     if (lk.hat === 1) { const h = mesh(G.hatG, mat('#c9a868', { side: THREE.DoubleSide }), this.accG, 0, .2, 0); for (let i = 0; i < 6; i++) mesh(new THREE.TorusGeometry(.34 - i * .05, .004, 3, 20), mat('#8a6a3a'), this.accG, 0, .13 + i * .022, 0, PI / 2, 0, 0, 1, 1, 1, false); mesh(new THREE.CylinderGeometry(.003, .003, .3, 3), mat('#5a3a2a'), this.accG, 0, -.06, .1, .3, 0, 0, 1, 1, 1, false); }
@@ -391,15 +382,8 @@ export class Chara {
     if (this.name) this.setName(this.name);
   }
   // 遠處省略細節（效能）
-  apply3d(lk) {
-    if (this.h3) { this.headG.remove(this.h3); this.h3 = null; }
-    const n = !this.gm && lk.fc === 0 && !this.npc && HEAD3D[lk.h % HAIRS.length]; // 預設 Q 版；只有玩家自己選「精緻」才載入
-    const show = v => { this.headM.visible = this.hairG.visible = v; this.faceG.visible = v; };
-    const hs = n ? .9 : 1.12; this.headG.scale.set(hs / BODY_W, hs, hs / BODY_W); this.headG.position.y = n ? .775 : .8; // Q 版大頭比較可愛
-    show(true); this.h3tok = null; if (!n) return;
-    const tok = this.h3tok = {};
-    loadHead(n).then(sc => { if (!sc || this.h3tok !== tok) return; this.h3 = sc.clone(); this.h3n = n; this.h3ex = ''; this.h3.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); this.h3mat = o.material; this.h3base = o.material.map; } }); const hc = H3CFG[n] || [.44, 0]; this.h3.scale.setScalar(hc[0]); this.h3.position.set(0, hc[1], .006);
-      if (hc[2]) { const sk = mat(hc[2], { roughness: .55 }); this.neckM.material = sk; this.arms.forEach(a => { a.userData.h.material = a.userData.th.material = sk; }); this.legs.forEach(l => l.userData.sh.material = sk); } this.headG.add(this.h3); show(false); this.faceG.visible = false; });
+  apply3d() { // Q 版頭部比例（大頭可愛）
+    const hs = 1.12 / BODY_S * .93; this.headG.scale.set(hs / BODY_W, hs, hs / BODY_W); this.headG.position.y = .765; this.headM.visible = this.hairG.visible = this.faceG.visible = true;
   }
   lod(d) {
     // 太遠的人不畫：只隱藏底下的零件（root.visible 另有用途：NPC 是否在街上、掌櫃是否在店裡）
@@ -409,8 +393,7 @@ export class Chara {
     const tier = d < 12 || this.anim === 3 || this.anim === 5 || this.anim === 8 || this.anim === 12 ? 0 : 1; // 坐著時腿看得到，維持完整
     if (tier !== this.tier) { this.tier = tier; this.root.traverse(o => { if (o.userData.minor) o.visible = tier === 0; }); if (this.blob) this.blob.visible = true; }
     // 3D 真人頭只給近處的人（遠處改回輕量頭部），避免一整條街幾十顆高面數頭拖慢
-    if (this.h3) { const n3 = d < 14; if (this.h3.visible !== n3) { this.h3.visible = n3; this.headM.visible = this.hairG.visible = !n3; } }
-    const near = d < 16; this.faceG.visible = d < 13 && !(this.h3 && this.h3.visible); this.detailG.visible = near; this.legs.forEach(l => { l.userData.teeth.forEach(t => t.visible = near); }); }
+    const near = d < 16; this.faceG.visible = d < 13; this.detailG.visible = near; this.legs.forEach(l => { l.userData.teeth.forEach(t => t.visible = near); }); }
   setName(n, npc) {
     if (this.tag) { this.root.remove(this.tag); this.tag.material.map.dispose(); }
     this.name = n;
@@ -539,19 +522,7 @@ export class Chara {
   }
   // ---- 表情：表情符號、動作、說話、吃東西、眨眼都會讓臉變化 ----
   expr(k, dur = 2.6) { this.exK = k; this.exT = dur; }
-  updFace3d(dt) {
-    this.exT = (this.exT || 0) - dt; const a = this.anim;
-    const k = this.exT > 0 ? this.exK : [9, 14, 11, 10, 7, 16].includes(a) ? 'happy' : [6, 17].includes(a) ? 'calm' : null;
-    let ex = { happy: 'laugh', laugh: 'laugh', love: 'laugh', smile: 'laugh', wow: 'wow', sad: 'sad', sleep: 'calm', calm: 'calm', think: '', angry: '' }[k] || '';
-    this.blinkT = (this.blinkT ?? 2 + Math.random() * 3) - dt; if (this.blinkT < -.15) this.blinkT = 2.5 + Math.random() * 2.5;
-    if (!ex && this.blinkT < 0) ex = 'calm';
-    if (ex && !(H3EX[this.h3n] || []).includes(ex)) ex = '';
-    if (ex && !exTex(this.h3n, ex).image) ex = ''; // 還沒載入完成就先不換，避免黑臉
-    if (ex === this.h3ex) return; this.h3ex = ex;
-    this.h3mat.map = ex ? exTex(this.h3n, ex) : this.h3base; this.h3mat.needsUpdate = true;
-  }
   updFace(dt) {
-    if (this.h3 && this.h3mat) return this.updFace3d(dt);
     if (!this.decal || !this.faceBase || !this.decal.visible && !this.faceG.visible) return;
     const b = this.faceBase; let { ey, br, mo, ck } = b; const a = this.anim, t = this.t;
     this.exT = (this.exT || 0) - dt; this.talkT = (this.talkT || 0) - dt;

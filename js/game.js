@@ -920,14 +920,19 @@ function updDeer(dt) {
 
 // ---------- 花魁道中：GM 花魁身邊的跟班（提燈男眾、兩位禿、撐傘男眾）----------
 const RETINUE = new Map();
-const RET_PLAN = [
-  { role: 'lantern', off: [0, 2.3], look: { k: 6, p: 1, o: 1, h: 0, s: 1, ey: 3, br: 3, mo: 3, ck: 0 } },
-  { role: 'kamuro', off: [-.6, 1.2], look: { k: 1, p: 5, o: 2, h: 4, s: 0, ey: 0, br: 0, mo: 1, ck: 2, hs: 1 } },
-  { role: 'kamuro', off: [.6, 1.2], look: { k: 1, p: 5, o: 2, h: 4, s: 0, ey: 4, br: 0, mo: 0, ck: 2, hs: 1 } },
-  { role: 'umbrella', off: [.45, -.8], look: { k: 3, p: 0, o: 1, h: 0, s: 1, ey: 1, br: 1, mo: 3, ck: 0 } },
+const RET_PLAN = [ // 花魁道中：off＝[左右, 前後]（前方為正）
+  { role: 'lantern', off: [0, 3.1], look: { k: 3, p: 0, o: 1, h: 0, s: 1, hat: 3, ey: 3, br: 3, mo: 3, ck: 0 } },
+  { role: 'man', off: [-.75, 2.3], look: { k: 6, p: 1, o: 5, h: 2, s: 1, hat: 3, ey: 1, br: 1, mo: 0, ck: 0 } },
+  { role: 'man', off: [.75, 2.3], look: { k: 6, p: 1, o: 5, h: 0, s: 2, hat: 3, ey: 3, br: 1, mo: 1, ck: 0 } },
+  { role: 'kamuro', off: [-.55, 1.2], look: { k: 1, p: 5, o: 2, h: 4, s: 0, ey: 0, br: 0, mo: 1, ck: 2, hs: 1 } },
+  { role: 'kamuro', off: [.55, 1.2], look: { k: 1, p: 5, o: 2, h: 4, s: 0, ey: 4, br: 0, mo: 0, ck: 2, hs: 1 } },
+  { role: 'umbrella', off: [.45, -.8], look: { k: 3, p: 0, o: 1, h: 0, s: 1, hat: 3, ey: 1, br: 1, mo: 3, ck: 0 } },
+  { role: 'shinzo', off: [-.6, -1.7], look: { k: 5, p: 11, o: 2, h: 1, s: 0, ey: 1, br: 0, mo: 0, ck: 1, hs: 1 } },
+  { role: 'shinzo', off: [.6, -1.9], look: { k: 5, p: 11, o: 2, h: 1, s: 0, ey: 2, br: 0, mo: 2, ck: 1, hs: 2 } },
+  { role: 'yarite', off: [0, -2.8], look: { k: 7, p: 10, o: 1, h: 2, s: 1, ey: 1, br: 1, mo: 3, ck: 0 } },
 ];
 function makeRetinue(boss) {
-  const mem = RET_PLAN.map(pl => { const ch = new Chara(pl.look, ''); if (pl.role === 'kamuro') ch.root.scale.setScalar(.66); scene.add(ch.root); const b = boss.root.position; ch.root.position.copy(b); return { ...pl, ch }; });
+  const mem = RET_PLAN.map(pl => { const ch = new Chara(pl.look, ''); if (pl.role === 'kamuro') ch.root.scale.setScalar(.66); if (pl.role === 'shinzo') ch.root.scale.setScalar(.9); scene.add(ch.root); const b = boss.root.position; ch.root.position.copy(b); return { ...pl, ch }; });
   const lb = mem[0].ch; const lan = new THREE.Group(); lan.position.set(0, -.3, .2); lan.rotation.x = 1; lb.arms[1].add(lan);
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .7, 5), dm('#3a2418')); pole.position.y = .3; lan.add(pole);
   const box = new THREE.Mesh(new THREE.CylinderGeometry(.11, .11, .32, 14), new THREE.MeshStandardMaterial({ map: TX.text('花', { w: 256, h: 128, bg: '#f6efe0', fg: '#1a1210', vertical: false }), emissive: '#ffb050', emissiveIntensity: .6 })); box.position.y = .72; box.rotation.x = -1; lan.add(box);
@@ -953,9 +958,10 @@ function updRetinue(dt) {
       p.y = heightAt(p.x, p.z) * (m.role === 'kamuro' ? 1 : 1);
       m.ch.root.rotation.y = angLerp(m.ch.root.rotation.y, d > .3 ? Math.atan2(dx, dz) : ry, Math.min(1, dt * 5));
       m.ch.play(d > .12 ? 1 : 0); m.ch.update(dt, d > .12 ? 2.4 : 0);
+      if (m.role === 'man' && Math.random() < dt / 7) m.ch.say(['花魁道中〜！', '道をあけておくんなさい〜', '花魁のお通り〜'][Math.floor(Math.random() * 3)], 2.5);
     }
     // 傘：竿子從撐傘男眾的手到花魁頭頂
-    const ub = R.mem[3].ch.root.position; _v1.set(ub.x, ub.y + 1.05, ub.z); _v2.set(bp.x, bp.y + 2.75, bp.z);
+    const ub = R.mem.find(m => m.role === 'umbrella').ch.root.position; _v1.set(ub.x, ub.y + 1.05, ub.z); _v2.set(bp.x, bp.y + 2.75, bp.z);
     R.umb.position.lerp(_v2, Math.min(1, dt * 6)); R.umb.rotation.y += dt * .2;
     const dir = _v2.clone().sub(_v1); const len = dir.length(); R.shaft.position.copy(_v1).addScaledVector(dir, .5); R.shaft.scale.set(1, len, 1); R.shaft.quaternion.setFromUnitVectors(_up, dir.normalize());
   }
@@ -1166,11 +1172,11 @@ function toggleView() {
 // ---------- 標題畫面（換裝） ----------
 function buildTitle() {
   $('#nameIn').value = G.name; $('#gmIn').value = store.get('gmk', ''); { let taps = [], lg = document.querySelector('#title .logo h1'); lg.style.pointerEvents = 'auto'; lg.addEventListener('pointerdown', () => { const t = performance.now(); taps = taps.filter(x => t - x < 2500); taps.push(t); if (taps.length >= 5) { taps = []; $('#gmRow').classList.toggle('hide'); } }); }
-  const rows = [['k', '和服', KIMONO.map(k => k[1]), KIMONO.map(k => k[0])], ['p', '花紋', null, PATTERNS.slice(0, 6)], ['o', '腰帶', OBI, null], ['h', '髮型', null, HAIRS], ['s', '膚色', SKINS, null], ['fc', '臉型', null, FACES], ['ey', '眼睛', null, EYES], ['br', '眉毛', null, BROWS], ['mo', '嘴巴', null, MOUTHS], ['ck', '腮紅', null, CHEEKS], ['mk', '痣', null, MOLES]];
+  const rows = [['k', '和服', KIMONO.map(k => k[1]), KIMONO.map(k => k[0])], ['p', '花紋', null, PATTERNS.slice(0, 6)], ['o', '腰帶', OBI, null], ['h', '髮型', null, HAIRS], ['s', '膚色', SKINS, null], ['ey', '眼睛', null, EYES], ['br', '眉毛', null, BROWS], ['mo', '嘴巴', null, MOUTHS], ['ck', '腮紅', null, CHEEKS], ['mk', '痣', null, MOLES]];
   $('#looks').innerHTML = rows.map(([k, t, cols, names]) => `<div class="lr"><span>${t}</span><div>${(cols || names).map((c, i) => cols ? `<button class="sw" data-k="${k}" data-v="${i}" style="background:${c}" title="${names ? names[i] : ''}"></button>` : `<button class="tx" data-k="${k}" data-v="${i}">${c}</button>`).join('')}</div></div>`).join('');
   ['ey', 'br', 'mo', 'ck', 'mk', 'fc'].forEach(k => { if (G.look[k] == null) G.look[k] = k === 'ck' || k === 'fc' ? 1 : 0; });
   const sync = () => document.querySelectorAll('#looks [data-k]').forEach(b => b.classList.toggle('on', G.look[b.dataset.k] == b.dataset.v));
-  document.querySelectorAll('#looks [data-k]').forEach(b => b.onclick = () => { G.look[b.dataset.k] = +b.dataset.v; G.me.setLook(G.look); sync(); G.faceZoom = ['ey', 'br', 'mo', 'ck', 'mk', 'h', 's', 'fc'].includes(b.dataset.k) ? 3.5 : 0; });
+  document.querySelectorAll('#looks [data-k]').forEach(b => b.onclick = () => { G.look[b.dataset.k] = +b.dataset.v; G.me.setLook(G.look); sync(); G.faceZoom = ['ey', 'br', 'mo', 'ck', 'mk', 'h', 's'].includes(b.dataset.k) ? 3.5 : 0; });
   sync();
   $('#rnd').onclick = () => { G.look = randomLook(); G.look.hat = 0; G.look.c = 0; G.me.setLook(G.look); sync(); };
   $('#go').onclick = start;
@@ -1504,6 +1510,11 @@ async function runTest() {
     for (let g = 0; MG.on && g < 600; g++) { const st = MG.st; if (st && !st.done) { if (st.g === 'tap' && Math.abs(st.v - st.zc) < st.zw / 4) mgPress(true); if (st.g === 'mash') mgPress(true); if (st.g === 'hold') { if (!st.held) mgPress(true); else if (st.v >= st.zc) mgPress(false); } } await sleep(25); }
     ok(!MG.on && G.money > m1, '做完收錢 +' + (G.money - m1) + ' 文');
     await sleep(500); leaveOwner(); ok(G.mode === 'walk' && !G.owners.chaya, '收店');
+    { // 祭典：強制開一場，跑一段時間不能出錯，神轎附近要撿得到福餅
+      const off0 = window.__festOff; window.__festOff = 720 - (Date.now() / 1000) % 720 + 5; let fe = null;
+      try { for (let i = 0; i < 300; i++) update(1 / 30); } catch (e) { fe = e.message; }
+      ok(!fe && FEST.on, '祭典開始且不出錯' + (fe ? '：' + fe : ''));
+      window.__festOff = 720 - (Date.now() / 1000) % 720 + 400; for (let i = 0; i < 5; i++) update(1 / 30); ok(!FEST.on, '祭典結束收場'); window.__festOff = off0; }
     emote(10, 1e9); ok(await until(() => G.me.anim === 10), '跳舞'); G.emoteT = 0; sendEmoji('🌸'); ok(!!G.me.emo, '表情符號');
     ok(NPCS.filter(n => n.ch.root.visible).length >= 4 && NPCS.some(n => n.st === 'sit' || n.st === 'walk'), 'NPC 町人活動中（' + NPCS.filter(n => n.ch.root.visible).length + ' 人）');
     G.pos.set(30, 0, 3); const n = NPCS[0]; n.ch.root.position.set(31, 0, 3); n.st = 'idle'; n.goal = null; n.wait = 20;
