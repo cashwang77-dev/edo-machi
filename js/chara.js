@@ -9,7 +9,7 @@ export const KIMONO = [
 ];
 export const OBI = ['#8a2f2f', '#2b2b2b', '#c9a24a', '#e8e2d2', '#355d8a', '#6b3f6b'];
 export const PATTERNS = ['無地', '縞', '水玉', '市松', '麻の葉', '桜', '朝顔', '金魚', '花火', '青海波', '龜甲', '梅', '菊', '鱗', '七宝', '矢絣', '雪輪', '紅葉', '波千鳥', '唐草', '籠目', '椿'];
-export const HAIRS = ['丁髷', '島田髷', '総髪', '坊主', '唐輪', 'おかっぱ', 'ポニー', '垂髪'];
+export const HAIRS = ['丁髷', '島田髷', '総髪', '坊主', '唐輪', 'おかっぱ', 'ポニー', '垂髪', '銀杏髷', '勝山髷', '兵庫髷', 'お団子', '散切り', '二つ結び'];
 export const OUTFITS = ['着物', '羽織', '袴', '法被'];
 export const OUTER = ['#2a2a3a', '#5a3a2a', '#3a5a4a', '#6a2a2a', '#2a4a6a', '#c9b48a'];
 export const HATS = ['なし', '菅笠', '簪', '鉢巻', '狐面'];
@@ -203,7 +203,7 @@ export class Chara {
     this.fukiM.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4], { roughness: .6 });
     this.obiM.material = obi; this.bowM.material = obi; this.headM.material = skin; this.neckM.material = skin; this.buildFace(lk, skin); this.apply3d();
     this.cordM.material = mat(['#c8322a', '#e8c56a', '#3a6a8a', '#f4f0e4', '#8a3a6a', '#2f6a4a'][(lk.o + 2) % 6]);
-    const female = [1, 4, 5, 6, 7].includes(lk.h % HAIRS.length);
+    const female = [1, 4, 5, 6, 7, 9, 10, 11, 13].includes(lk.h % HAIRS.length);
     this.obiM.scale.set(1, female ? 1 : .5, 1); this.obiM.position.y = female ? .25 : .19; this.obiageM.visible = female; this.cordM.visible = female; this.fukiM.visible = female;
     this.bowM.geometry = female ? G.taiko : G.knotB; this.bowM.position.set(0, female ? .25 : .23, female ? -.215 : -.2);
     this.hairG.clear(); this.accG.clear(); this.carryG.clear(); this.foodG.clear(); this.waistG.clear(); this.oiranG.clear(); this.auraG.clear(); this.backG.clear(); this.wheel = null;
@@ -233,6 +233,14 @@ export class Chara {
         mesh(new THREE.TorusGeometry(.035, .01, 4, 10), mat('#c8322a'), this.hairG, 0, .06, -.14, .3, 0, 0, 1, 1, 1, false); break; }
       case 7: { HC(); H(new THREE.BoxGeometry(.24, .42, .05), 0, -.13, -.12); for (const sx of [-1, 1]) H(new THREE.BoxGeometry(.045, .3, .14), sx * .118, -.08, -.04); // 垂髪：長髮披背
         mesh(new THREE.BoxGeometry(.08, .025, .02), mat('#f4efe2'), this.hairG, 0, -.06, -.15, 0, 0, 0, 1, 1, 1, false); break; }
+      case 8: { // 銀杏髷：大一點、末端像銀杏葉展開的髷
+        for (const sx of [-1, 1]) H(G.side, 0, 0, -.005, 1.06, 1.05, 1.07);
+        const k = H(G.knot, 0, .15, -.02, 1.3, 1.2, 1.3); k.rotation.x = PI / 2 - .2; H(new THREE.ConeGeometry(.05, .06, 10), 0, .16, .07, 1.3, 1, .5, PI / 2); break; }
+      case 9: { HC(); H(new THREE.TorusGeometry(.07, .03, 8, 16), 0, .16, -.04, 1, 1, 1, .3); H(G.bun, 0, .08, -.13, .7, .6, .6); break; } // 勝山髷：頭頂一個大圈
+      case 10: { HC(); for (const sx of [-1, 1]) H(G.bun, sx * .1, .14, -.03, .8, .55, .7, 0, sx * .5); H(G.bun, 0, .16, -.06, .7, .5, .6); H(G.bun, 0, .04, -.14, .9, .7, .6); break; } // 兵庫髷：兩側翅膀
+      case 11: { HC(); H(G.bun, 0, .17, -.02, .75, .75, .75); mesh(new THREE.TorusGeometry(.05, .01, 4, 12), mat('#e8455c'), this.hairG, 0, .12, -.02, PI / 2, 0, 0, 1, 1, 1, false); break; } // お団子：頭頂一顆丸子
+      case 12: { HC(0, 1.06); for (let i = 0; i < 7; i++) { const a = i / 7 * PI * 2; H(new THREE.ConeGeometry(.035, .07, 5), Math.cos(a) * .1, .1 + Math.sin(i) * .02, Math.sin(a) * .1 - .02, 1, 1, 1, Math.sin(a) * .8, -Math.cos(a) * .8); } break; } // 散切り：短髮翹翹
+      case 13: { HC(); for (const sx of [-1, 1]) { const t = H(new THREE.CylinderGeometry(.04, .014, .26, 8), sx * .12, -.12, -.06); t.rotation.z = sx * .15; mesh(new THREE.TorusGeometry(.03, .009, 4, 10), mat('#e8c56a'), this.hairG, sx * .115, .0, -.06, PI / 2, 0, 0, 1, 1, 1, false); } break; } // 二つ結び：低雙馬尾
       case 4: { HC(); H(G.bun, 0, .092, .07, .54, .34, .42); for (const s of [-1, 1]) { H(G.bun, s * .1, .15, -.02, .78, .78, .78); mesh(G.pin, mat('#d8b24a', { metalness: .6, roughness: .3 }), this.hairG, s * .1, .15, -.02, 0, 0, PI / 2, 1, .9, 1); } break; } // 唐輪
     }
     if (lk.hat === 1) { const h = mesh(G.hatG, mat('#c9a868', { side: THREE.DoubleSide }), this.accG, 0, .2, 0); for (let i = 0; i < 6; i++) mesh(new THREE.TorusGeometry(.34 - i * .05, .004, 3, 20), mat('#8a6a3a'), this.accG, 0, .13 + i * .022, 0, PI / 2, 0, 0, 1, 1, 1, false); mesh(new THREE.CylinderGeometry(.003, .003, .3, 3), mat('#5a3a2a'), this.accG, 0, -.06, .1, .3, 0, 0, 1, 1, 1, false); }
@@ -300,6 +308,7 @@ export class Chara {
     if (hs === 1) for (let i = 0; i < 7; i++) { const a = i / 7 * PI * 2; mesh(new THREE.SphereGeometry(.02, 8, 6), [mat('#f29bb6'), mat('#e8455c'), mat('#ffffff')][i % 3], A, .13 + Math.cos(a) * .035, .1 + Math.sin(a) * .035, .02, 0, 0, 0, 1, 1, .6); }
     if (hs === 2) { mesh(new THREE.BoxGeometry(.17, .05, .014), mat('#6a3a1a', { metalness: .35, roughness: .28 }), A, 0, .17, .07, -.4); mesh(new THREE.BoxGeometry(.175, .007, .016), gold, A, 0, .195, .075, -.4, 0, 0, 1, 1, 1, false); }
     if (hs === 3) for (const s of [-1, 1]) { mesh(new THREE.CircleGeometry(.04, 12), mat('#e8c56a', { side: THREE.DoubleSide, metalness: .6, roughness: .3 }), A, -.12 + s * .03, .14, -.02, 0, -.9, s * .5, 1, .7, 1, false); }
+    if (hs === 5) { for (let i = 0; i < 5; i++) { const a = i / 5 * PI * 2; mesh(new THREE.ConeGeometry(.018, .03, 4), mat(['#f29bb6', '#ffffff', '#e8455c'][i % 3]), A, -.13 + Math.cos(a) * .028, .12 + Math.sin(a) * .028, .02, PI / 2, 0, a); } mesh(new THREE.SphereGeometry(.012, 6, 5), mat('#e8c56a'), A, -.13, .12, .03); for (let i = 0; i < 3; i++) mesh(new THREE.CylinderGeometry(.002, .002, .08, 3), gold, A, -.14 + i * .012, .06, .02, 0, 0, 0, 1, 1, 1, false); }
     if (hs === 4) { mesh(G.pin, gold, A, .05, .17, -.08, 0, 0, 1.2); mesh(new THREE.SphereGeometry(.03, 12, 10), mat('#c21f32', { roughness: .25 }), A, .14, .21, -.08); }
     // 面具（戴在頭側）
     const m = lk.m || 0;
@@ -331,6 +340,7 @@ export class Chara {
     // 背上
     if (lk.b === 1) { mesh(new THREE.SphereGeometry(.15, 12, 10), TM({ map: TX.karakusa(), roughness: .9 }), B, 0, .02, -.08, 0, 0, 0, 1.1, .85, .7); mesh(new THREE.TorusGeometry(.12, .015, 5, 16, PI), mat('#3a7a4a'), B, 0, .14, .14, -PI / 2, 0, 0); }
     if (lk.b === 2) { mesh(new THREE.CylinderGeometry(.13, .1, .3, 10, 1, true), mat('#9a7a4a', { side: THREE.DoubleSide, roughness: 1 }), B, 0, 0, -.1); for (let i = 0; i < 4; i++) mesh(new THREE.TorusGeometry(.125 - i * .008, .006, 3, 16), mat('#6a4a2a'), B, 0, -.12 + i * .08, -.1, PI / 2, 0, 0, 1, 1, 1, false); }
+    if (lk.b === 4) { const sm = mat('#c8322a', { roughness: .8 }); mesh(new THREE.TorusGeometry(.13, .04, 6, 20), sm, B, 0, .2, .2, PI / 2 - .12, 0, 0, 1.25, 1, 1.05); for (const sx of [-1, 1]) mesh(new THREE.BoxGeometry(.075, .24, .025), sm, B, sx * .07, .06, .39, -.12, 0, sx * .06); } // 披肩：繞在肩頸、兩端垂在胸前
     if (lk.b === 3) { mesh(new THREE.BoxGeometry(.18, .18, .07), mat('#3a2418', { roughness: .4 }), B, .02, -.12, -.06, 0, 0, .25); mesh(new THREE.CylinderGeometry(.012, .012, .62, 6), mat('#2a1810'), B, -.06, .22, -.07, 0, 0, .25); mesh(new THREE.CircleGeometry(.065, 12), mat('#f4efe2'), B, .02, -.12, -.024, 0, 0, 0, 1, 1, 1, false); }
   }
   addHeld(lk) { if (lk.f && Chara.foodModel) { const d = Chara.foodModel(lk.f); if (d) { d.scale.multiplyScalar(1.15); this.foodG.add(d); } } }

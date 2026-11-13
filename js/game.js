@@ -1337,11 +1337,11 @@ function update(dt) {
     // 標題：從東邊拍角色，背景是街道盡頭的富士山
     const p = G.me.root.position, port = camera.aspect < 1;
     const th = (port ? .03 : .32) + Math.sin(time * .12) * .05, cz = p.z - (port ? .1 : .55);
-    if (port) { camera.position.set(p.x + 3.9, 1.25, p.z + .15); camera.lookAt(p.x, .9, p.z); } // 直式：正對人物全身
+    if (port) { const hh = G.me.headG.getWorldPosition(new THREE.Vector3()).y; camera.position.set(p.x + 3.6, hh * .85, p.z + .15); camera.lookAt(p.x, hh * .62, p.z); } // 直式：正對人物全身
     else { camera.position.set(p.x + 3.4, 1.45, cz); camera.lookAt(p.x + 3.4 - Math.cos(th) * 10, 1.75, cz + Math.sin(th) * 10); }
     // 選五官時鏡頭靠近臉
     G.fz = (G.fz || 0) + (((G.faceZoom = Math.max(0, (G.faceZoom || 0) - dt)) > 0 ? 1 : 0) - (G.fz || 0)) * Math.min(1, dt * 3);
-    if (G.fz > .01) { const hy = 1.35, fp = new THREE.Vector3(p.x + (port ? 1.2 : .62), hy + (port ? .06 : .02), p.z + (port ? .02 : .25)); camera.position.lerp(fp, G.fz); const lk = new THREE.Vector3(p.x, hy - (port ? .04 : .02), p.z + (port ? 0 : .15)); const cur = new THREE.Vector3(); camera.getWorldDirection(cur); cur.multiplyScalar(10).add(camera.position); cur.lerp(lk, G.fz); camera.lookAt(cur); G.me.root.rotation.y = PI / 2; }
+    if (G.fz > .01) { const hy = G.me.headG.getWorldPosition(new THREE.Vector3()).y + .02, fp = new THREE.Vector3(p.x + (port ? 1.15 : .62), hy + (port ? 0 : .02), p.z + (port ? .02 : .25)); camera.position.lerp(fp, G.fz); const lk = new THREE.Vector3(p.x, hy - (port ? 0 : .02), p.z + (port ? 0 : .15)); const cur = new THREE.Vector3(); camera.getWorldDirection(cur); cur.multiplyScalar(10).add(camera.position); cur.lerp(lk, G.fz); camera.lookAt(cur); G.me.root.rotation.y = PI / 2; }
     G.me.root.rotation.y = PI / 2 + Math.sin(time * .4) * .4; G.me.update(dt, 0);
   } else {
     // 移動

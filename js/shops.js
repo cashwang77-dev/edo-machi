@@ -30,7 +30,7 @@ export const ACC = [
   { id: 'jingasa', n: '陣笠', zh: '黑漆陣笠', slot: 'hat', v: 6, p: 80 }, { id: 'tenugui', n: '手拭い被り', zh: '手巾包頭', slot: 'hat', v: 7, p: 20 },
   { id: 'zukin', n: '頭巾', zh: '頭巾', slot: 'hat', v: 8, p: 35 }, { id: 'hachimaki', n: '鉢巻', zh: '頭巾帶', slot: 'hat', v: 3, p: 20 },
   { id: 'hanakan', n: '花簪', zh: '花簪', slot: 'hs', v: 1, p: 50 }, { id: 'kushi', n: '鼈甲櫛', zh: '玳瑁梳', slot: 'hs', v: 2, p: 70 },
-  { id: 'chokan', n: '蝶簪', zh: '蝴蝶簪', slot: 'hs', v: 3, p: 55 }, { id: 'tamakan', n: '玉簪', zh: '珊瑚玉簪', slot: 'hs', v: 4, p: 40 },
+  { id: 'chokan', n: '蝶簪', zh: '蝴蝶簪', slot: 'hs', v: 3, p: 55 }, { id: 'tamakan', n: '玉簪', zh: '珊瑚玉簪', slot: 'hs', v: 4, p: 40 }, { id: 'tsumami', n: 'つまみ簪', zh: '摺花髮簪', slot: 'hs', v: 5, p: 65 },
   { id: 'kitsune', n: '狐の面', zh: '狐狸面具', slot: 'm', v: 1, p: 60 }, { id: 'hyottoko', n: 'ひょっとこ', zh: '火男面具', slot: 'm', v: 2, p: 50 },
   { id: 'okame', n: 'おかめ', zh: '阿龜面具', slot: 'm', v: 3, p: 50 }, { id: 'tengu', n: '天狗', zh: '天狗面具', slot: 'm', v: 4, p: 70 },
   { id: 'hannya', n: '般若', zh: '般若面具', slot: 'm', v: 5, p: 90 }, { id: 'oni', n: '鬼の面', zh: '鬼面具', slot: 'm', v: 6, p: 70 },
@@ -42,7 +42,7 @@ export const ACC = [
   { id: 'janome', n: '蛇の目傘', zh: '蛇之目傘', slot: 'c', v: 3, p: 70 }, { id: 'uchiwa', n: '団扇', zh: '團扇', slot: 'c', v: 4, p: 15 },
   { id: 'kazaguruma', n: '風車', zh: '風車', slot: 'c', v: 5, p: 12 }, { id: 'chochin', n: '提灯', zh: '提燈', slot: 'c', v: 6, p: 40 },
   { id: 'furoshiki', n: '風呂敷包み', zh: '唐草包袱', slot: 'b', v: 1, p: 25 }, { id: 'kago', n: '背負い籠', zh: '背簍', slot: 'b', v: 2, p: 35 },
-  { id: 'shamisen', n: '三味線', zh: '三味線', slot: 'b', v: 3, p: 120 },
+  { id: 'shamisen', n: '三味線', zh: '三味線', slot: 'b', v: 3, p: 120 }, { id: 'stole', n: '肩掛け', zh: '紅披肩', slot: 'b', v: 4, p: 80 },
 ];
 export const SHOPS = [
   // 北側（面向南）
@@ -76,6 +76,18 @@ export const SHOPS = [
       { id: 'k15', n: '波千鳥', zh: '波浪千鳥', p: 160, look: { k: 8, p: 18 }, steps: GOFUKU },
       { id: 'k16', n: '黒の椿', zh: '黑底紅椿', p: 180, look: { k: 3, p: 21 }, steps: GOFUKU },
       { id: 'k17', n: '雪輪', zh: '雪輪紋', p: 150, look: { k: 4, p: 16 }, steps: GOFUKU },
+      { id: 'y1a', n: '黒羽織', zh: '黑色羽織', p: 120, look: { y: 1, yc: 0 }, steps: GOFUKU, cat: '羽織・袴・法被' },
+      { id: 'y1b', n: '茶羽織', zh: '茶色羽織', p: 120, look: { y: 1, yc: 1 }, steps: GOFUKU, cat: '羽織・袴・法被' },
+      { id: 'y1c', n: '利休鼠の羽織', zh: '灰綠羽織', p: 130, look: { y: 1, yc: 2 }, steps: GOFUKU, cat: '羽織・袴・法被' },
+      { id: 'y2a', n: '縞袴', zh: '條紋袴', p: 140, look: { y: 2, yc: 4 }, steps: GOFUKU, cat: '羽織・袴・法被' },
+      { id: 'y2b', n: '海老茶袴', zh: '絳紅袴', p: 140, look: { y: 2, yc: 3 }, steps: GOFUKU, cat: '羽織・袴・法被' },
+      { id: 'y3', n: '祭り法被', zh: '祭典法被', p: 90, look: { y: 3 }, steps: GOFUKU, cat: '羽織・袴・法被' },
+      { id: 'y0', n: '着物だけ', zh: '脫下外衣', p: 0, look: { y: 0 }, steps: [S('脱ぐ', '脫下', 'tap')], cat: '羽織・袴・法被' },
+      { id: 'o0', n: '紅の帯', zh: '紅色腰帶', p: 60, look: { o: 0 }, steps: GOFUKU, cat: '帯' },
+      { id: 'o2', n: '金襴の帯', zh: '金襴腰帶', p: 90, look: { o: 2 }, steps: GOFUKU, cat: '帯' },
+      { id: 'o4', n: '藍の帯', zh: '藍色腰帶', p: 60, look: { o: 4 }, steps: GOFUKU, cat: '帯' },
+      { id: 'o5', n: '紫の帯', zh: '紫色腰帶', p: 70, look: { o: 5 }, steps: GOFUKU, cat: '帯' },
+      ...['tsumami', 'stole', 'hanakan', 'kinchaku'].map(id => ACC.find(x => x.id === id)).filter(Boolean).map(a => ({ id: 'g_' + a.id, n: a.n, zh: a.zh, p: a.p, look: { [a.slot]: a.v }, acc: a, cat: '和装小物', steps: KOMA })),
     ] },
   { id: 'sushi', name: '辰巳鮨', kind: '壽司屋台', sign: 'すし', noren: '#3b6a5a', w: 9, floors: 1, side: -1, x: 0, wall: '#e6dcc4', stall: true,
     menu: [
