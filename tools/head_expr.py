@@ -39,6 +39,6 @@ for ex in [f[len('ex_' + name) + 1:-4] for f in os.listdir(SRC) if f.startswith(
     _, s, ox, oy = best
     canvas = Image.new('RGB', (W, H), 'white'); canvas.paste(im.resize((round(W * s), round(H * s)), Image.LANCZOS), (round(ox), round(oy)))
     out = Image.composite(canvas, base, mask)
-    t = Image.new('RGB', (2048, 1024)); t.paste(tex(out), (0, 0)); t.paste(RIGHT, (1024, 0))
+    t = Image.new('RGB', (1024, 512)); t.paste(tex(out).resize((512, 512), Image.LANCZOS), (0, 0)); t.paste(RIGHT.resize((512, 512)), (512, 0))
     t.save(os.path.join(ROOT, 'img', f'head_{name}_{ex}.jpg'), quality=86)
     print(ex, 'scale', round(s, 3))

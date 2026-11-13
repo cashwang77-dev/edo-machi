@@ -82,8 +82,9 @@ for y in range(H):
     yy = int(rk[np.abs(rk - y).argmin()]); l, r = rows[yy]; inset = int(max(5, (r - l) * .07))
     strip[y] = (bA[yy, min(W - 1, l + inset)] + bA[yy, max(0, r - inset)]) / 2
 strip = ndimage.gaussian_filter1d(strip, 3, axis=0)
-side = Image.fromarray(np.repeat(strip[:, None, :], 64, 1).clip(0, 255).astype('uint8')).resize((1024, 1024))
-tex = Image.new('RGB', (2048, 1024)); tex.paste(img.resize((1024, 1024), Image.LANCZOS), (0, 0)); tex.paste(side, (1024, 0))
+TS = 512  # 貼圖解析度（正面 TS×TS，整張 2TS×TS）；太大會讓手機卡
+side = Image.fromarray(np.repeat(strip[:, None, :], 64, 1).clip(0, 255).astype('uint8')).resize((TS, TS))
+tex = Image.new('RGB', (TS * 2, TS)); tex.paste(img.resize((TS, TS), Image.LANCZOS), (0, 0)); tex.paste(side, (TS, 0))
 out_mesh.visual = trimesh.visual.TextureVisuals(uv=np.array(newUV), material=trimesh.visual.material.PBRMaterial(baseColorTexture=tex, roughnessFactor=.55, metallicFactor=0))
 out_mesh.vertex_normals = np.array(newN)
 out = os.path.join(ROOT, 'img', f'head_{name}.glb'); out_mesh.export(out)

@@ -46,7 +46,7 @@ addEventListener('resize', resize);
 // ---------- 狀態 ----------
 let W;
 const G = window.G = {
-  mode: 'title', name: store.get('name', ''), look: store.get('look', randomLook()), money: 300,
+  mode: 'title', name: store.get('name', ''), look: (() => { const l = store.get('look', randomLook()); if (!store.get('qMig', false)) { l.fc = 1; store.set('qMig', true); store.set('look', l); } return l; })(), money: 300,
   pos: new THREE.Vector3(96, 0, 0), ry: -PI / 2, me: null, myId: 'me', online: false,
   remotes: new Map(), owners: {}, seat: null, shop: null, order: null, queue: [], npcCust: [], emoteT: 0, busy: false, gm: false, timeOff: 0, eatT: 0, follow: null, whisper: null,
 };
@@ -1093,7 +1093,7 @@ function buildTitle() {
   $('#nameIn').value = G.name; $('#gmIn').value = store.get('gmk', ''); { let taps = [], lg = document.querySelector('#title .logo h1'); lg.style.pointerEvents = 'auto'; lg.addEventListener('pointerdown', () => { const t = performance.now(); taps = taps.filter(x => t - x < 2500); taps.push(t); if (taps.length >= 5) { taps = []; $('#gmRow').classList.toggle('hide'); } }); }
   const rows = [['k', '和服', KIMONO.map(k => k[1]), KIMONO.map(k => k[0])], ['p', '花紋', null, PATTERNS.slice(0, 6)], ['o', '腰帶', OBI, null], ['h', '髮型', null, HAIRS], ['s', '膚色', SKINS, null], ['fc', '臉型', null, FACES], ['ey', '眼睛', null, EYES], ['br', '眉毛', null, BROWS], ['mo', '嘴巴', null, MOUTHS], ['ck', '腮紅', null, CHEEKS], ['mk', '痣', null, MOLES]];
   $('#looks').innerHTML = rows.map(([k, t, cols, names]) => `<div class="lr"><span>${t}</span><div>${(cols || names).map((c, i) => cols ? `<button class="sw" data-k="${k}" data-v="${i}" style="background:${c}" title="${names ? names[i] : ''}"></button>` : `<button class="tx" data-k="${k}" data-v="${i}">${c}</button>`).join('')}</div></div>`).join('');
-  ['ey', 'br', 'mo', 'ck', 'mk', 'fc'].forEach(k => { if (G.look[k] == null) G.look[k] = k === 'ck' ? 1 : 0; });
+  ['ey', 'br', 'mo', 'ck', 'mk', 'fc'].forEach(k => { if (G.look[k] == null) G.look[k] = k === 'ck' || k === 'fc' ? 1 : 0; });
   const sync = () => document.querySelectorAll('#looks [data-k]').forEach(b => b.classList.toggle('on', G.look[b.dataset.k] == b.dataset.v));
   document.querySelectorAll('#looks [data-k]').forEach(b => b.onclick = () => { G.look[b.dataset.k] = +b.dataset.v; G.me.setLook(G.look); sync(); G.faceZoom = ['ey', 'br', 'mo', 'ck', 'mk', 'h', 's', 'fc'].includes(b.dataset.k) ? 3.5 : 0; });
   sync();

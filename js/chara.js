@@ -26,9 +26,9 @@ export const HEAD3D = { 0: 'head_chonmage', 1: 'head_bijin', 2: 'head_sohatsu', 
 const H3CFG = { head_bijin: [.44, .005, '#efd3c4'], head_chonmage: [.42, .01, '#dcae90'], head_sohatsu: [.35, -.005, '#d8a98a'], head_bozu: [.34, -.005, '#d2a183'] };
 // 3D 頭的表情貼圖（同一張臉的表情差分，UV 相同直接換貼圖）
 const H3EX = { head_bijin: ['calm', 'laugh', 'wow', 'sad'], head_chonmage: ['calm', 'laugh', 'wow', 'sad'] }; const H3T = {}; const tl = new THREE.TextureLoader();
-function exTex(n, ex) { const k = n + '_' + ex; if (!H3T[k]) { const t = H3T[k] = tl.load(`img/${k}.jpg?v=4`); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; } return H3T[k]; }
+function exTex(n, ex) { const k = n + '_' + ex; if (!H3T[k]) { const t = H3T[k] = tl.load(`img/${k}.jpg?v=5`); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; } return H3T[k]; }
 const H3 = {}; const gltf = new GLTFLoader();
-function loadHead(n) { (H3EX[n] || []).forEach(ex => exTex(n, ex)); return H3[n] || (H3[n] = gltf.loadAsync(`img/${n}.glb?v=3`).then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material.roughness = .6; o.material.metalness = 0; } }); return g.scene; }).catch(() => null)); }
+function loadHead(n) { return H3[n] || (H3[n] = gltf.loadAsync(`img/${n}.glb?v=4`).then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = false; o.material.roughness = .6; o.material.metalness = 0; } }); return g.scene; }).catch(() => null)); }
 const PI = Math.PI;
 export const RIDE_Y = .7;
 const BODY_W = .84; // 身體寬度比例（配合寫實頭部，肩寬約兩個頭寬） // 坐在人力車上時角色根部的高度
@@ -374,14 +374,18 @@ export class Chara {
   // 遠處省略細節（效能）
   apply3d(lk) {
     if (this.h3) { this.headG.remove(this.h3); this.h3 = null; }
-    const n = !this.gm && lk.fc !== 1 && HEAD3D[lk.h % HAIRS.length];
+    const n = !this.gm && lk.fc === 0 && !this.npc && HEAD3D[lk.h % HAIRS.length]; // 預設 Q 版；只有玩家自己選「精緻」才載入
     const show = v => { this.headM.visible = this.hairG.visible = v; this.faceG.visible = v; };
+    const hs = n ? .9 : 1.12; this.headG.scale.set(hs / BODY_W, hs, hs / BODY_W); this.headG.position.y = n ? .775 : .8; // Q 版大頭比較可愛
     show(true); this.h3tok = null; if (!n) return;
     const tok = this.h3tok = {};
     loadHead(n).then(sc => { if (!sc || this.h3tok !== tok) return; this.h3 = sc.clone(); this.h3n = n; this.h3ex = ''; this.h3.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); this.h3mat = o.material; this.h3base = o.material.map; } }); const hc = H3CFG[n] || [.44, 0]; this.h3.scale.setScalar(hc[0]); this.h3.position.set(0, hc[1], .006);
-      if (hc[2]) { const sk = mat(hc[2], { roughness: .55 }); this.neckM.material = sk; this.arms.forEach(a => { a.userData.h.material = a.userData.th.material = sk; }); this.legs.forEach(l => l.userData.sh.material = sk); } this.headG.add(this.h3); show(false); });
+      if (hc[2]) { const sk = mat(hc[2], { roughness: .55 }); this.neckM.material = sk; this.arms.forEach(a => { a.userData.h.material = a.userData.th.material = sk; }); this.legs.forEach(l => l.userData.sh.material = sk); } this.headG.add(this.h3); show(false); this.faceG.visible = false; });
   }
-  lod(d) { const near = d < 16; this.faceG.visible = d < 13 && !this.h3; this.detailG.visible = near; this.legs.forEach(l => { l.userData.teeth.forEach(t => t.visible = near); }); }
+  lod(d) {
+    // 3D 真人頭只給近處的人（遠處改回輕量頭部），避免一整條街幾十顆高面數頭拖慢
+    if (this.h3) { const n3 = d < 14; if (this.h3.visible !== n3) { this.h3.visible = n3; this.headM.visible = this.hairG.visible = !n3; } }
+    const near = d < 16; this.faceG.visible = d < 13 && !(this.h3 && this.h3.visible); this.detailG.visible = near; this.legs.forEach(l => { l.userData.teeth.forEach(t => t.visible = near); }); }
   setName(n, npc) {
     if (this.tag) { this.root.remove(this.tag); this.tag.material.map.dispose(); }
     this.name = n;
