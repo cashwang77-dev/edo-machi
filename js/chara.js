@@ -40,8 +40,8 @@ export function randomLook(r = Math.random) {
 const V2 = a => a.map(p => new THREE.Vector2(p[0], p[1]));
 // 把球形變成真人頭型：拉長、側面收窄、下巴收尖、顴骨、後腦飽滿（頭、臉部貼花、頭髮共用，貼合不浮）
 function headShape(x, y, z) {
-  y *= 1.13; x *= .9;
-  if (y < 0) { const t = Math.min(1, -y / 1.13); x *= 1 - .36 * t * t; z *= 1 - .14 * t * t; if (z > 0) { z += .06 * t * t; y -= .04 * t * t; } }
+  y *= 1.06; x *= .94;
+  if (y < 0) { const t = Math.min(1, -y / 1.06); x *= 1 - .2 * t * t; z *= 1 - .1 * t * t; if (z > 0) { z += .06 * t * t; y -= .04 * t * t; } }
   if (z < 0) { z *= 1.1; y *= 1.02; }
   if (y > -.4 && y < .1 && z > .2) x *= 1 + .05 * (1 - Math.abs(y + .15) / .25);
   if (y > .25 && z > .3) z *= .97;
@@ -103,13 +103,16 @@ const G = {
   stick: new THREE.CylinderGeometry(.012, .012, .9, 5),
 };
 const M = {};
-function mat(c, o = {}) { const k = c + JSON.stringify(o); return M[k] || (M[k] = new THREE.MeshStandardMaterial({ color: c, roughness: .85, ...o })); }
-const hairMat = new THREE.MeshStandardMaterial({ map: TX.hairTex(), color: '#ffffff', roughness: .38, metalness: .06 });
+// 卡通著色（動畫風）：三階明暗，成本與標準材質相同
+const GRAD = (() => { const d = new Uint8Array([120, 120, 120, 255, 200, 200, 200, 255, 255, 255, 255, 255]); const t = new THREE.DataTexture(d, 3, 1); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
+function TM(o = {}) { const { roughness, metalness, ...r } = o; return new THREE.MeshToonMaterial({ gradientMap: GRAD, ...r }); }
+function mat(c, o = {}) { const k = c + JSON.stringify(o); return M[k] || (M[k] = TM({ color: c, roughness: .85, ...o })); }
+const hairMat = TM({ map: TX.hairTex(), color: '#ffffff', roughness: .38, metalness: .06 });
 function fabricMat(lk) {
   const kc = KIMONO[lk.k % KIMONO.length][1]; const k = 'F' + lk.k + '_' + lk.p;
-  return M[k] || (M[k] = new THREE.MeshStandardMaterial({ map: lk.p ? TX.pattern(lk.p, kc, lk.k === 9 ? '#5a5a66' : '#f4efe2') : TX.fabric(kc), roughness: .88 }));
+  return M[k] || (M[k] = TM({ map: lk.p ? TX.pattern(lk.p, kc, lk.k === 9 ? '#5a5a66' : '#f4efe2') : TX.fabric(kc), roughness: .88 }));
 }
-function obiMat(i) { const k = 'OBI' + i; return M[k] || (M[k] = new THREE.MeshStandardMaterial({ map: TX.obiTex(OBI[i], i), roughness: .5, metalness: .08 })); }
+function obiMat(i) { const k = 'OBI' + i; return M[k] || (M[k] = TM({ map: TX.obiTex(OBI[i], i), roughness: .5, metalness: .08 })); }
 function mesh(g, m, par, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1, shadow = true) {
   const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.scale.set(sx, sy, sz); o.castShadow = shadow; par.add(o); return o;
 }
@@ -228,10 +231,10 @@ export class Chara {
     const F = this.faceG; F.clear(); this.skinParts = []; this.decal = null;
     if (TX.IMG.face) {
       for (const s of [-1, 1]) this.skinParts.push(mesh(G.ear, skin, F, s * .108, -.012, -.008, 0, 0, 0, .5, 1.15, .8, false));
-      this.noseM = mesh(G.nose, skin, F, 0, -.002, .128, 0, 0, 0, 1, 1, 1, false);
+      this.noseM = mesh(G.nose, skin, F, 0, -.01, .122, 0, 0, 0, .45, .4, .4, false);
       this.faceBase = { ey: (lk.ey || 0) % 5, br: (lk.br || 0) % 4, mo: (lk.mo || 0) % 4, ck: lk.ck == null ? 1 : lk.ck % 3, mk: lk.mk ? 1 : 0 }; this.faceKey = '';
       const b = this.faceBase, tex = TX.faceTex(b.ey, b.br, b.mo, b.ck, b.mk);
-      this.decal = mesh(G.decal, new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: .5, polygonOffset: true, polygonOffsetFactor: -2 }), F, 0, 0, 0, 0, 0, 0, 1, 1, 1, false);
+      this.decal = mesh(G.decal, TM({ map: tex, transparent: true, depthWrite: false, roughness: .5, polygonOffset: true, polygonOffsetFactor: -2 }), F, 0, 0, 0, 0, 0, 0, 1, 1, 1, false);
       this.mouthM = this.noseM; return;
     }
     const dark = mat('#1a1210', { roughness: .3 }), hl = mat('#ffffff', { emissive: '#ffffff', emissiveIntensity: .4 });
@@ -267,7 +270,7 @@ export class Chara {
     // 頭部
     if (lk.hat === 5) { mesh(new THREE.SphereGeometry(.2, 18, 8, 0, PI * 2, 0, PI / 2), straw, A, 0, .02, 0, 0, 0, 0, 1, .85, 1); mesh(new THREE.TorusGeometry(.2, .012, 4, 24), mat('#8a6a3a'), A, 0, .02, 0, PI / 2, 0, 0, 1, 1, 1, false); for (let i = 0; i < 5; i++) mesh(new THREE.TorusGeometry(.19 - i * .03, .003, 3, 20), mat('#8a6a3a'), A, 0, .05 + i * .028, 0, PI / 2, 0, 0, 1, 1, 1, false); }
     if (lk.hat === 6) { mesh(new THREE.ConeGeometry(.27, .09, 24), mat('#141012', { roughness: .2, metalness: .3 }), A, 0, .16, 0); mesh(new THREE.CircleGeometry(.045, 16), gold, A, 0, .205, .001, -PI / 2 + .3, 0, 0, 1, 1, 1, false); }
-    if (lk.hat === 7) { mesh(new THREE.SphereGeometry(.142, 18, 8, 0, PI * 2, 0, PI * .45), new THREE.MeshStandardMaterial({ map: TX.pattern(2, '#2a4b7c', '#f4efe2'), roughness: .9 }), A, 0, .01, -.01, 0, 0, 0, 1.05, 1.08, 1.08); mesh(new THREE.BoxGeometry(.06, .04, .04), mat('#2a4b7c'), A, 0, .14, .1); }
+    if (lk.hat === 7) { mesh(new THREE.SphereGeometry(.142, 18, 8, 0, PI * 2, 0, PI * .45), TM({ map: TX.pattern(2, '#2a4b7c', '#f4efe2'), roughness: .9 }), A, 0, .01, -.01, 0, 0, 0, 1.05, 1.08, 1.08); mesh(new THREE.BoxGeometry(.06, .04, .04), mat('#2a4b7c'), A, 0, .14, .1); }
     if (lk.hat === 8) { mesh(new THREE.SphereGeometry(.15, 18, 10, 0, PI * 2, 0, PI * .62), mat('#3a3a44', { side: THREE.DoubleSide }), A, 0, .0, -.012, 0, 0, 0, 1.06, 1.12, 1.1); }
     // 髮飾
     const hs = lk.hs || 0;
@@ -295,14 +298,14 @@ export class Chara {
     if (lk.w === 3) mesh(new THREE.CylinderGeometry(.028, .028, .01, 10), gold, W, -.18, .03, .2, 1.25, 0, .25);
     if (lk.w === 4) { mesh(new THREE.BoxGeometry(.07, .08, .03), mat('#6a4a2a', { roughness: .5 }), W, .17, -.1, .1); mesh(new THREE.CylinderGeometry(.012, .012, .14, 6), mat('#2a1d14'), W, .19, -.08, .11, 0, 0, .3); }
     // 手持
-    if (lk.c === 3) { mesh(G.stick, mat('#4a3424'), C, 0, .05, .08); mesh(G.umb, new THREE.MeshStandardMaterial({ map: TX.janome(), side: THREE.DoubleSide, roughness: .7 }), C, 0, .55, .08); }
-    if (lk.c === 4) { mesh(new THREE.CylinderGeometry(.006, .006, .14, 4), mat('#c9a868'), C, 0, -.32, .1); mesh(new THREE.CircleGeometry(.09, 18), new THREE.MeshStandardMaterial({ map: TX.text('涼', { w: 128, h: 128, bg: '#f4efe2', fg: '#2a4b7c', vertical: false }), side: THREE.DoubleSide }), C, 0, -.2, .1, -.6, 0, 0, 1, 1, 1, false); }
+    if (lk.c === 3) { mesh(G.stick, mat('#4a3424'), C, 0, .05, .08); mesh(G.umb, TM({ map: TX.janome(), side: THREE.DoubleSide, roughness: .7 }), C, 0, .55, .08); }
+    if (lk.c === 4) { mesh(new THREE.CylinderGeometry(.006, .006, .14, 4), mat('#c9a868'), C, 0, -.32, .1); mesh(new THREE.CircleGeometry(.09, 18), TM({ map: TX.text('涼', { w: 128, h: 128, bg: '#f4efe2', fg: '#2a4b7c', vertical: false }), side: THREE.DoubleSide }), C, 0, -.2, .1, -.6, 0, 0, 1, 1, 1, false); }
     if (lk.c === 5) { mesh(new THREE.CylinderGeometry(.006, .006, .45, 4), mat('#c9a868'), C, 0, -.12, .1); this.wheel = new THREE.Group(); this.wheel.position.set(0, .12, .13); C.add(this.wheel); ['#e8455c', '#3f97ad', '#e8c56a', '#5c9a68'].forEach((c, i) => mesh(new THREE.ConeGeometry(.05, .09, 3), mat(c, { side: THREE.DoubleSide }), this.wheel, Math.cos(i * PI / 2) * .04, Math.sin(i * PI / 2) * .04, 0, 0, 0, i * PI / 2, 1, 1, .2, false)); }
-    if (lk.c === 7) { mesh(new THREE.CylinderGeometry(.003, .003, .1, 3), mat('#e84a5c'), C, 0, -.34, .1); const bag = mesh(new THREE.SphereGeometry(.07, 14, 12), new THREE.MeshStandardMaterial({ color: '#cfe8f4', transparent: true, opacity: .45, roughness: .1, metalness: .1 }), C, 0, -.46, .1, 0, 0, 0, 1, 1.15, 1, false);
+    if (lk.c === 7) { mesh(new THREE.CylinderGeometry(.003, .003, .1, 3), mat('#e84a5c'), C, 0, -.34, .1); const bag = mesh(new THREE.SphereGeometry(.07, 14, 12), TM({ color: '#cfe8f4', transparent: true, opacity: .45, roughness: .1, metalness: .1 }), C, 0, -.46, .1, 0, 0, 0, 1, 1.15, 1, false);
       for (let i = 0; i < 2; i++) { const fish = new THREE.Group(); fish.position.set(-.02 + i * .04, -.47 - i * .02, .1); fish.rotation.y = i * 2; C.add(fish); mesh(new THREE.SphereGeometry(.015, 8, 6), mat('#f05a28'), fish, 0, 0, 0, 0, 0, 0, 1.4, .8, .8, false); mesh(new THREE.ConeGeometry(.012, .02, 4), mat('#f05a28'), fish, -.025, 0, 0, 0, 0, PI / 2, 1, 1, .4, false); } }
-    if (lk.c === 6) { mesh(new THREE.CylinderGeometry(.006, .006, .3, 4), mat('#4a3424'), C, 0, -.2, .18, 1.1, 0, 0); const lan = mesh(new THREE.SphereGeometry(.08, 12, 10), new THREE.MeshStandardMaterial({ color: '#f4e4c0', emissive: '#ffb050', emissiveIntensity: .8 }), C, 0, -.28, .36, 0, 0, 0, 1, 1.3, 1); }
+    if (lk.c === 6) { mesh(new THREE.CylinderGeometry(.006, .006, .3, 4), mat('#4a3424'), C, 0, -.2, .18, 1.1, 0, 0); const lan = mesh(new THREE.SphereGeometry(.08, 12, 10), TM({ color: '#f4e4c0', emissive: '#ffb050', emissiveIntensity: .8 }), C, 0, -.28, .36, 0, 0, 0, 1, 1.3, 1); }
     // 背上
-    if (lk.b === 1) { mesh(new THREE.SphereGeometry(.15, 12, 10), new THREE.MeshStandardMaterial({ map: TX.karakusa(), roughness: .9 }), B, 0, .02, -.08, 0, 0, 0, 1.1, .85, .7); mesh(new THREE.TorusGeometry(.12, .015, 6, 16, PI), mat('#3a7a4a'), B, 0, .14, .14, -PI / 2, 0, 0); }
+    if (lk.b === 1) { mesh(new THREE.SphereGeometry(.15, 12, 10), TM({ map: TX.karakusa(), roughness: .9 }), B, 0, .02, -.08, 0, 0, 0, 1.1, .85, .7); mesh(new THREE.TorusGeometry(.12, .015, 6, 16, PI), mat('#3a7a4a'), B, 0, .14, .14, -PI / 2, 0, 0); }
     if (lk.b === 2) { mesh(new THREE.CylinderGeometry(.13, .1, .3, 12, 1, true), mat('#9a7a4a', { side: THREE.DoubleSide, roughness: 1 }), B, 0, 0, -.1); for (let i = 0; i < 4; i++) mesh(new THREE.TorusGeometry(.125 - i * .008, .006, 3, 16), mat('#6a4a2a'), B, 0, -.12 + i * .08, -.1, PI / 2, 0, 0, 1, 1, 1, false); }
     if (lk.b === 3) { mesh(new THREE.BoxGeometry(.18, .18, .07), mat('#3a2418', { roughness: .4 }), B, .02, -.12, -.06, 0, 0, .25); mesh(new THREE.CylinderGeometry(.012, .012, .62, 6), mat('#2a1810'), B, -.06, .22, -.07, 0, 0, .25); mesh(new THREE.CircleGeometry(.065, 12), mat('#f4efe2'), B, .02, -.12, -.024, 0, 0, 0, 1, 1, 1, false); }
   }
@@ -312,8 +315,8 @@ export class Chara {
   buildOiran(lk) {
     const P = (g, m, x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1, par = this.oiranG) => mesh(g, m, par, x, y, z, rx, ry, rz, sx, sy, sz);
     const goldM = mat('#e8bf4e', { metalness: .9, roughness: .22 }), redM = mat('#c21f32', { roughness: .45 }), tortoise = mat('#6a3a1a', { metalness: .35, roughness: .28 });
-    const inner = new THREE.MeshStandardMaterial({ map: TX.oiranTex('in'), roughness: .5, metalness: .2 });
-    const robe = new THREE.MeshStandardMaterial({ map: TX.oiranTex('out'), roughness: .45, metalness: .25, side: THREE.DoubleSide });
+    const inner = TM({ map: TX.oiranTex('in'), roughness: .5, metalness: .2 });
+    const robe = TM({ map: TX.oiranTex('out'), roughness: .45, metalness: .25, side: THREE.DoubleSide });
     const skin = mat('#f8f4ef', { roughness: .4 });
     this.torsoM.material = this.skirtM.material = inner; this.collarC.forEach(c => c.material = redM);
     this.legs.forEach(l => { l.userData.th.material = inner; l.userData.sh.material = skin; });
@@ -328,7 +331,7 @@ export class Chara {
     P(new THREE.TorusGeometry(.395, .022, 8, 32, PI * 1.4), redM, 0, -.51, -.02, PI / 2, 0, PI * .3, 1, 1.18, 1);
     P(new THREE.CircleGeometry(.48, 24, PI * .1, PI * .8), robe, 0, -.515, -.32, -PI / 2, 0, PI, 1, 1, 1);
     // 前結帶：大蝴蝶結＋長垂帶＋流蘇
-    const obiTex = new THREE.MeshStandardMaterial({ map: TX.oiranTex('obi'), metalness: .55, roughness: .3 });
+    const obiTex = TM({ map: TX.oiranTex('obi'), metalness: .55, roughness: .3 });
     P(new THREE.BoxGeometry(.28, .56, .05), obiTex, 0, -.04, .235, -.05);
     P(new THREE.BoxGeometry(.4, .2, .1), obiTex, 0, .26, .22);
     for (const s of [-1, 1]) { P(new THREE.SphereGeometry(.11, 14, 10), obiTex, s * .17, .3, .27, 0, 0, s * .55, 1.35, .65, .45); P(new THREE.SphereGeometry(.06, 12, 8), redM, s * .13, .3, .31, 0, 0, s * .5, 1.2, .55, .4); }

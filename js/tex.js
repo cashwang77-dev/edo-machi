@@ -226,9 +226,12 @@ const PI2 = Math.PI * 2;
 export function hairTex() {
   const k = 'HAIR'; if (cache[k]) return cache[k];
   const [c, g] = cv(128, 128); const r = rnd(99);
-  g.fillStyle = '#17120f'; g.fillRect(0, 0, 128, 128);
-  for (let i = 0; i < 140; i++) { const x = r() * 128; g.strokeStyle = `rgba(${r() > .7 ? '120,96,80' : '60,48,40'},${.25 + r() * .35})`; g.lineWidth = .6 + r(); g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + (r() - .5) * 8, 40, x + (r() - .5) * 8, 90, x + (r() - .5) * 6, 128); g.stroke(); }
-  return cache[k] = mk(c, [3, 1]);
+  // 動畫風光滑黑髮：淡淡髮絲＋一圈鋸齒狀亮光（天使光環）
+  const gr = g.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, '#2a2026'); gr.addColorStop(1, '#141015'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 60; i++) { const x = r() * 128; g.strokeStyle = `rgba(80,64,72,${.15 + r() * .2})`; g.lineWidth = .8; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + (r() - .5) * 6, 40, x + (r() - .5) * 6, 90, x, 128); g.stroke(); }
+  const hl = g.createLinearGradient(0, 38, 0, 58); hl.addColorStop(0, 'rgba(190,180,210,0)'); hl.addColorStop(.5, 'rgba(190,180,210,.32)'); hl.addColorStop(1, 'rgba(190,180,210,0)'); g.fillStyle = hl; g.beginPath(); g.moveTo(0, 40);
+  for (let x = 0; x <= 128; x += 16) g.lineTo(x, 40 + (x / 16 % 2 ? 5 : 0)); for (let x = 128; x >= 0; x -= 16) g.lineTo(x, 56 + (x / 16 % 2 ? -2 : 3)); g.closePath(); g.fill();
+  return cache[k] = mk(c, [4, 1]);
 }
 // 腰帶：底色＋織紋（依編號換花樣）
 export function obiTex(color, i) {
@@ -264,9 +267,9 @@ export function faceTex(ey, br, mo, ck, mk) {
   g.translate(512, 0); g.scale(-1, 1);
   const put = (img, cx, cy, w) => { if (!img) return; const h = w * img.height / img.width; g.drawImage(img, cx - w / 2, cy - h / 2, w, h); };
   if (ck) for (const x of [150, 362]) { const gr = g.createRadialGradient(x, 270, 2, x, 270, ck === 2 ? 44 : 34); gr.addColorStop(0, `rgba(240,110,120,${ck === 2 ? .5 : .32})`); gr.addColorStop(1, 'rgba(240,110,120,0)'); g.fillStyle = gr; g.fillRect(x - 50, 220, 100, 100); }
-  if (ey === 9) { g.strokeStyle = '#2a1a14'; g.lineWidth = 9; g.lineCap = 'round'; for (const x of [168, 344]) { g.beginPath(); g.arc(x, 168, 52, .35 * Math.PI, .65 * Math.PI); g.stroke(); g.lineWidth = 5; for (const d of [-1, 1]) { g.beginPath(); g.moveTo(x + d * 46, 205); g.lineTo(x + d * 62, 212); g.stroke(); } g.lineWidth = 9; } }
-  else put(F.eyes[ey], 256, 192, ey === 0 ? 270 : 290);
-  put(F.brows[br], 256, br === 2 ? 98 : 112, br === 2 ? 200 : 300);
+  if (ey === 9) { g.strokeStyle = '#2a1a14'; g.lineWidth = 9; g.lineCap = 'round'; for (const x of [164, 348]) { g.beginPath(); g.arc(x, 182, 56, .35 * Math.PI, .65 * Math.PI); g.stroke(); g.lineWidth = 5; for (const d of [-1, 1]) { g.beginPath(); g.moveTo(x + d * 50, 220); g.lineTo(x + d * 66, 227); g.stroke(); } g.lineWidth = 9; } }
+  else put(F.eyes[ey], 256, 206, ey === 0 ? 300 : 316);
+  put(F.brows[br], 256, br === 2 ? 106 : 124, br === 2 ? 200 : 290);
   put(F.mouths[mo], 256, 322, mo === 3 ? 96 : mo === 1 ? 70 : 78);
   if (mk) { g.fillStyle = '#3a2418'; g.beginPath(); g.arc(358, 238, 4, 0, 7); g.fill(); }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return cache[k] = t;

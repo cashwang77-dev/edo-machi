@@ -1287,7 +1287,10 @@ function updViewOffset() {
   viewOff += (target - viewOff) * .15;
   if (viewOff > 1) camera.setViewOffset(innerWidth, innerHeight, 0, viewOff, innerWidth, innerHeight); else if (camera.view && camera.view.enabled) camera.clearViewOffset();
 }
-function render() { updViewOffset(); if (G.shot) { const v = G.shot; camera.position.set(v[0], v[1], v[2]); camera.lookAt(v[3], v[4], v[5]); } if (quality === 2 && composer) composer.render(); else renderer.render(scene, camera); }
+const PERF = new URLSearchParams(location.search).has('perf'); let perfF = 0, perfT = performance.now();
+if (PERF) renderer.info.autoReset = false;
+function render() { if (PERF) { renderer.info.reset(); perfF++; const n = performance.now(); if (n - perfT > 2000) { const i = renderer.info; let meshes = 0, chars = 0; scene.traverseVisible(o => { if (o.isMesh) meshes++; }); document.title = 'PERF ' + JSON.stringify({ fps: +(perfF * 1000 / (n - perfT)).toFixed(1), calls: i.render.calls, tris: i.render.triangles, geo: i.memory.geometries, tex: i.memory.textures, meshes, npcs: NPCS.length, q: quality }); perfF = 0; perfT = n; } }
+  updViewOffset(); if (G.shot) { const v = G.shot; camera.position.set(v[0], v[1], v[2]); camera.lookAt(v[3], v[4], v[5]); } if (quality === 2 && composer) composer.render(); else renderer.render(scene, camera); }
 let miniT = 0, lodT = 0;
 let frameN = 0;
 function loop() {
