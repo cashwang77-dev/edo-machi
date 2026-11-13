@@ -8,6 +8,7 @@ import { buildWorld, walkable, heightAt } from './world.js';
 import { RIDE_Y } from './chara.js';
 import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES } from './chara.js';
 import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js';
 import { Net } from './net.js';
 import { cleanText } from './filter.js';
 import { SND } from './audio.js';
@@ -257,7 +258,7 @@ function updNPCs(dt) {
         if (!anim) anim = 1;
       }
     }
-    else { n.wait -= dt; if (n.wait <= 0) { npcPlan(n); n.t = 0; } if (!anim && n.idleA) { anim = n.idleA; } }
+    else { n.wait -= dt; if (n.wait <= 0) { npcPlan(n); n.t = 0; } if (!anim && n.idleA) { anim = n.idleA; } if (!anim && FEST.on && n.i % 3 !== 1) { anim = 10; n.wait = Math.max(n.wait, 3); } } // 祭典時跳盆踊
     n.ch.play(anim); n.ch.update(dt, sp);
   }
   for (const id in keepers) {
@@ -941,13 +942,25 @@ function callTick(dt) {
   callT -= dt; callGlobal -= dt; if (callT > 0) return; callT = 1;
   if (callGlobal > 0) return;
   const cands = W.shops.filter(s => !G.owners[s.def.id] && CALLS[s.def.id] && (callCD[s.def.id] || 0) < performance.now() / 1000)
-    .map(s => [s, Math.hypot(s.front.x - G.pos.x, s.front.z - G.pos.z)]).filter(([, d]) => d < 18).sort((a, b) => a[1] - b[1]);
-  if (!cands.length || Math.random() < .35) return;
+    .map(s => [s, Math.hypot(s.front.x - G.pos.x, s.front.z - G.pos.z)]).filter(([, d]) => d < 28).sort((a, b) => a[1] - b[1]);
+  if (!cands.length || Math.random() < .15) return;
   const [s, d] = cands[Math.floor(Math.random() * Math.min(2, cands.length))]; const [ja, zh] = CALLS[s.def.id];
-  callCD[s.def.id] = performance.now() / 1000 + 25 + Math.random() * 25; callGlobal = 7 + Math.random() * 6;
+  callCD[s.def.id] = performance.now() / 1000 + 14 + Math.random() * 14; callGlobal = 3.5 + Math.random() * 3.5;
   const k = keepers[s.def.id]; if (k) { k.say(zh, 3.5); k.play(7); setTimeout(() => k.play(0), 1200); }
-  SND.call(ja, zh, 1 - d / 20, .9 + (s.def.x % 7) / 30);
+  SND.call(ja, zh, 1 - d / 30, .9 + (s.def.x % 7) / 30);
 }
+// 棒手振り：挑扁擔沿街叫賣的小販（由路過的町人喊）
+const PEDDLERS = [['きんぎょ〜え〜、きんぎょ〜', '金魚喔～賣金魚～'], ['いわし〜、いわしこ〜', '沙丁魚～新鮮的沙丁魚～'], ['なっと〜、なっと〜', '納豆～納豆喔～'], ['ふうりん〜、ふうりん〜', '風鈴～涼快的風鈴～'], ['あまざけ〜、あまいあまざけ〜', '甜酒釀～甜甜的甘酒～'], ['たけや〜、さおだけ〜', '竹竿～賣竹竿～'], ['しゃぼん玉〜、玉や〜', '泡泡～吹泡泡喔～']];
+let pedT = 6;
+function peddlerTick(dt) {
+  pedT -= dt; if (pedT > 0) return; pedT = 9 + Math.random() * 9;
+  const c = NPCS.filter(n => n.ch.root.visible && n.st === 'walk' && n.ch.root.position.distanceTo(G.pos) < 24); if (!c.length) return;
+  const n = c[Math.floor(Math.random() * c.length)], [ja, zh] = PEDDLERS[Math.floor(Math.random() * PEDDLERS.length)], d = n.ch.root.position.distanceTo(G.pos);
+  n.ch.say(zh, 3.5); SND.call(ja, zh, 1 - d / 28, .85 + Math.random() * .3);
+}
+// 祭典前一分鐘提醒
+let festWarned = 0;
+function festNotice() { const t = nextFestIn(); if (t > 0 && t < 60 && festWarned < Date.now() - 120000) { festWarned = Date.now(); toast('🏮 夏祭り再一分鐘開始！神轎會從大街經過', 4000); } }
 
 // ---------- 祭典遊戲：撈金魚、射的 ----------
 function gameModal(title, hint) {
@@ -1281,7 +1294,7 @@ function update(dt) {
   if (G.mode !== 'title' && W) {
     const near = [...G.remotes.values()].filter(r => r.ch.root.position.distanceTo(G.pos) < 15).length + NPCS.filter(n => n.ch.root.visible && n.ch.root.position.distanceTo(G.pos) < 15).length;
     SND.update(dt, tday(), W.night || 0, Math.max(0, Math.abs(G.pos.x - 125) - 13), near, Math.abs(G.pos.z) < 12 && G.pos.x > -100 && G.pos.x < 104);
-    callTick(dt);
+    callTick(dt); peddlerTick(dt); updMatsuri(dt); festNotice();
   }
   W.update(dt, time, tday(), G.me ? G.me.root.position : new THREE.Vector3(), camera.position, quality);
   if (bloom) bloom.strength = .18 + W.night * .55;
@@ -1371,6 +1384,7 @@ if (isTouch) document.body.classList.add('touch');
   W.sunLight = scene.children.find(o => o.isDirectionalLight);
   setupPost(); applyQuality();
   addMe(); spawnNPCs(); spawnDeer(); buildTitle();
+  initMatsuri({ scene, Chara, SND, announce, toast, pos: () => G.pos, night: () => W.night || 0 });
   $('#loading').classList.add('hide');
   if (QS.has('cam')) { G.shot = QS.get('cam').split(',').map(Number); show('#title', false); }
   if (QS.has('oiran') && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { G.me.gm = true; G.me.setLook(G.look); G.me.setName('👑 花魁'); }

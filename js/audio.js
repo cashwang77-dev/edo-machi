@@ -50,7 +50,7 @@ export const SND = {
       if (v > .02 && !tr.playing) { tr.playing = true; tr.el.play().catch(() => { tr.playing = false; }); }
       if (v <= .02 && tr.playing && tr.g.gain.value < .03) { tr.el.pause(); tr.playing = false; }
     }
-    T(this.crowd.g.gain, Math.min(.16, .03 + crowd * .012) * (1 - night * .6));
+    T(this.crowd.g.gain, Math.min(.24, .06 + crowd * .016) * (1 - night * .5));
     T(this.river.g.gain, Math.max(0, .22 * (1 - river / 30)));
     T(this.wind.g.gain, .03 + night * .03);
     // 黃昏（暮れ六つ）與清晨（明け六つ）的寺院鐘聲
@@ -111,6 +111,35 @@ export const SND = {
     g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + 1.2);
     o.connect(fl); o2.connect(fl); fl.connect(g).connect(this.sfxG); o.start(t); o2.start(t); o.stop(t + 1.3); o2.stop(t + 1.3);
   },
+  // ---- 祭典音效 ----
+  duck(on) { if (!this.ac) return; this.musicG.gain.setTargetAtTime(this.on.music ? (on ? this.vol.music * .25 : this.vol.music) : 0, this.ac.currentTime, .8); },
+  taiko(k = 1, vol = 1) { // 1＝小鼓「ドン」 2＝大鼓「ドーン」 3＝鼓邊「カッ」
+    if (!this.ac || !this.on.sfx) return; const ac = this.ac, t = ac.currentTime, v = .5 * vol;
+    if (k === 3) { const n = this.noiseBuf(); const s = ac.createBufferSource(); s.buffer = n; const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2400; f.Q.value = 3; const g = ac.createGain(); g.gain.setValueAtTime(v * .7, t); g.gain.exponentialRampToValueAtTime(.001, t + .06); s.connect(f).connect(g).connect(this.sfxG); s.start(t); s.stop(t + .08); return; }
+    const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; const f0 = k === 2 ? 95 : 140;
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * .45, t + (k === 2 ? .45 : .25));
+    g.gain.setValueAtTime(v * (k === 2 ? 1.1 : .7), t); g.gain.exponentialRampToValueAtTime(.001, t + (k === 2 ? .6 : .32));
+    o.connect(g).connect(this.sfxG); o.start(t); o.stop(t + .65);
+  },
+  fue() { // 篠笛：五聲音階的一小段旋律
+    if (!this.ac || !this.on.sfx) return; const ac = this.ac; let t = ac.currentTime + .05;
+    const scale = [587, 659, 784, 880, 988, 1175, 1319], n = 4 + Math.floor(Math.random() * 4); let idx = 2 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < n; i++) {
+      idx = Math.max(0, Math.min(scale.length - 1, idx + [-2, -1, 1, 2, 0][Math.floor(Math.random() * 5)])); const d = [.22, .33, .44][Math.floor(Math.random() * 3)];
+      const o = ac.createOscillator(), lfo = ac.createOscillator(), lg = ac.createGain(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = scale[idx];
+      lfo.frequency.value = 6; lg.gain.value = scale[idx] * .012; lfo.connect(lg).connect(o.frequency);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.07, t + .04); g.gain.setValueAtTime(.07, t + d * .8); g.gain.linearRampToValueAtTime(0, t + d);
+      o.connect(g).connect(this.sfxG); o.start(t); lfo.start(t); o.stop(t + d + .02); lfo.stop(t + d + .02); t += d;
+    }
+  },
+  boom(vol = 1) { // 煙火：低沉爆炸＋劈啪聲
+    if (!this.ac || !this.on.sfx) return; const ac = this.ac, t = ac.currentTime, n = this.noiseBuf();
+    const s = ac.createBufferSource(); s.buffer = n; const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 260; const g = ac.createGain();
+    g.gain.setValueAtTime(.9 * vol, t); g.gain.exponentialRampToValueAtTime(.001, t + 1.4); s.connect(f).connect(g).connect(this.sfxG); s.start(t); s.stop(t + 1.5);
+    const s2 = ac.createBufferSource(); s2.buffer = n; const f2 = ac.createBiquadFilter(); f2.type = 'highpass'; f2.frequency.value = 3000; const g2 = ac.createGain();
+    g2.gain.setValueAtTime(0, t); g2.gain.linearRampToValueAtTime(.12 * vol, t + .25); g2.gain.exponentialRampToValueAtTime(.001, t + 1.3); s2.connect(f2).connect(g2).connect(this.sfxG); s2.start(t); s2.stop(t + 1.4);
+  },
+  noiseBuf() { if (this._nb) return this._nb; const ac = this.ac, b = ac.createBuffer(1, ac.sampleRate * 1.5, ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return this._nb = b; },
   // 叫賣：用瀏覽器語音念日文，沒有日文語音就念中文
   voices: null,
   call(ja, zh, vol = 1, pitch = 1) {
