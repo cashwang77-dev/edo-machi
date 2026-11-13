@@ -4,6 +4,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as TX from './tex.js';
 import { SHOPS, STREET } from './shops.js';
 import { buildTemple } from './temple.js';
+import { buildMeisho, KINKAKU_POND } from './meisho.js';
 
 const PI = Math.PI;
 export const ARCH = x => (x > 110 && x < 140) ? 1.7 * Math.sin(PI * (x - 110) / 30) : 0;
@@ -624,7 +625,7 @@ export function buildWorld(scene) {
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(); let k = 0;
     for (let gx = -260; gx < 260 && k < n; gx += 11) for (let gz = -170; gz < 170 && k < n; gz += 10) {
       if (Math.abs(gz) < 19) continue; if (gx > 102 && gx < 148) continue; if (gx < -96 && gx > -152 && Math.abs(gz) < 30) continue;
-      if (gx > 140 && gx < 190 && Math.abs(gz) < 34) continue; if (gx > 132 && gx < 224 && gz < -30 && gz > -114) continue; if (Math.abs(gx - 8) < 6 && Math.abs(gz + 26) < 6) continue;
+      if (gx > 140 && gx < 190 && Math.abs(gz) < 34) continue; if (gx > 132 && gx < 228 && gz > 28 && gz < 120) continue; if (gx > -142 && gx < -108 && gz < -20 && gz > -90) continue; // 名所區 if (gx > 132 && gx < 224 && gz < -30 && gz > -114) continue; if (Math.abs(gx - 8) < 6 && Math.abs(gz + 26) < 6) continue;
       if (rand() < .1) continue;
       const w = 6 + rand() * 4, d = 6 + rand() * 3, h = 2.8 + (rand() < .4 ? 2.4 : 0);
       const x = gx + (rand() - .5) * 3, z = gz + (rand() - .5) * 2, ry = rand() < .5 ? 0 : PI / 2;
@@ -658,6 +659,7 @@ export function buildWorld(scene) {
   }
 
   buildTemple({ M, boxG, C, std, glow, toro, pine, B, W, col, box, rand, TX, lanternMat, LANTERN_G, scene });
+  buildMeisho({ M, boxG, C, std, glow, toro, pine, B, W, col, box, rand, TX, lanternMat, LANTERN_G, scene });
   wblk(157, 199, 0, 27, -104.5, -77.6); wblk(167.4, 175.3, 0, 21, -50.6, -43.4); wblk(180.7, 188.6, 0, 21, -50.6, -43.4); wblk(165, 191, 9.6, 21, -54, -40);
   wblk(198, 208, 6.4, 10.5, -71, -61); wblk(-142.5, -129.6, 0, 9, -7, 7); wblk(154.6, 159.2, 1.8, 3.3, 7.6, 11.6);
   wblk(168, 175.5, 0, 7, -16.5, -7.5);
@@ -724,6 +726,8 @@ export function walkable(x, z) {
   if (x >= 110 && x <= 140 && Math.abs(z) < 2.15) return true;
   if (x >= 138.4 && x <= 185 && Math.abs(z) < 40) return true;
   if (x >= 140 && x <= 216 && z <= -38 && z >= -107) return true;
+  if (x >= -126.1 && x <= -123.9 && z <= -23 && z >= -76) return true; // 千本鳥居
+  if (x >= 140 && x <= 216 && z >= 38 && z <= 112) { const P = KINKAKU_POND; return ((x - P.x) / (P.rx + 1)) ** 2 + ((z - P.z) / (P.rz + 1)) ** 2 > 1; } // 金閣寺庭園（池子不能走）
   return false;
 }
 export function heightAt(x, z) { return (x > 110 && x < 140 && Math.abs(z) < 2.6) ? ARCH(x) : 0; }

@@ -319,6 +319,7 @@ function act() {
   else if (near.type === 'kane') ringKane();
   else if (near.type === 'deer') petDeer(near.deer);
   else if (near.type === 'donate') { show('#donate'); G.me.emoji('🙇'); }
+  else if (near.type === 'meisho') { const sp = near.spot; G.me.say(sp.say || '好壯觀！', 3); G.me.emoji('📸'); toast(sp.info, 6500); sfx(660, .2); closeup(5, { dist: 3.6, h: 1.7, ang: 2.6, look: 1.6, spin: .25 }); }
   else if (near.type === 'well') { G.me.say('井水好冰涼～'); emote(6); sfx(300, .3, 'sine', .05); }
   else if (near.type === 'pray') {
     if (!afford(1)) return toast('身上沒有錢可以投香油錢……');
@@ -679,7 +680,7 @@ function announce(s, n) { const b = $('#banner'); b.innerHTML = `<small>📜 ${e
 const ROOM_ZH = { edo1: '一丁目', edo2: '二丁目', edo3: '三丁目', edo4: '四丁目', edo5: '五丁目' };
 const GMS = { tab: 'all', q: '', rooms: null, timer: null, open: new Set() };
 function placeName(x, z) {
-  if (x > 140 && z < -38) return '東光寺'; if (x > 100 && x < 118) return '日本橋'; if (z < -20) return '神社一帶'; if (x < -90) return '町西';
+  if (x > 140 && z < -38) return '東光寺'; if (x > 138 && z > 38) return '金閣寺'; if (x < -110 && z < -23) return '千本鳥居'; if (x > 145 && x < 160 && Math.abs(z) < 6) return '雷門'; if (x > 100 && x < 118) return '日本橋'; if (z < -20) return '神社一帶'; if (x < -90) return '町西';
   let best = '大街', bd = 9e9; for (const sh of SHOPS) { const d = Math.abs(sh.x - x) + Math.abs((sh.side || 1) * 11 - z); if (d < bd) { bd = d; best = sh.name || best; } } return bd < 14 ? best + '前' : '大街';
 }
 function openGM() {
