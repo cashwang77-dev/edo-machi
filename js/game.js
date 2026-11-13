@@ -6,7 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { buildWorld, walkable, heightAt } from './world.js';
 import { RIDE_Y } from './chara.js';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES } from './chara.js';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER } from './chara.js';
 import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js';
 import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js';
 import { Net } from './net.js';
@@ -368,11 +368,19 @@ function openShop(s) {
   $('#bCust').onclick = () => { const seat = s.seats.find(seatFree); if (!seat) return toast('客滿了，稍等一下吧'); closePanels(); G.shop = s; sitAt(seat); openMenu(s); };
   if ($('#bOwn')) $('#bOwn').onclick = () => { closePanels(); claim(s); };
 }
+// 菜單料理插圖（Gemini 繪製，img/food/）
+function foodIcon(d, m) {
+  if (!m.dish) return ''; const t = m.dish.type;
+  if (['takoyaki', 'yakisoba', 'wataame', 'ringo', 'ika', 'ame', 'sushi'].includes(t)) return t;
+  if (t === 'skewer') return 'dango';
+  if (d.id === 'soba') return 'soba'; if (d.id === 'tempura') return 'tendon'; if (d.id === 'unagi' && t === 'bowl') return 'bowl2'; if (d.id === 'izakaya' && t === 'bowl') return 'bowl2';
+  return '';
+}
 function openMenu(s) {
   const d = s.def; const own = G.owners[d.id];
   const p = $('#panel');
   p.innerHTML = `<h2>${d.name}<small>品書き（菜單）</small></h2><p class="sub">${own ? `店主：${ownerName(own)}（玩家）` : 'NPC 掌櫃為您服務'}　身上：<b>${G.gm ? '∞' : G.money}</b> 文</p>
-  <div class="menu">${d.menu.map((m, i) => `${m.cat && (i === 0 || d.menu[i - 1].cat !== m.cat) ? `<div class="mcat">${m.cat}</div>` : ''}<button class="mi" data-i="${i}" ${afford(m.p) ? '' : 'disabled'}><span class="jp">${m.n}</span><span class="zh">${m.zh}${m.acc && invGet().includes(m.acc.id) ? '（已擁有）' : ''}</span><span class="pr">${m.p} 文</span></button>`).join('')}</div>
+  <div class="menu">${d.menu.map((m, i) => `${m.cat && (i === 0 || d.menu[i - 1].cat !== m.cat) ? `<div class="mcat">${m.cat}</div>` : ''}<button class="mi${foodIcon(d, m) ? ' hasi' : ''}" data-i="${i}" ${afford(m.p) ? '' : 'disabled'}>${foodIcon(d, m) ? `<img class="fi" src="img/food/${foodIcon(d, m)}.png" alt="">` : ''}<span class="jp">${m.n}</span><span class="zh">${m.zh}${m.acc && invGet().includes(m.acc.id) ? '（已擁有）' : ''}</span><span class="pr">${m.p} 文</span></button>`).join('')}</div>
   <div class="btns"><button id="bLeave">🚶 起身離開</button></div>`;
   show('#panel'); show('#seatBar', false);
   p.querySelectorAll('.mi').forEach(b => b.onclick = () => order(s, d.menu[+b.dataset.i]));
@@ -1215,9 +1223,9 @@ function toggleView() {
 // ---------- 標題畫面（換裝） ----------
 function buildTitle() {
   $('#nameIn').value = G.name; $('#gmIn').value = store.get('gmk', ''); { let taps = [], lg = document.querySelector('#title .logo h1'); lg.style.pointerEvents = 'auto'; lg.addEventListener('pointerdown', () => { const t = performance.now(); taps = taps.filter(x => t - x < 2500); taps.push(t); if (taps.length >= 5) { taps = []; $('#gmRow').classList.toggle('hide'); } }); }
-  const rows = [['k', '和服', KIMONO.map(k => k[1]), KIMONO.map(k => k[0])], ['p', '花紋', null, PATTERNS.slice(0, 6)], ['o', '腰帶', OBI, null], ['h', '髮型', null, HAIRS], ['s', '膚色', SKINS, null], ['ey', '眼睛', null, EYES], ['br', '眉毛', null, BROWS], ['mo', '嘴巴', null, MOUTHS], ['ck', '腮紅', null, CHEEKS], ['mk', '痣', null, MOLES]];
+  const rows = [['k', '和服', KIMONO.map(k => k[1]), KIMONO.map(k => k[0])], ['p', '花紋', null, PATTERNS.slice(0, 6)], ['o', '腰帶', OBI, null], ['h', '髮型', null, HAIRS], ['s', '膚色', SKINS, null], ['y', '衣裝', null, OUTFITS], ['yc', '外衣色', OUTER, null], ['ey', '眼睛', null, EYES], ['br', '眉毛', null, BROWS], ['mo', '嘴巴', null, MOUTHS], ['ck', '腮紅', null, CHEEKS], ['mk', '痣', null, MOLES]];
   $('#looks').innerHTML = rows.map(([k, t, cols, names]) => `<div class="lr"><span>${t}</span><div>${(cols || names).map((c, i) => cols ? `<button class="sw" data-k="${k}" data-v="${i}" style="background:${c}" title="${names ? names[i] : ''}"></button>` : `<button class="tx" data-k="${k}" data-v="${i}">${c}</button>`).join('')}</div></div>`).join('');
-  ['ey', 'br', 'mo', 'ck', 'mk', 'fc'].forEach(k => { if (G.look[k] == null) G.look[k] = k === 'ck' || k === 'fc' ? 1 : 0; });
+  ['ey', 'br', 'mo', 'ck', 'mk', 'fc', 'y', 'yc'].forEach(k => { if (G.look[k] == null) G.look[k] = k === 'ck' || k === 'fc' ? 1 : 0; });
   const sync = () => document.querySelectorAll('#looks [data-k]').forEach(b => b.classList.toggle('on', G.look[b.dataset.k] == b.dataset.v));
   document.querySelectorAll('#looks [data-k]').forEach(b => b.onclick = () => { G.look[b.dataset.k] = +b.dataset.v; G.me.setLook(G.look); sync(); G.faceZoom = ['ey', 'br', 'mo', 'ck', 'mk', 'h', 's'].includes(b.dataset.k) ? 3.5 : 0; });
   sync();

@@ -9,7 +9,9 @@ export const KIMONO = [
 ];
 export const OBI = ['#8a2f2f', '#2b2b2b', '#c9a24a', '#e8e2d2', '#355d8a', '#6b3f6b'];
 export const PATTERNS = ['無地', '縞', '水玉', '市松', '麻の葉', '桜', '朝顔', '金魚', '花火', '青海波', '龜甲', '梅', '菊'];
-export const HAIRS = ['丁髷', '島田髷', '総髪', '坊主', '唐輪'];
+export const HAIRS = ['丁髷', '島田髷', '総髪', '坊主', '唐輪', 'おかっぱ', 'ポニー', '垂髪'];
+export const OUTFITS = ['着物', '羽織', '袴', '法被'];
+export const OUTER = ['#2a2a3a', '#5a3a2a', '#3a5a4a', '#6a2a2a', '#2a4a6a', '#c9b48a'];
 export const HATS = ['なし', '菅笠', '簪', '鉢巻', '狐面'];
 export const WAIST = ['なし', '印籠', '巾着'];
 export const CARRY = ['なし', '扇子', '番傘'];
@@ -27,7 +29,7 @@ const BODY_S = .86; // 身體整體比例（頭部另外反向補償，頭身比
 
 export function randomLook(r = Math.random) {
   const pick = n => Math.floor(r() * n);
-  return { k: pick(KIMONO.length), p: [0, 0, 1, 2, 3, 4, 5, 9, 10, 11, 12][pick(11)], o: pick(OBI.length), h: pick(HAIRS.length), s: pick(3), hat: r() < .15 ? 1 : 0, c: r() < .1 ? pick(3) : 0, ey: pick(5), br: pick(4), mo: pick(4), ck: pick(3), mk: r() < .2 ? 1 : 0 };
+  return { k: pick(KIMONO.length), p: [0, 0, 1, 2, 3, 4, 5, 9, 10, 11, 12][pick(11)], o: pick(OBI.length), h: pick(HAIRS.length), s: pick(3), hat: r() < .15 ? 1 : 0, c: r() < .1 ? pick(3) : 0, ey: pick(5), br: pick(4), mo: pick(4), ck: pick(3), mk: r() < .2 ? 1 : 0, y: [0, 0, 0, 1, 2, 3][pick(6)], yc: pick(6) };
 }
 const V2 = a => a.map(p => new THREE.Vector2(p[0], p[1]));
 // 把球形變成真人頭型：拉長、側面收窄、下巴收尖、顴骨、後腦飽滿（頭、臉部貼花、頭髮共用，貼合不浮）
@@ -200,12 +202,13 @@ export class Chara {
     this.fukiM.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4], { roughness: .6 });
     this.obiM.material = obi; this.bowM.material = obi; this.headM.material = skin; this.neckM.material = skin; this.buildFace(lk, skin); this.apply3d();
     this.cordM.material = mat(['#c8322a', '#e8c56a', '#3a6a8a', '#f4f0e4', '#8a3a6a', '#2f6a4a'][(lk.o + 2) % 6]);
-    const female = lk.h === 1 || lk.h === 4;
+    const female = [1, 4, 5, 6, 7].includes(lk.h % HAIRS.length);
     this.obiM.scale.set(1, female ? 1 : .5, 1); this.obiM.position.y = female ? .25 : .19; this.obiageM.visible = female; this.cordM.visible = female; this.fukiM.visible = female;
     this.bowM.geometry = female ? G.taiko : G.knotB; this.bowM.position.set(0, female ? .25 : .23, female ? -.215 : -.2);
     this.hairG.clear(); this.accG.clear(); this.carryG.clear(); this.foodG.clear(); this.waistG.clear(); this.oiranG.clear(); this.auraG.clear(); this.backG.clear(); this.wheel = null;
     if (this.light) { this.root.remove(this.light); this.light = null; }
     this.lift = 0; this.koma.forEach(k => k.visible = false); this.legs.forEach(l => { l.userData.geta.visible = true; l.userData.teeth.forEach(t => { t.userData.minor = true; }); });
+    this.outfit(lk, km, skin);
     if (this.gm) { this.buildOiran(lk); return; }
     const H = (g, x, y, z, sx = 1, sy = 1, sz = 1, rx = 0, rz = 0) => mesh(g, hairMat, this.hairG, x, y, z, rx, 0, rz, sx, sy, sz);
     const HC = (y = .005, s = 1.04) => { H(G.capTop, 0, y, -.008, s, s * 1.02, s * 1.05); H(G.capBack, 0, y - .005, -.01, s * 1.02, s * 1.04, s * 1.06); };
@@ -221,6 +224,14 @@ export class Chara {
       }
       case 2: { HC(0, 1.05); const k = H(G.knot, 0, .02, -.16); k.rotation.x = .55; k.scale.set(1.6, 1.4, 1.6); H(G.bun, 0, -.06, -.2, .35, .9, .35); break; } // 総髪
       case 3: { break; } // 坊主：光頭就是頭皮本身，不另外加片
+      case 5: { HC(0, 1.05); // おかっぱ：齊瀏海、兩側到下巴、後面整齊
+        for (const sx of [-1, 1]) H(new THREE.BoxGeometry(.05, .2, .2), sx * .118, -.05, -.02, 1, 1, 1);
+        H(new THREE.BoxGeometry(.24, .2, .06), 0, -.05, -.12); H(new THREE.BoxGeometry(.22, .05, .05), 0, .085, .11); break; }
+      case 6: { HC(); H(G.bun, 0, .05, -.13, .45, .45, .45); // ポニー：高馬尾＋綁帶
+        const tail = H(new THREE.CylinderGeometry(.045, .015, .28, 8), 0, -.08, -.2); tail.rotation.x = .35;
+        mesh(new THREE.TorusGeometry(.035, .01, 4, 10), mat('#c8322a'), this.hairG, 0, .06, -.14, .3, 0, 0, 1, 1, 1, false); break; }
+      case 7: { HC(); H(new THREE.BoxGeometry(.24, .42, .05), 0, -.13, -.12); for (const sx of [-1, 1]) H(new THREE.BoxGeometry(.045, .3, .14), sx * .118, -.08, -.04); // 垂髪：長髮披背
+        mesh(new THREE.BoxGeometry(.08, .025, .02), mat('#f4efe2'), this.hairG, 0, -.06, -.15, 0, 0, 0, 1, 1, 1, false); break; }
       case 4: { HC(); H(G.bun, 0, .092, .07, .54, .34, .42); for (const s of [-1, 1]) { H(G.bun, s * .1, .15, -.02, .78, .78, .78); mesh(G.pin, mat('#d8b24a', { metalness: .6, roughness: .3 }), this.hairG, s * .1, .15, -.02, 0, 0, PI / 2, 1, .9, 1); } break; } // 唐輪
     }
     if (lk.hat === 1) { const h = mesh(G.hatG, mat('#c9a868', { side: THREE.DoubleSide }), this.accG, 0, .2, 0); for (let i = 0; i < 6; i++) mesh(new THREE.TorusGeometry(.34 - i * .05, .004, 3, 20), mat('#8a6a3a'), this.accG, 0, .13 + i * .022, 0, PI / 2, 0, 0, 1, 1, 1, false); mesh(new THREE.CylinderGeometry(.003, .003, .3, 3), mat('#5a3a2a'), this.accG, 0, -.06, .1, .3, 0, 0, 1, 1, 1, false); }
@@ -387,6 +398,29 @@ export class Chara {
     if (this.name) this.setName(this.name);
   }
   // 遠處省略細節（效能）
+  outfit(lk, km, skin) {
+    if (this.outG) this.upper.remove(this.outG); this.outG = new THREE.Group(); this.upper.add(this.outG);
+    this.skirtG.scale.set(1, 1, 1); this.skirtSY = 1; this.skirtM.material = km;
+    const y = (lk.y || 0) % OUTFITS.length, oc = OUTER[(lk.yc || 0) % OUTER.length];
+    if (y === 1) { // 羽織：外套罩在和服外面，長到大腿，前面羽織繩
+      const hm = TM({ map: TX.fabric(oc) });
+      const shell = mesh(new THREE.LatheGeometry(V2([[.2, -.2], [.205, -.05], [.198, .1], [.19, .26], [.186, .4], [.182, .48], [.16, .55], [.11, .6], [.07, .625]]), 20), hm, this.outG, 0, 0, 0, 0, 0, 0, 1.04, 1, 1.06);
+      shell.material = shell.material.clone(); shell.material.side = THREE.DoubleSide;
+      this.arms.forEach(a => { a.userData.sl.material = hm; a.userData.arm.material = hm; });
+      for (const sx of [-1, 1]) mesh(new THREE.SphereGeometry(.018, 8, 6), mat('#f4efe2'), this.outG, sx * .03, .38, .2, 0, 0, 0, 1, 1, 1, false);
+      mesh(new THREE.CylinderGeometry(.005, .005, .07, 4), mat('#f4efe2'), this.outG, 0, .37, .205, 0, 0, PI / 2, 1, 1, 1, false);
+    } else if (y === 2) { // 袴：下半身寬大、細條紋
+      this.skirtM.material = TM({ map: TX.pattern(1, oc, '#00000033') });
+      this.skirtG.scale.set(1.22, 1, 1.18);
+    } else if (y === 3) { // 法被：短外褂＋背後「祭」字，下身深色緊身褲
+      const hm = TM({ map: TX.pattern(9, '#24406e', '#f4efe2') });
+      this.torsoM.material = hm; this.arms.forEach(a => { a.userData.sl.material = hm; a.userData.arm.material = hm; a.userData.sl.scale.set(.75, .6, .9); a.userData.lin.visible = false; }); this.bowM.geometry = G.knotB; this.bowM.position.set(0, .23, -.2);
+      this.collarC.forEach(c => c.material = mat('#f4efe2'));
+      mesh(new THREE.PlaneGeometry(.2, .2), TM({ map: TX.text('祭', { w: 128, h: 128, bg: '#f4efe2', fg: '#a8232e', vertical: false }), transparent: true }), this.outG, 0, .53, -.175, 0, PI, 0, .85, .85, 1, false);
+      this.skirtG.scale.set(1, .42, 1); this.skirtSY = .42; this.skirtM.material = hm; this.fukiM.visible = false;
+      const pants = mat('#1e2433'); this.legs.forEach(l => { l.userData.th.material = pants; l.userData.sh.material = pants; });
+    }
+  }
   apply3d() { // Q 版頭部比例（大頭可愛）
     const hs = 1.12 / BODY_S * .93; this.headG.scale.set(hs / BODY_W, hs, hs / BODY_W); this.headG.position.y = .765; this.headM.visible = this.hairG.visible = this.faceG.visible = true;
   }
@@ -476,7 +510,7 @@ export class Chara {
     // 袖子受重力下垂：抵銷大部分手臂旋轉
     for (const ar of A) { const u = ar.userData; if (!u.sl) continue; const gx = -ar.rotation.x * .78, gz = -ar.rotation.z * .7; u.sl.rotation.x = gx; u.sl.rotation.z = gz; if (u.lin) { u.lin.rotation.x = gx; u.lin.rotation.z = gz; } }
     this.upper.rotation.x = lr(this.upper.rotation.x, bend); this.upper.rotation.y = lr(this.upper.rotation.y, twist); this.upper.rotation.z = lr(this.upper.rotation.z, side);
-    this.skirtG.rotation.x = lr(this.skirtG.rotation.x, lap - bend); this.skirtG.scale.y = lr(this.skirtG.scale.y, lap < -1 ? .6 : 1);
+    this.skirtG.rotation.x = lr(this.skirtG.rotation.x, lap - bend); this.skirtG.scale.y = lr(this.skirtG.scale.y, (lap < -1 ? .6 : 1) * (this.skirtSY || 1));
     { const th = this.skirtG.rotation.x, Lk = .44 * this.skirtG.scale.y; this.lowG.position.set(0, -Lk * Math.cos(th), -Lk * Math.sin(th)); this.lowG.rotation.x = -this.upper.rotation.x; this.lowG.visible = th < -.8; }
     this.headG.rotation.x = lr(this.headG.rotation.x, headX);
     this.offY = lr(this.offY || 0, sitY);
