@@ -1492,10 +1492,10 @@ if (isTouch) document.body.classList.add('touch');
   // 全部素材同時下載（原本分三批依序等）；花魁貼圖只有 GM 用，背景載入不擋開場
   Promise.all([loadImg('img/tex/oiran_out.jpg'), loadImg('img/tex/oiran_in.jpg')]).then(([a, b]) => { TX.IMG.oiranOut = a; TX.IMG.oiranIn = b; if (G.me && G.me.gm) G.me.setLook(G.look); });
   const L = (pre, n, ext) => Promise.all([...Array(n).keys()].map(i => loadImg(`img/tex/${pre}${i}.${ext}`)));
-  const [art, ey, br, mo, mt, ob, exe, hairImg] = await Promise.all([Promise.all(['roof', 'plaster', 'wood', 'dirt'].map(k => loadImg('img/tex/' + k + '.jpg')).concat([...Array(11).keys()].map(i => loadImg('img/tex/kanban' + i + '.png')))), L('eyes', 5, 'png'), L('brows', 4, 'png'), L('mouths', 4, 'png'), L('motif', 9, 'png'), L('obi', 6, 'jpg'), L('eyex', 4, 'png'), loadImg('img/tex/hair.jpg')]);
+  const [art, ey, br, mo, mt, ob, exe, hairImg, bpat] = await Promise.all([Promise.all(['roof', 'plaster', 'wood', 'dirt'].map(k => loadImg('img/tex/' + k + '.jpg')).concat([...Array(11).keys()].map(i => loadImg('img/tex/kanban' + i + '.png')))), L('eyes', 5, 'png'), L('brows', 4, 'png'), L('mouths', 4, 'png'), L('motif', 9, 'png'), L('obi', 6, 'jpg'), L('eyex', 4, 'png'), loadImg('img/tex/hair.jpg'), L('basepat', 4, 'png')]);
   ['roof', 'plaster', 'wood', 'dirt'].forEach((k, i) => TX.IMG[k] = art[i]); TX.IMG.kanban = art.slice(4);
   if (ey.every(Boolean) && br.every(Boolean) && mo.every(Boolean)) TX.IMG.face = { eyes: ey, brows: br, mouths: mo, ex: exe.every(Boolean) ? exe : null };
-  if (hairImg) TX.IMG.hair = hairImg;
+  if (hairImg) TX.IMG.hair = hairImg; if (bpat.every(Boolean)) TX.IMG.basepat = bpat;
   if (mt.every(Boolean)) TX.IMG.motifs = mt; if (ob.every(Boolean)) TX.IMG.obi = ob;
   W = buildWorld(scene);
   W.sunLight = scene.children.find(o => o.isDirectionalLight);

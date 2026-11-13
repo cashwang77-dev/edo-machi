@@ -123,7 +123,7 @@ export function text(str, o = {}) {
 // 和服花紋
 export function pattern(kind, color, alt = '#f4efe2') {
   const k = 'P' + kind + color + alt; if (cache[k]) return cache[k];
-  if (IMG.motifs && MOTIF[kind] && IMG.motifs[MOTIF[kind][0]]) {
+  if (MOTIF[kind] && (typeof MOTIF[kind][0] === 'string' ? IMG.basepat && IMG.basepat[+MOTIF[kind][0][1]] : IMG.motifs && IMG.motifs[MOTIF[kind][0]])) {
     const [mi, mcol] = MOTIF[kind]; const [c, g] = cv(256, 256);
     g.fillStyle = color; g.fillRect(0, 0, 256, 256);
     const t = document.createElement('canvas'); t.width = t.height = 256; const tg = t.getContext('2d');
@@ -195,6 +195,7 @@ export function oiran(kind) {
 // 一般和服布料：底色＋細織紋
 export function fabric(color) {
   const k = 'FAB' + color; if (cache[k]) return cache[k];
+  if (IMG.basepat && IMG.basepat[3]) { const [c, g] = cv(256, 256); g.fillStyle = color; g.fillRect(0, 0, 256, 256); g.globalAlpha = .1; g.globalCompositeOperation = 'overlay'; g.drawImage(IMG.basepat[3], 0, 0, 256, 256); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; silk(g, 256); return cache[k] = mk(c, [2, 2]); } // Gemini 細織紋
   const [c, g] = cv(128, 128); const r = rnd(color.length * 17 + 3);
   g.fillStyle = color; g.fillRect(0, 0, 128, 128);
   for (let y = 0; y < 128; y += 2) { g.fillStyle = `rgba(255,255,255,${.025 + r() * .02})`; g.fillRect(0, y, 128, 1); }
@@ -247,10 +248,11 @@ export function obiTex(color, i) {
 }
 
 // ---- Gemini 花紋遮罩：圖案編號 → [遮罩序號, 花紋顏色]（null＝用預設對比色）----
-const MOTIF = { 4: [0, null], 5: [1, '#f8dbe3'], 9: [2, null], 10: [3, null], 11: [4, '#f8f2ea'], 6: [5, '#8a7ae0'], 7: [6, '#f26a30'], 8: [7, '#f2d27a'], 12: [8, '#f2d27a'] };
+const MOTIF = { 1: ['b0', null], 2: ['b1', null], 3: ['b2', null], 4: [0, null], 5: [1, '#f8dbe3'], 9: [2, null], 10: [3, null], 11: [4, '#f8f2ea'], 6: [5, '#8a7ae0'], 7: [6, '#f26a30'], 8: [7, '#f2d27a'], 12: [8, '#f2d27a'] };
 function motifAlpha(i) {
   const k = 'MA' + i; if (cache[k]) return cache[k];
-  const [c, g] = cv(256, 256); g.drawImage(IMG.motifs[i], 0, 0, 256, 256);
+  const src = typeof i === 'string' ? IMG.basepat && IMG.basepat[+i[1]] : IMG.motifs[i]; if (!src) return null;
+  const [c, g] = cv(256, 256); g.drawImage(src, 0, 0, 256, 256);
   const d = g.getImageData(0, 0, 256, 256), p = d.data;
   for (let j = 0; j < p.length; j += 4) { const l = (p[j] * .3 + p[j + 1] * .59 + p[j + 2] * .11); p[j] = p[j + 1] = p[j + 2] = 255; p[j + 3] = Math.max(0, Math.min(255, (l - 40) * 1.4)); }
   g.putImageData(d, 0, 0); return cache[k] = c;
