@@ -21,10 +21,10 @@ function buildDeco() {
     const n = 7, y0 = 4.3;
     for (let i = 0; i <= n + 1; i++) { const t = i / (n + 1), z = -6.6 + t * 13.2, y = y0 - Math.sin(t * Math.PI) * .9; cord.push(x, y, z); if (i > 0 && i < n + 2) cord.push(x, y, z); }
     cord.pop(); cord.pop(); cord.pop();
-    for (let i = 1; i <= n; i++) { const t = i / (n + 1), z = -6.6 + t * 13.2, y = y0 - Math.sin(t * Math.PI) * .9 - .32; pos.push([x, y, z]); cols.push(i % 2 ? '#d8282e' : '#f6efe0'); }
+    for (let i = 1; i <= n; i++) { const t = i / (n + 1), z = -6.6 + t * 13.2, y = y0 - Math.sin(t * Math.PI) * .9 - .32; pos.push([x, y, z]); cols.push(i % 2 ? '#ffffff' : '#ffe2c8'); }
   }
   const lg = new THREE.SphereGeometry(.2, 10, 8); lg.scale(1, 1.25, 1);
-  const lm = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+  const lm = new THREE.MeshBasicMaterial({ color: '#ffffff' }); { const t = new THREE.TextureLoader().load('img/tex/lantern_matsuri.jpg'); t.colorSpace = THREE.SRGBColorSpace; lm.map = t; } // Gemini 畫的「祭」提燈
   const inst = new THREE.InstancedMesh(lg, lm, pos.length); const m4 = new THREE.Matrix4(), col = new THREE.Color();
   pos.forEach((p, i) => { m4.makeTranslation(p[0], p[1], p[2]); inst.setMatrixAt(i, m4); inst.setColorAt(i, col.set(cols[i])); });
   inst.instanceMatrix.needsUpdate = true; if (inst.instanceColor) inst.instanceColor.needsUpdate = true; g.add(inst);

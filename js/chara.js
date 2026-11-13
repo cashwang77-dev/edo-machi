@@ -8,7 +8,7 @@ export const KIMONO = [
   ['桜', '#e7b3c0'], ['茶', '#7a5236'], ['江戸紫', '#6a4a8a'], ['浅葱', '#3f97ad'], ['白鼠', '#c9c4ba']
 ];
 export const OBI = ['#8a2f2f', '#2b2b2b', '#c9a24a', '#e8e2d2', '#355d8a', '#6b3f6b'];
-export const PATTERNS = ['無地', '縞', '水玉', '市松', '麻の葉', '桜', '朝顔', '金魚', '花火', '青海波', '龜甲', '梅', '菊'];
+export const PATTERNS = ['無地', '縞', '水玉', '市松', '麻の葉', '桜', '朝顔', '金魚', '花火', '青海波', '龜甲', '梅', '菊', '鱗', '七宝', '矢絣', '雪輪', '紅葉', '波千鳥', '唐草', '籠目', '椿'];
 export const HAIRS = ['丁髷', '島田髷', '総髪', '坊主', '唐輪', 'おかっぱ', 'ポニー', '垂髪'];
 export const OUTFITS = ['着物', '羽織', '袴', '法被'];
 export const OUTER = ['#2a2a3a', '#5a3a2a', '#3a5a4a', '#6a2a2a', '#2a4a6a', '#c9b48a'];
@@ -30,7 +30,7 @@ const BODY_S = .86; // 身體整體比例（頭部另外反向補償，頭身比
 
 export function randomLook(r = Math.random) {
   const pick = n => Math.floor(r() * n);
-  return { k: pick(KIMONO.length), p: [0, 0, 1, 2, 3, 4, 5, 9, 10, 11, 12][pick(11)], o: pick(OBI.length), h: pick(HAIRS.length), s: pick(3), hat: r() < .15 ? 1 : 0, c: r() < .1 ? pick(3) : 0, ey: pick(5), br: pick(4), mo: pick(4), ck: pick(3), mk: r() < .2 ? 1 : 0, y: [0, 0, 0, 1, 2, 3][pick(6)], yc: pick(6), ft: r() < .18 ? 1 + pick(4) : 0, br: pick(8), ey: pick(11), mo: pick(8) };
+  return { k: pick(KIMONO.length), p: [0, 0, 1, 2, 3, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21][pick(20)], o: pick(OBI.length), h: pick(HAIRS.length), s: pick(3), hat: r() < .15 ? 1 : 0, c: r() < .1 ? pick(3) : 0, ey: pick(5), br: pick(4), mo: pick(4), ck: pick(3), mk: r() < .2 ? 1 : 0, y: [0, 0, 0, 1, 2, 3][pick(6)], yc: pick(6), ft: r() < .18 ? 1 + pick(4) : 0, br: pick(8), ey: pick(11), mo: pick(8) };
 }
 const V2 = a => a.map(p => new THREE.Vector2(p[0], p[1]));
 // 把球形變成真人頭型：拉長、側面收窄、下巴收尖、顴骨、後腦飽滿（頭、臉部貼花、頭髮共用，貼合不浮）

@@ -248,7 +248,7 @@ export function obiTex(color, i) {
 }
 
 // ---- Gemini 花紋遮罩：圖案編號 → [遮罩序號, 花紋顏色]（null＝用預設對比色）----
-const MOTIF = { 1: ['b0', null], 2: ['b1', null], 3: ['b2', null], 4: [0, null], 5: [1, '#f8dbe3'], 9: [2, null], 10: [3, null], 11: [4, '#f8f2ea'], 6: [5, '#8a7ae0'], 7: [6, '#f26a30'], 8: [7, '#f2d27a'], 12: [8, '#f2d27a'] };
+const MOTIF = { 13: [9, null], 14: [10, '#f2d27a'], 15: [11, null], 16: [14, null], 17: [15, '#e8735a'], 18: [17, null], 19: [19, '#e8c56a'], 20: [21, null], 21: [22, null], 1: ['b0', null], 2: ['b1', null], 3: ['b2', null], 4: [0, null], 5: [1, '#f8dbe3'], 9: [2, null], 10: [3, null], 11: [4, '#f8f2ea'], 6: [5, '#8a7ae0'], 7: [6, '#f26a30'], 8: [7, '#f2d27a'], 12: [8, '#f2d27a'] };
 function motifAlpha(i) {
   const k = 'MA' + i; if (cache[k]) return cache[k];
   const src = typeof i === 'string' ? IMG.basepat && IMG.basepat[+i[1]] : IMG.motifs[i]; if (!src) return null;
