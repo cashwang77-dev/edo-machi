@@ -19,7 +19,7 @@ const QS = new URLSearchParams(location.search);
 const $ = s => document.querySelector(s);
 const isTouch = matchMedia('(pointer: coarse)').matches || QS.has('touch');
 const store = { get(k, d) { try { const v = localStorage.getItem('edo_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('edo_' + k, JSON.stringify(v)); } catch (e) {} } };
-const DAY = 1800; // 一天＝30 分鐘
+const DAY = 86400; // 一天＝真實一天（台灣時間）
 const PI = Math.PI;
 
 // ---------- 渲染器 ----------
@@ -76,7 +76,9 @@ function edoTime(t) {
   const i = Math.floor(((h + 1) % 24) / 2); const icon = (h > 5.5 && h < 18.5) ? '☀' : '🌙';
   return `${icon} ${names[i]}の刻（${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}）`;
 }
-function tday() { if (QS.has('t')) return +QS.get('t'); return ((Date.now() / 1000 / DAY) + .3 + G.timeOff) % 1; }
+// 遊戲時間＝台灣時間（UTC+8）；GM 調時間時加上偏移
+const twDay = () => ((Date.now() / 1000 + 8 * 3600) % 86400) / 86400;
+function tday() { if (QS.has('t')) return +QS.get('t'); return (twDay() + G.timeOff + 1) % 1; }
 const sfx = (() => { let ac; return (f = 660, d = .12, type = 'sine', v = .08) => { try { ac = ac || new AudioContext(); const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = f; g.gain.value = v; g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + d); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + d); } catch (e) {} }; })();
 
 // ---------- 輸入 ----------
@@ -679,9 +681,9 @@ function drawGM() {
   const b = $('#gmBody'); if (!b) return;
   if (GMS.view === 'town') {
     b.innerHTML = `<p class="sub">全町公告（五條街同時看到）</p><div class="row"><input id="gmAnn" placeholder="公告內容" maxlength="120"><button id="gmAnnB">📜 本街</button><button id="gmAnnAll">📣 全町</button></div>
-    <p class="sub" style="margin-top:12px">本街時間</p><div class="btns">${[['🌅 清晨', .27], ['☀ 正午', .5], ['🌇 黃昏', .755], ['🌙 夜晚', .9]].map(([t, v]) => `<button data-t="${v}">${t}</button>`).join('')}</div>
+    <p class="sub" style="margin-top:12px">本街時間（平常跟台灣時間同步）</p><div class="btns">${[['🕐 恢復台灣時間', '台灣'], ['🌅 清晨', .27], ['☀ 正午', .5], ['🌇 黃昏', .755], ['🌙 夜晚', .9]].map(([t, v]) => `<button data-t="${v}">${t}</button>`).join('')}</div>
     <p class="sub" style="margin-top:12px">前往其他街</p><div class="btns">${[1, 2, 3, 4, 5].map(i => `<button data-go="${i}" ${G.room === i ? 'disabled' : ''}>${ROOM_ZH['edo' + i]}</button>`).join('')}</div>
-    <p class="sub" style="margin-top:10px">聊天框也能打指令：/公告 文字、/時間 0.75、/傳送 名字、/召喚 名字、/給 名字 數量、/禁言 名字 分鐘、/解禁 名字、/踢 名字</p>`;
+    <p class="sub" style="margin-top:10px">聊天框也能打指令：/公告 文字、/時間 0.75（/時間 台灣 恢復）、/傳送 名字、/召喚 名字、/給 名字 數量、/禁言 名字 分鐘、/解禁 名字、/踢 名字</p>`;
     $('#gmAnnB').onclick = () => { const v = $('#gmAnn').value.trim(); if (v) net.send({ t: 'chat', s: '/公告 ' + v }); $('#gmAnn').value = ''; };
     $('#gmAnnAll').onclick = () => { const v = $('#gmAnn').value.trim(); if (v) net.send({ t: 'gma', a: 'announceAll', v }); $('#gmAnn').value = ''; };
     b.querySelectorAll('[data-t]').forEach(x => x.onclick = () => net.send({ t: 'chat', s: '/時間 ' + x.dataset.t }));

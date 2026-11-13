@@ -158,7 +158,7 @@ export class Town {
     const [tid, tp] = this.byName(rest[0]);
     switch (cmd) {
       case 'a': case '公告': if (arg) this.bcast({ t: 'announce', s: arg.slice(0, 120), n: p.n }); break;
-      case 'time': case '時間': { const v = parseFloat(rest[0]); if (v >= 0 && v < 1) { const base = ((Date.now() / 1000 / 1800) + .3) % 1; this.timeOff = (v - base + 1) % 1; this.bcast({ t: 'time', off: this.timeOff }); } break; }
+      case 'time': case '時間': { if (/^(台灣|reset|tw)$/i.test(rest[0] || '')) { this.timeOff = 0; this.bcast({ t: 'time', off: 0 }); break; } const v = parseFloat(rest[0]); if (v >= 0 && v < 1) { const base = ((Date.now() / 1000 + 8 * 3600) % 86400) / 86400; /* 台灣時間 */ this.timeOff = (v - base + 1) % 1; this.bcast({ t: 'time', off: this.timeOff }); } break; }
       case 'kick': case '踢': if (tp && !tp.gm) { this.send(tp.ws, { t: 'kicked' }); try { tp.ws.close(1000, 'kick'); } catch (e) {} this.sys(p.ws, `已踢出 ${tp.n}`); } break;
       case 'mute': case '禁言': if (tp && !tp.gm) { const min = Math.max(1, Math.min(1440, +rest[1] || 10)); tp.muteUntil = Date.now() + min * 60000; this.send(tp.ws, { t: 'muted', until: tp.muteUntil }); this.sys(p.ws, `已禁言 ${tp.n} ${min} 分鐘`); } break;
       case 'unmute': case '解禁': if (tp) { tp.muteUntil = 0; this.sys(tp.ws, '你已被解除禁言'); this.sys(p.ws, `已解除 ${tp.n} 禁言`); } break;
