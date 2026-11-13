@@ -16,9 +16,10 @@ export const HATS = ['なし', '菅笠', '簪', '鉢巻', '狐面'];
 export const WAIST = ['なし', '印籠', '巾着'];
 export const CARRY = ['なし', '扇子', '番傘'];
 export const SKINS = ['#f1d2b6', '#e6bf9c', '#d6a77e'];
-export const EYES = ['圓眼', '細長眼', '垂眼', '吊眼', '笑眼'];
-export const BROWS = ['細眉', '粗眉', '麻呂眉', '劍眉'];
-export const MOUTHS = ['微笑', '開口笑', '小O嘴', '一字嘴'];
+export const EYES = ['圓眼', '細長眼', '垂眼', '吊眼', '笑眼', '睏眼', '星瞳', '豆豆眼', '鳳眼', '琥珀眼', '彎月眼'];
+export const BROWS = ['細眉', '粗眉', '麻呂眉', '劍眉', '短圓眉', '八字眉', '粗直眉', '柳葉眉'];
+export const FEATS = ['無', '雀斑', '八字鬍', '山羊鬍', '圓眼鏡'];
+export const MOUTHS = ['微笑', '開口笑', '小O嘴', '一字嘴', '貓嘴', '露齒笑', '嘟嘴', '小虎牙'];
 export const CHEEKS = ['無', '淡', '濃'];
 export const MOLES = ['無', '淚痣'];
 export const FACES = ['Q版'];
@@ -29,7 +30,7 @@ const BODY_S = .86; // 身體整體比例（頭部另外反向補償，頭身比
 
 export function randomLook(r = Math.random) {
   const pick = n => Math.floor(r() * n);
-  return { k: pick(KIMONO.length), p: [0, 0, 1, 2, 3, 4, 5, 9, 10, 11, 12][pick(11)], o: pick(OBI.length), h: pick(HAIRS.length), s: pick(3), hat: r() < .15 ? 1 : 0, c: r() < .1 ? pick(3) : 0, ey: pick(5), br: pick(4), mo: pick(4), ck: pick(3), mk: r() < .2 ? 1 : 0, y: [0, 0, 0, 1, 2, 3][pick(6)], yc: pick(6) };
+  return { k: pick(KIMONO.length), p: [0, 0, 1, 2, 3, 4, 5, 9, 10, 11, 12][pick(11)], o: pick(OBI.length), h: pick(HAIRS.length), s: pick(3), hat: r() < .15 ? 1 : 0, c: r() < .1 ? pick(3) : 0, ey: pick(5), br: pick(4), mo: pick(4), ck: pick(3), mk: r() < .2 ? 1 : 0, y: [0, 0, 0, 1, 2, 3][pick(6)], yc: pick(6), ft: r() < .18 ? 1 + pick(4) : 0, br: pick(8), ey: pick(11), mo: pick(8) };
 }
 const V2 = a => a.map(p => new THREE.Vector2(p[0], p[1]));
 // 把球形變成真人頭型：拉長、側面收窄、下巴收尖、顴骨、後腦飽滿（頭、臉部貼花、頭髮共用，貼合不浮）
@@ -254,8 +255,8 @@ export class Chara {
     if (TX.IMG.face) {
       for (const s of [-1, 1]) this.skinParts.push(mesh(G.ear, skin, F, s * .108, -.012, -.008, 0, 0, 0, .5, 1.15, .8, false));
       this.noseM = mesh(G.nose, skin, F, 0, -.01, .122, 0, 0, 0, .45, .4, .4, false);
-      this.faceBase = { ey: (lk.ey || 0) % 5, br: (lk.br || 0) % 4, mo: (lk.mo || 0) % 4, ck: lk.ck == null ? 1 : lk.ck % 3, mk: lk.mk ? 1 : 0 }; this.faceKey = '';
-      const b = this.faceBase, tex = TX.faceTex(b.ey, b.br, b.mo, b.ck, b.mk);
+      this.faceBase = { ey: (lk.ey || 0) % EYES.length, br: (lk.br || 0) % BROWS.length, mo: (lk.mo || 0) % MOUTHS.length, ft: (lk.ft || 0) % FEATS.length, ck: lk.ck == null ? 1 : lk.ck % 3, mk: lk.mk ? 1 : 0 }; this.faceKey = '';
+      const b = this.faceBase, tex = TX.faceTex(b.ey, b.br, b.mo, b.ck, b.mk, b.ft);
       this.decal = mesh(G.decal, TM({ map: tex, transparent: true, depthWrite: false, roughness: .5, polygonOffset: true, polygonOffsetFactor: -2 }), F, 0, 0, 0, 0, 0, 0, 1, 1, 1, false);
       this.mouthM = this.noseM; return;
     }
@@ -574,15 +575,15 @@ export class Chara {
     this.exT = (this.exT || 0) - dt; this.talkT = (this.talkT || 0) - dt;
     const k = this.exT > 0 ? this.exK : [9, 14, 11, 10, 7, 16].includes(a) ? 'happy' : [6, 17].includes(a) ? 'calm' : null;
     if (k === 'happy') { ey = 4; mo = 1; } else if (k === 'laugh') { ey = 4; mo = 1; ck = 2; } else if (k === 'love') { ey = 4; mo = 0; ck = 2; }
-    else if (k === 'wow') { ey = 11; mo = 2; } else if (k === 'sad') { ey = 12; mo = 3; } else if (k === 'angry') { ey = 10; mo = 3; }
-    else if (k === 'sleep' || k === 'calm') { ey = 9; mo = k === 'sleep' ? 2 : 0; } else if (k === 'think') { ey = 1; mo = 3; } else if (k === 'smile') { ey = 4; mo = 0; }
+    else if (k === 'wow') { ey = 102; mo = 2; } else if (k === 'sad') { ey = 103; mo = 3; } else if (k === 'angry') { ey = 101; mo = 3; }
+    else if (k === 'sleep' || k === 'calm') { ey = 100; mo = k === 'sleep' ? 2 : 0; } else if (k === 'think') { ey = 1; mo = 3; } else if (k === 'smile') { ey = 4; mo = 0; }
     if (a === 5 || a === 15) mo = Math.sin(t * 6) > .2 ? 2 : 0; // 咀嚼
     else if (this.talkT > 0 && k !== 'sleep') mo = Math.sin(t * 14) > 0 ? 1 : mo === 1 ? 0 : mo; // 說話
     // 眨眼：每 2.5～5 秒眨一次
     this.blinkT = (this.blinkT ?? 2 + Math.random() * 3) - dt; if (this.blinkT < -.13) this.blinkT = 2.5 + Math.random() * 2.5;
-    if (this.blinkT < 0 && ey !== 9 && ey !== 4) ey = 9;
+    if (this.blinkT < 0 && ey < 100 && ey !== 4 && ey !== 10) ey = 100; // 眨眼（笑眼、彎月眼本來就瞇著）
     const key = `${ey}_${br}_${mo}_${ck}`; if (key === this.faceKey) return; this.faceKey = key;
-    this.decal.material.map = TX.faceTex(ey, br, mo, ck, b.mk); this.decal.material.needsUpdate = true;
+    this.decal.material.map = TX.faceTex(ey, br, mo, ck, b.mk, b.ft); this.decal.material.needsUpdate = true;
   }
 }
 function rr(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }

@@ -6,7 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { buildWorld, walkable, heightAt } from './world.js';
 import { RIDE_Y } from './chara.js';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER } from './chara.js';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js';
 import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js';
 import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js';
 import { Net } from './net.js';
@@ -1223,11 +1223,11 @@ function toggleView() {
 // ---------- 標題畫面（換裝） ----------
 function buildTitle() {
   $('#nameIn').value = G.name; $('#gmIn').value = store.get('gmk', ''); { let taps = [], lg = document.querySelector('#title .logo h1'); lg.style.pointerEvents = 'auto'; lg.addEventListener('pointerdown', () => { const t = performance.now(); taps = taps.filter(x => t - x < 2500); taps.push(t); if (taps.length >= 5) { taps = []; $('#gmRow').classList.toggle('hide'); } }); }
-  const rows = [['k', '和服', KIMONO.map(k => k[1]), KIMONO.map(k => k[0])], ['p', '花紋', null, PATTERNS.slice(0, 6)], ['o', '腰帶', OBI, null], ['h', '髮型', null, HAIRS], ['s', '膚色', SKINS, null], ['y', '衣裝', null, OUTFITS], ['yc', '外衣色', OUTER, null], ['ey', '眼睛', null, EYES], ['br', '眉毛', null, BROWS], ['mo', '嘴巴', null, MOUTHS], ['ck', '腮紅', null, CHEEKS], ['mk', '痣', null, MOLES]];
+  const rows = [['k', '和服', KIMONO.map(k => k[1]), KIMONO.map(k => k[0])], ['p', '花紋', null, PATTERNS.slice(0, 6)], ['o', '腰帶', OBI, null], ['h', '髮型', null, HAIRS], ['s', '膚色', SKINS, null], ['y', '衣裝', null, OUTFITS], ['yc', '外衣色', OUTER, null], ['ey', '眼睛', null, EYES], ['br', '眉毛', null, BROWS], ['mo', '嘴巴', null, MOUTHS], ['ck', '腮紅', null, CHEEKS], ['mk', '痣', null, MOLES], ['ft', '特徵', null, FEATS]];
   $('#looks').innerHTML = rows.map(([k, t, cols, names]) => `<div class="lr"><span>${t}</span><div>${(cols || names).map((c, i) => cols ? `<button class="sw" data-k="${k}" data-v="${i}" style="background:${c}" title="${names ? names[i] : ''}"></button>` : `<button class="tx" data-k="${k}" data-v="${i}">${c}</button>`).join('')}</div></div>`).join('');
-  ['ey', 'br', 'mo', 'ck', 'mk', 'fc', 'y', 'yc'].forEach(k => { if (G.look[k] == null) G.look[k] = k === 'ck' || k === 'fc' ? 1 : 0; });
+  ['ey', 'br', 'mo', 'ck', 'mk', 'fc', 'y', 'yc', 'ft'].forEach(k => { if (G.look[k] == null) G.look[k] = k === 'ck' || k === 'fc' ? 1 : 0; });
   const sync = () => document.querySelectorAll('#looks [data-k]').forEach(b => b.classList.toggle('on', G.look[b.dataset.k] == b.dataset.v));
-  document.querySelectorAll('#looks [data-k]').forEach(b => b.onclick = () => { G.look[b.dataset.k] = +b.dataset.v; G.me.setLook(G.look); sync(); G.faceZoom = ['ey', 'br', 'mo', 'ck', 'mk', 'h', 's'].includes(b.dataset.k) ? 3.5 : 0; });
+  document.querySelectorAll('#looks [data-k]').forEach(b => b.onclick = () => { G.look[b.dataset.k] = +b.dataset.v; G.me.setLook(G.look); sync(); G.faceZoom = ['ey', 'br', 'mo', 'ck', 'mk', 'h', 's', 'ft'].includes(b.dataset.k) ? 3.5 : 0; });
   sync();
   $('#rnd').onclick = () => { G.look = randomLook(); G.look.hat = 0; G.look.c = 0; G.me.setLook(G.look); sync(); };
   $('#go').onclick = start;
@@ -1500,9 +1500,9 @@ if (isTouch) document.body.classList.add('touch');
   // 全部素材同時下載（原本分三批依序等）；花魁貼圖只有 GM 用，背景載入不擋開場
   Promise.all([loadImg('img/tex/oiran_out.jpg'), loadImg('img/tex/oiran_in.jpg')]).then(([a, b]) => { TX.IMG.oiranOut = a; TX.IMG.oiranIn = b; if (G.me && G.me.gm) G.me.setLook(G.look); });
   const L = (pre, n, ext) => Promise.all([...Array(n).keys()].map(i => loadImg(`img/tex/${pre}${i}.${ext}`)));
-  const [art, ey, br, mo, mt, ob, exe, hairImg, bpat] = await Promise.all([Promise.all(['roof', 'plaster', 'wood', 'dirt'].map(k => loadImg('img/tex/' + k + '.jpg')).concat([...Array(11).keys()].map(i => loadImg('img/tex/kanban' + i + '.png')))), L('eyes', 5, 'png'), L('brows', 4, 'png'), L('mouths', 4, 'png'), L('motif', 9, 'png'), L('obi', 6, 'jpg'), L('eyex', 4, 'png'), loadImg('img/tex/hair.jpg'), L('basepat', 4, 'png')]);
+  const [art, ey, br, mo, mt, ob, exe, hairImg, bpat, feat] = await Promise.all([Promise.all(['roof', 'plaster', 'wood', 'dirt'].map(k => loadImg('img/tex/' + k + '.jpg')).concat([...Array(11).keys()].map(i => loadImg('img/tex/kanban' + i + '.png')))), L('eyes', 11, 'png'), L('brows', 8, 'png'), L('mouths', 8, 'png'), L('motif', 9, 'png'), L('obi', 6, 'jpg'), L('eyex', 4, 'png'), loadImg('img/tex/hair.jpg'), L('basepat', 4, 'png'), L('feat', 4, 'png')]);
   ['roof', 'plaster', 'wood', 'dirt'].forEach((k, i) => TX.IMG[k] = art[i]); TX.IMG.kanban = art.slice(4);
-  if (ey.every(Boolean) && br.every(Boolean) && mo.every(Boolean)) TX.IMG.face = { eyes: ey, brows: br, mouths: mo, ex: exe.every(Boolean) ? exe : null };
+  if (ey.every(Boolean) && br.every(Boolean) && mo.every(Boolean)) TX.IMG.face = { eyes: ey, brows: br, mouths: mo, ex: exe.every(Boolean) ? exe : null, feat: feat.every(Boolean) ? feat : null };
   if (hairImg) TX.IMG.hair = hairImg; if (bpat.every(Boolean)) TX.IMG.basepat = bpat;
   if (mt.every(Boolean)) TX.IMG.motifs = mt; if (ob.every(Boolean)) TX.IMG.obi = ob;
   W = buildWorld(scene);
