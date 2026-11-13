@@ -25,10 +25,10 @@ export const HEAD3D = { 0: 'head_chonmage', 1: 'head_bijin', 2: 'head_sohatsu', 
 // 各模型的縮放與上下位置（模型高度含脖子／肩膀，比例不同）
 const H3CFG = { head_bijin: [.44, .005, '#efd3c4'], head_chonmage: [.42, .01, '#dcae90'], head_sohatsu: [.35, -.005, '#d8a98a'], head_bozu: [.34, -.005, '#d2a183'] };
 // 3D 頭的表情貼圖（同一張臉的表情差分，UV 相同直接換貼圖）
-const H3EX = { head_bijin: ['calm', 'laugh', 'wow', 'sad'] }; const H3T = {}; const tl = new THREE.TextureLoader();
-function exTex(n, ex) { const k = n + '_' + ex; if (!H3T[k]) { const t = H3T[k] = tl.load(`img/${k}.jpg?v=3`); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; } return H3T[k]; }
+const H3EX = { head_bijin: ['calm', 'laugh', 'wow', 'sad'], head_chonmage: ['calm', 'laugh', 'wow', 'sad'] }; const H3T = {}; const tl = new THREE.TextureLoader();
+function exTex(n, ex) { const k = n + '_' + ex; if (!H3T[k]) { const t = H3T[k] = tl.load(`img/${k}.jpg?v=4`); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; } return H3T[k]; }
 const H3 = {}; const gltf = new GLTFLoader();
-function loadHead(n) { return H3[n] || (H3[n] = gltf.loadAsync(`img/${n}.glb?v=3`).then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material.roughness = .6; o.material.metalness = 0; } }); return g.scene; }).catch(() => null)); }
+function loadHead(n) { (H3EX[n] || []).forEach(ex => exTex(n, ex)); return H3[n] || (H3[n] = gltf.loadAsync(`img/${n}.glb?v=3`).then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material.roughness = .6; o.material.metalness = 0; } }); return g.scene; }).catch(() => null)); }
 const PI = Math.PI;
 export const RIDE_Y = .7;
 const BODY_W = .84; // 身體寬度比例（配合寫實頭部，肩寬約兩個頭寬） // 坐在人力車上時角色根部的高度
@@ -517,6 +517,7 @@ export class Chara {
     this.blinkT = (this.blinkT ?? 2 + Math.random() * 3) - dt; if (this.blinkT < -.15) this.blinkT = 2.5 + Math.random() * 2.5;
     if (!ex && this.blinkT < 0) ex = 'calm';
     if (ex && !(H3EX[this.h3n] || []).includes(ex)) ex = '';
+    if (ex && !exTex(this.h3n, ex).image) ex = ''; // 還沒載入完成就先不換，避免黑臉
     if (ex === this.h3ex) return; this.h3ex = ex;
     this.h3mat.map = ex ? exTex(this.h3n, ex) : this.h3base; this.h3mat.needsUpdate = true;
   }
