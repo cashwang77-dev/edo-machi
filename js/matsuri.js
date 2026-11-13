@@ -101,6 +101,7 @@ export function updMatsuri(dt) {
       b.root.position.set(x + ox * dir, 0, .3 + oz); b.root.rotation.y = ry; b.play(1); b.update(dt, 1.6);
       for (const a of b.arms) { a.rotation.x = -2.7; a.rotation.z = (a.position.x > 0 ? -1 : 1) * .15; } // 雙手舉高扛轎
     }
+    const dP = Math.hypot(x - C.pos().x, .3 - C.pos().z);
     // 紙花跟著神轎飄落
     { const p = confetti.geometry.attributes.position, a = p.array; confetti.position.set(x, 0, .3);
       for (let i = 0; i < a.length; i += 3) { a[i + 1] -= dt * (.6 + (i % 7) * .08); a[i] += Math.sin(t * 2 + i) * dt * .4; if (a[i + 1] < 0) { a[i + 1] = 4 + Math.random() * 2.5; a[i] = (Math.random() - .5) * 8; a[i + 2] = (Math.random() - .5) * 6; } }
@@ -109,7 +110,6 @@ export function updMatsuri(dt) {
     mochiT -= dt; if (mochiT < 0) { mochiT = 18 + Math.random() * 8; const b = bearers[0]; b && b.say('福餅だ〜！', 2);
       if (dP < 12) { const v = 10 + Math.floor(Math.random() * 21); C.gift && C.gift(v); C.toast(`🍡 撿到福餅！得到 ${v} 文`, 2500); } else if (dP < 40) C.toast('神轎那邊在撒福餅！快靠近一點', 2200); }
     chantT -= dt; if (chantT < 0) { chantT = 1.6 + Math.random(); const b = bearers[Math.floor(Math.random() * bearers.length)]; b.say(Math.random() < .7 ? 'わっしょい！' : 'せいや！', 1.4); }
-    const dP = Math.hypot(x - C.pos().x, .3 - C.pos().z);
     voiceT -= dt; if (voiceT < 0 && dP < 35) { voiceT = 5 + Math.random() * 3; C.SND.call('わっしょい、わっしょい！', '嘿咻、嘿咻！', 1 - dP / 40, 1.15); }
     // 祭典太鼓（ドン・ドン・カッ）與笛
     beatT -= dt; if (beatT < 0) { beatT = .27; const pat = [2, 0, 1, 0, 2, 1, 3, 0, 2, 0, 1, 1, 2, 0, 3, 0]; const k = pat[beatI++ % pat.length]; if (k && C.SND.taiko) C.SND.taiko(k, Math.max(.25, 1 - dP / 120)); }
