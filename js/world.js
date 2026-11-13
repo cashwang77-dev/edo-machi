@@ -158,6 +158,39 @@ function house(o) {
   return { g, info };
 }
 
+// 縁日屋台：四柱＋條紋布棚＋櫃台＋招牌＋提燈＋商品擺設
+function yataiStall(def) {
+  const g = new THREE.Group(), w = def.w, wd = C.wood(), info = { owner: { x: 0, y: 0, z: -1.15, face: 0 }, seats: [], lanterns: [] };
+  for (const sx of [-1, 1]) for (const z of [.35, -2.2]) g.add(M(boxG(.1, 2.7, .1), wd, sx * (w / 2), 1.35, z));
+  // 條紋布棚（店色／白交錯）
+  const n = 7, sw = (w + .6) / n;
+  for (let i = 0; i < n; i++) { const b = M(boxG(sw, .04, 3.0), std('yt' + (i % 2 ? 'w' : def.noren), { color: i % 2 ? '#f4efe2' : def.noren, roughness: .8 }), -w / 2 - .3 + sw * (i + .5), 2.75, -.95, .14, 0, 0); g.add(b); }
+  for (let i = 0; i < n; i++) g.add(M(boxG(sw, .28, .02), std('yt' + (i % 2 ? 'w' : def.noren), { color: i % 2 ? '#f4efe2' : def.noren }), -w / 2 - .3 + sw * (i + .5), 2.6, .56)); // 布棚垂邊
+  // 櫃台＋前面的布（寫店名）
+  g.add(M(boxG(w, .92, .62), wd, 0, .46, -.2));
+  g.add(M(new THREE.BoxGeometry(w - .2, .5, .02), std('ytc' + def.id, { map: TX.text(def.sign, { w: 512, h: 128, bg: def.noren, fg: '#fff8e8', vertical: false }) }), 0, .58, .12));
+  g.add(M(boxG(w + .1, .05, .7), C.woodL(), 0, .95, -.2));
+  g.add(M(boxG(w, 1.5, .08), std('ytb', { color: '#d8c8a8', roughness: .9 }), 0, 1.6, -2.2)); // 後板
+  // 招牌
+  g.add(M(new THREE.BoxGeometry(w * .72, .42, .05), std('yts' + def.id, { map: TX.text(def.name, { w: 512, h: 150, bg: '#f6efe0', fg: '#2a1d14', vertical: false, grain: true }) }), 0, 2.3, .4));
+  // 提燈
+  for (const sx of [-1, 1]) { const lp = { x: sx * (w / 2 - .25), y: 1.95, z: .42 }; g.add(M(LANTERN_G, lanternMat(def.sign[0], def.noren), lp.x, lp.y, lp.z)); info.lanterns.push({ x: lp.x, y: lp.y + .25, z: lp.z }); }
+  // 商品擺設
+  const top = .98, P = def.prop;
+  const sph = (r, col, x, y, z, sy = 1) => { const m = M(new THREE.SphereGeometry(r, 10, 8), std('yp' + col, { color: col, roughness: .45 }), x, y, z); m.scale.y = sy; g.add(m); return m; };
+  const stick = (x, y, z, h = .3) => g.add(M(new THREE.CylinderGeometry(.008, .008, h, 4), C.woodL(), x, y + h / 2, z));
+  if (P === 'takoyaki' || P === 'yakisoba') { g.add(M(boxG(1.6, .06, .5), std('iron', { color: '#2a2a2a', metalness: .6, roughness: .4 }), 0, top + .04, -.3)); if (P === 'takoyaki') for (let i = 0; i < 12; i++) sph(.045, '#c98a3a', -.6 + (i % 6) * .24, top + .1, -.42 + Math.floor(i / 6) * .22, .8); else for (let i = 0; i < 9; i++) { const m = M(new THREE.TorusGeometry(.12, .02, 4, 10), std('noodle', { color: '#c89a5a' }), -.55 + (i % 3) * .5, top + .09, -.42 + Math.floor(i / 3) * .12, PI / 2, 0, i); g.add(m); } }
+  if (P === 'wataame') for (let i = 0; i < 5; i++) { stick(-1.2 + i * .6, top, -.5, .5); sph(.16, i % 2 ? '#c6e2f6' : '#f6c6dc', -1.2 + i * .6, top + .62, -.5); }
+  if (P === 'ringo') for (let i = 0; i < 10; i++) { const x = -1.3 + (i % 5) * .65, z = -.55 + Math.floor(i / 5) * .25; stick(x, top, z, .22); sph(.07, i % 3 ? '#c8202e' : '#f0a030', x, top + .27, z); }
+  if (P === 'ika') for (let i = 0; i < 6; i++) { const x = -1.2 + i * .48; stick(x, top, -.5, .32); const m = M(new THREE.ConeGeometry(.07, .3, 6), std('ika', { color: '#c87a3a', roughness: .4 }), x, top + .5, -.5, PI); g.add(m); }
+  if (P === 'ame') for (let i = 0; i < 6; i++) { const x = -1.2 + i * .48; stick(x, top, -.5, .3); sph(.06, ['#f6f2f6', '#f05a28', '#f2d27a'][i % 3], x, top + .36, -.5); sph(.035, ['#f6f2f6', '#f05a28', '#f2d27a'][i % 3], x + .05, top + .42, -.5); }
+  if (P === 'wanage') { for (let i = 0; i < 8; i++) { const x = -1.4 + (i % 4) * .93, z = -1.4 - Math.floor(i / 4) * .45, y = .2 + Math.floor(i / 4) * .35; g.add(M(boxG(.5, y * 2, .3), C.woodL(), x, y, z)); sph(.1, ['#e8455c', '#3f97ad', '#e8c56a', '#5c9a68'][i % 4], x, y * 2 + .1, z); } }
+  if (P === 'yoyo') { g.add(M(new THREE.CylinderGeometry(1.0, .95, .35, 20), std('tubY', { color: '#5a9ab8', roughness: .4 }), 0, .18, 1.6)); g.add(M(new THREE.CylinderGeometry(.95, .95, .02, 20), std('tubWater', { color: '#4f9ac0', roughness: .1, metalness: .2, transparent: true, opacity: .85 }), 0, .34, 1.6)); for (let i = 0; i < 9; i++) sph(.09, ['#e8455c', '#f2d27a', '#7ab8e8', '#f29ac0', '#8ad89a'][i % 5], Math.cos(i * 2.3) * .55, .4, 1.6 + Math.sin(i * 2.3) * .55); }
+  if (P === 'kuji') { g.add(M(boxG(.7, .5, .5), std('kujibox', { color: '#c8322a' }), 0, top + .25, -.35)); for (let i = 0; i < 14; i++) g.add(M(new THREE.CylinderGeometry(.004, .004, .6, 3), std('kstr', { color: '#f4efe2' }), -.3 + i * .045, top + .2, -.05)); for (let i = 0; i < 6; i++) g.add(M(boxG(.3, .3, .3), std('prize' + i, { color: ['#e8c56a', '#e8455c', '#3f97ad', '#5c9a68', '#f29ac0', '#c9a868'][i] }), -1.5 + i * .6, 1.9, -2.05)); }
+  // 吃東西的攤子：前面兩張小板凳
+  if (!def.play) for (const sx of [-.8, .8]) { g.add(M(boxG(.36, .38, .36), C.woodD(), sx, .19, .95)); info.seats.push({ x: sx, y: .42, z: .95, face: PI, dlx: sx, dly: .99, dlz: -.15 }); }
+  return { g, info };
+}
 function shopHouse(def, rand) {
   const w = def.w, d = 9;
   const { g, info } = house({ w, d, floors: def.floors, wall: def.wall, shop: def, rand, udatsu: false, chimney: def.chimney });
@@ -465,8 +498,8 @@ export function buildWorld(scene) {
 
   // 店鋪
   for (const def of SHOPS) {
-    const { g, info } = shopHouse(def, rand);
-    g.position.set(def.x, 0, def.side * STREET.front); g.rotation.y = def.side > 0 ? PI : 0; g.updateMatrixWorld(true);
+    const { g, info } = def.yatai ? yataiStall(def) : shopHouse(def, rand);
+    if (def.pos) { g.position.set(def.pos.x, 0, def.pos.z); g.rotation.y = def.pos.ry; } else { g.position.set(def.x, 0, def.side * STREET.front); g.rotation.y = def.side > 0 ? PI : 0; } g.updateMatrixWorld(true);
     const tw = v => new THREE.Vector3(v.lx ?? v.x, v.ly ?? v.y, v.lz ?? v.z).applyMatrix4(g.matrixWorld);
     const rot = g.rotation.y;
     const shop = { def, rot, front: tw({ x: 0, y: 0, z: 1.1 }), owner: { ...tw(info.owner), r: rot + info.owner.face }, seats: [], lanterns: info.lanterns.map(tw) };
@@ -476,6 +509,7 @@ export function buildWorld(scene) {
     W.lanterns.push(...shop.lanterns);
     if (def.umbrella) { const u = tw({ x: 0, y: 0, z: 3.3 }); col(u.x, u.z, .2); }
     if (def.play === 'kingyo') { const u = tw({ x: 0, y: 0, z: 1.9 }); col(u.x, u.z, 1.2); }
+    if (def.yatai) { const w2 = def.w / 2; blk(g, -w2, w2, 0, 2.7, -.1, -2.4); const c0 = tw({ x: 0, y: 0, z: -1.2 }); col(c0.x, c0.z, 1.7); B.bake(g); W.shops.push(shop); continue; }
     { const w2 = def.w / 2, top = def.floors === 2 ? 7 : 4.6; blk(g, -w2, w2, 0, top, -2.2, -9.6); blk(g, -w2, -w2 + .25, 0, 3.1, .1, -9); blk(g, w2 - .25, w2, 0, 3.1, .1, -9);
       if (def.floors === 2) { blk(g, -w2 - .35, w2 + .35, 2.95, 4.1, 1.6, -1.1); blk(g, -w2, w2, 3, 7, -1.1, -9.6); } else blk(g, -w2 - .35, w2 + .35, 3.0, 4.6, 1.6, -2.2); }
     B.bake(g); W.shops.push(shop);

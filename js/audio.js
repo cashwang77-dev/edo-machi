@@ -143,6 +143,7 @@ export const SND = {
   // 叫賣：用瀏覽器語音念日文，沒有日文語音就念中文
   voices: null,
   call(ja, zh, vol = 1, pitch = 1) {
+    if (!isFinite(vol)) vol = .5; if (!isFinite(pitch)) pitch = 1; pitch = Math.max(.5, Math.min(1.8, pitch));
     if (!this.on.call || !window.speechSynthesis || vol < .05) return;
     if (!this.voices || !this.voices.length) this.voices = speechSynthesis.getVoices();
     const jv = this.voices.find(v => /^ja/i.test(v.lang)), zv = this.voices.find(v => /^zh[-_](TW|HK)/i.test(v.lang)) || this.voices.find(v => /^zh/i.test(v.lang));

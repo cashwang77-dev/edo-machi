@@ -225,6 +225,7 @@ const PI2 = Math.PI * 2;
 // 頭髮：深色帶髮絲光澤
 export function hairTex() {
   const k = 'HAIR'; if (cache[k]) return cache[k];
+  if (IMG.hair) { const [c, g] = cv(512, 512); g.drawImage(IMG.hair, 0, 0, 512, 512); return cache[k] = mk(c, [3, 1]); } // Gemini 畫的動畫風頭髮
   const [c, g] = cv(128, 128); const r = rnd(99);
   // 動畫風光滑黑髮：淡淡髮絲＋一圈鋸齒狀亮光（天使光環）
   const gr = g.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, '#2a2026'); gr.addColorStop(1, '#141015'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
@@ -267,9 +268,11 @@ export function faceTex(ey, br, mo, ck, mk) {
   g.translate(512, 0); g.scale(-1, 1);
   const put = (img, cx, cy, w) => { if (!img) return; const h = w * img.height / img.width; g.drawImage(img, cx - w / 2, cy - h / 2, w, h); };
   if (ck) for (const x of [150, 362]) { const gr = g.createRadialGradient(x, 270, 2, x, 270, ck === 2 ? 44 : 34); gr.addColorStop(0, `rgba(240,110,120,${ck === 2 ? .5 : .32})`); gr.addColorStop(1, 'rgba(240,110,120,0)'); g.fillStyle = gr; g.fillRect(x - 50, 220, 100, 100); }
-  if (ey === 9) { g.strokeStyle = '#2a1a14'; g.lineWidth = 9; g.lineCap = 'round'; for (const x of [164, 348]) { g.beginPath(); g.arc(x, 182, 56, .35 * Math.PI, .65 * Math.PI); g.stroke(); g.lineWidth = 5; for (const d of [-1, 1]) { g.beginPath(); g.moveTo(x + d * 50, 220); g.lineTo(x + d * 66, 227); g.stroke(); } g.lineWidth = 9; } }
+  const EX = F.ex && ey >= 9 ? F.ex[ey - 9] : null; // Gemini 畫的表情眼（含眉）
+  if (EX) put(EX, 256, 170, 330);
+  else if (ey === 9) { g.strokeStyle = '#2a1a14'; g.lineWidth = 9; g.lineCap = 'round'; for (const x of [164, 348]) { g.beginPath(); g.arc(x, 182, 56, .35 * Math.PI, .65 * Math.PI); g.stroke(); g.lineWidth = 5; for (const d of [-1, 1]) { g.beginPath(); g.moveTo(x + d * 50, 220); g.lineTo(x + d * 66, 227); g.stroke(); } g.lineWidth = 9; } }
   else put(F.eyes[ey], 256, 206, ey === 0 ? 300 : 316);
-  put(F.brows[br], 256, br === 2 ? 106 : 124, br === 2 ? 200 : 290);
+  if (!EX) put(F.brows[br], 256, br === 2 ? 106 : 124, br === 2 ? 200 : 290);
   put(F.mouths[mo], 256, 322, mo === 3 ? 96 : mo === 1 ? 70 : 78);
   if (mk) { g.fillStyle = '#3a2418'; g.beginPath(); g.arc(358, 238, 4, 0, 7); g.fill(); }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return cache[k] = t;

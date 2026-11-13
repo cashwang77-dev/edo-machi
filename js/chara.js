@@ -139,6 +139,10 @@ export class Chara {
       const geta = mesh(G.geta, mat('#7a5634'), foot, 0, -.032, .03);
       const teeth = [mesh(G.tooth, mat('#5a3e26'), foot, 0, -.06, .085), mesh(G.tooth, mat('#5a3e26'), foot, 0, -.06, -.02)];
       mesh(G.strap, mat('#b8302a'), foot, 0, -.01, .07, 0, 0, 0, 1, 1, 1, false);
+      const koma = new THREE.Group(); koma.visible = false; foot.add(koma); (this.koma = this.koma || []).push(koma);
+      mesh(new THREE.BoxGeometry(.1, .05, .22), mat('#16100e', { roughness: .25 }), koma, 0, -.07, .03);
+      for (const tz of [.1, .03, -.05]) mesh(new THREE.BoxGeometry(.095, .11, .035), mat('#16100e', { roughness: .25 }), koma, 0, -.15, tz);
+      mesh(new THREE.TorusGeometry(.032, .008, 4, 10, Math.PI), mat('#c8202e'), koma, 0, -.035, .08, 0, 0, 0, 1, 1, 1, false);
       th.userData.minor = sh.userData.minor = true; hip.userData = { th, sh, geta, teeth }; this.legs.push(hip); this.knees.push(knee); this.feet.push(foot);
     }
     // 上身（髖為原點）
@@ -201,7 +205,7 @@ export class Chara {
     this.bowM.geometry = female ? G.taiko : G.knotB; this.bowM.position.set(0, female ? .25 : .23, female ? -.215 : -.2);
     this.hairG.clear(); this.accG.clear(); this.carryG.clear(); this.foodG.clear(); this.waistG.clear(); this.oiranG.clear(); this.auraG.clear(); this.backG.clear(); this.wheel = null;
     if (this.light) { this.root.remove(this.light); this.light = null; }
-    this.lift = 0;
+    this.lift = 0; this.koma.forEach(k => k.visible = false); this.legs.forEach(l => { l.userData.geta.visible = true; l.userData.teeth.forEach(t => { t.userData.minor = true; }); });
     if (this.gm) { this.buildOiran(lk); return; }
     const H = (g, x, y, z, sx = 1, sy = 1, sz = 1, rx = 0, rz = 0) => mesh(g, hairMat, this.hairG, x, y, z, rx, 0, rz, sx, sy, sz);
     const HC = (y = .005, s = 1.04) => { H(G.capTop, 0, y, -.008, s, s * 1.02, s * 1.05); H(G.capBack, 0, y - .005, -.01, s * 1.02, s * 1.04, s * 1.06); };
@@ -308,6 +312,7 @@ export class Chara {
     if (lk.c === 3) { mesh(G.stick, mat('#4a3424'), C, 0, .05, .08); mesh(G.umb, TM({ map: TX.janome(), side: THREE.DoubleSide, roughness: .7 }), C, 0, .55, .08); }
     if (lk.c === 4) { mesh(new THREE.CylinderGeometry(.006, .006, .14, 4), mat('#c9a868'), C, 0, -.32, .1); mesh(new THREE.CircleGeometry(.09, 18), TM({ map: TX.text('涼', { w: 128, h: 128, bg: '#f4efe2', fg: '#2a4b7c', vertical: false }), side: THREE.DoubleSide }), C, 0, -.2, .1, -.6, 0, 0, 1, 1, 1, false); }
     if (lk.c === 5) { mesh(new THREE.CylinderGeometry(.006, .006, .45, 4), mat('#c9a868'), C, 0, -.12, .1); this.wheel = new THREE.Group(); this.wheel.position.set(0, .12, .13); C.add(this.wheel); ['#e8455c', '#3f97ad', '#e8c56a', '#5c9a68'].forEach((c, i) => mesh(new THREE.ConeGeometry(.05, .09, 3), mat(c, { side: THREE.DoubleSide }), this.wheel, Math.cos(i * PI / 2) * .04, Math.sin(i * PI / 2) * .04, 0, 0, 0, i * PI / 2, 1, 1, .2, false)); }
+    if (lk.c === 8) { mesh(new THREE.CylinderGeometry(.002, .002, .2, 3), mat('#f4efe2'), C, 0, -.38, .1); const yb = mesh(new THREE.SphereGeometry(.06, 12, 10), mat('#e8455c', { roughness: .25 }), C, 0, -.5, .1); yb.scale.y = .9; mesh(new THREE.TorusGeometry(.061, .008, 4, 16), mat('#f2d27a'), C, 0, -.5, .1, PI / 2); }
     if (lk.c === 7) { mesh(new THREE.CylinderGeometry(.003, .003, .1, 3), mat('#e84a5c'), C, 0, -.34, .1); const bag = mesh(new THREE.SphereGeometry(.07, 14, 12), TM({ color: '#cfe8f4', transparent: true, opacity: .45, roughness: .1, metalness: .1 }), C, 0, -.46, .1, 0, 0, 0, 1, 1.15, 1, false);
       for (let i = 0; i < 2; i++) { const fish = new THREE.Group(); fish.position.set(-.02 + i * .04, -.47 - i * .02, .1); fish.rotation.y = i * 2; C.add(fish); mesh(new THREE.SphereGeometry(.015, 8, 6), mat('#f05a28'), fish, 0, 0, 0, 0, 0, 0, 1.4, .8, .8, false); mesh(new THREE.ConeGeometry(.012, .02, 4), mat('#f05a28'), fish, -.025, 0, 0, 0, 0, PI / 2, 1, 1, .4, false); } }
     if (lk.c === 6) { mesh(new THREE.CylinderGeometry(.006, .006, .3, 4), mat('#4a3424'), C, 0, -.2, .18, 1.1, 0, 0); const lan = mesh(new THREE.SphereGeometry(.08, 12, 10), TM({ color: '#f4e4c0', emissive: '#ffb050', emissiveIntensity: .8 }), C, 0, -.28, .36, 0, 0, 0, 1, 1.3, 1); }
@@ -348,7 +353,7 @@ export class Chara {
     for (const [c, w, o] of [['#f6f1e8', .05, 0], ['#c21f32', .04, .03], ['#e8bf4e', .025, .055]]) for (const s of [-1, 1]) P(G.collar, mat(c, c === '#e8bf4e' ? { metalness: .8, roughness: .3 } : {}), s * (.05 + o), .5, .17 + o * .1, -.32, 0, s * .5, w / .04, 1.1, 1);
     // 三枚齒高木屐（黑漆）
     this.legs.forEach(l => { const u = l.userData; u.geta.material = mat('#141012', { roughness: .2, metalness: .25 }); u.geta.scale.y = 1.6; u.teeth.forEach(t => { t.material = mat('#141012', { roughness: .2, metalness: .25 }); t.scale.set(1, 4.2, 1.2); t.position.y = -.125; }); });
-    this.lift = .16;
+    this.lift = .16; this.koma.forEach(k => k.visible = true); this.legs.forEach(l => { l.userData.geta.visible = false; l.userData.teeth.forEach(t => { t.visible = false; t.userData.minor = false; }); });
     // 妝：白粉、紅唇、眼尾紅、細眉
     if (!this.decal) { this.mouthM.material = redM; this.mouthM.scale.set(.8, .8, 1); }
     P(new THREE.SphereGeometry(.012, 8, 6), redM, 0, -.05, .114, 0, 0, 0, 1.5, .7, .6, this.faceG);
@@ -428,14 +433,20 @@ export class Chara {
     if (this.bub) { this.bubT -= dt; if (this.bubT < 0) { this.root.remove(this.bub); this.bub.material.map.dispose(); this.bub = null; } }
     if (this.emo) { this.emoT += dt; const f = this.emoT / 2.6; this.emo.position.set(.6, (this.gm ? 2.2 : 1.9) + f * .6, 0); this.emo.material.opacity = f < .15 ? f / .15 : 1 - Math.max(0, (f - .7) / .3); const sc = .75 + Math.sin(Math.min(f * 8, PI)) * .25; this.emo.scale.set(sc, sc, 1); if (f >= 1) { this.root.remove(this.emo); this.emo = null; } }
     const a = this.anim, L = this.legs, K = this.knees, A = this.arms, t = this.t;
-    let lx = 0, rx = 0, lk = 0, rk = 0, alx = 0, arx = 0, alz = 0, arz = 0, up = 0, bend = 0, sitY = 0, headX = 0, twist = 0, side = 0, lap = 0;
+    let lzL = 0, lzR = 0, lx = 0, rx = 0, lk = 0, rk = 0, alx = 0, arx = 0, alz = 0, arz = 0, up = 0, bend = 0, sitY = 0, headX = 0, twist = 0, side = 0, lap = 0;
     if (a === 1 || a === 2) {
       const slow = this.gm ? .7 : 1;
       this.phase += dt * (a === 2 ? 11 : 7.5) * slow * Math.max(.5, Math.min(1.4, speed / (a === 2 ? 5.5 : 3)));
       const s = Math.sin(this.phase), amp = (a === 2 ? .7 : .45) * (this.gm ? .55 : 1);
       lx = s * amp; rx = -s * amp; lk = Math.max(0, -s) * amp * 1.3; rk = Math.max(0, s) * amp * 1.3;
       alx = -s * amp * .6; arx = s * amp * .6; up = Math.abs(Math.cos(this.phase)) * (a === 2 ? .05 : .025); bend = a === 2 ? .1 : 0; lap = -Math.abs(s) * .08;
-      if (this.gm) { twist = Math.sin(this.phase) * .12; side = Math.sin(this.phase) * .04; }
+      if (this.gm) { // 外八文字
+        this.phase += dt * 2.6 - dt * 7.5 * .7 * Math.max(.5, Math.min(1.4, speed / 3)); // 抵銷上面的步頻，改用慢步
+        const p = this.phase, s2 = Math.sin(p), c2 = Math.cos(p);
+        lx = Math.max(0, s2) * .55 - .05; rx = Math.max(0, -s2) * .55 - .05; lk = Math.max(0, s2) * .5; rk = Math.max(0, -s2) * .5;
+        lzL = -Math.max(0, s2) * Math.max(0, c2 + .3) * .55; lzR = Math.max(0, -s2) * Math.max(0, c2 + .3) * .55; // 腳往外甩半圈
+        twist = s2 * .16; side = s2 * .07; up = Math.abs(c2) * .05; bend = -.04; alx = arx = -.3; alz = -.2; arz = .2; lap = -Math.abs(s2) * .05;
+      }
     } else if (a === 3 || a === 5 || a === 8) {
       lx = rx = -1.45; lk = rk = 1.45; sitY = -.42; lap = -1.3; alx = arx = -.62; alz = -.16; arz = .16; bend = .04;
       if (a === 5) { const e = (Math.sin(t * 3) + 1) / 2; arx = -1.1 - e * .8; alx = -1.0; headX = .08 + e * .1; }
@@ -451,13 +462,14 @@ export class Chara {
     else if (a === 15) { const e = (Math.sin(t * 3) + 1) / 2; alx = -1.3 - e * .9; headX = .1 + e * .12; }
     else if (a === 16) { const e = Math.min(1, t * 4); arx = -2.5 * e; arz = .15; up = Math.sin(Math.min(t * 6, PI)) * .04; }
     else if (a === 17) { const e = Math.min(1, t * 2.5); alx = arx = -1.25 * e; alz = -.62 * e; arz = .62 * e; bend = .22 * Math.min(1, Math.max(0, t - .6) * 2); headX = .25 * e; }
+    else if (a === 18) { const e = Math.sin(t * 7); bend = .42 + e * .03; alx = arx = -.75; alz = -.12; arz = .12; lx = rx = -.28; lk = rk = .3; sitY = -.06; headX = -.25; up = e * .01; }
     else if (a === 14) { const e = Math.sin(t * 18); bend = -.18 + e * .04; alx = arx = -.5; alz = -.5; arz = .5; headX = -.25 + e * .06; up = Math.abs(e) * .02; }
     else { up = Math.sin(t * 1.6) * .012; alx = arx = -.4; alz = -.26; arz = .26; if (this.gm) { twist = Math.sin(t * .9) * .06; headX = Math.sin(t * .7) * .04; } }
     if (this.look.c === 2 && ![7, 4, 9, 10, 11, 13, 16, 17].includes(a)) arx = Math.min(arx, -1.2);
     if (this.gm && ![7, 4, 9, 10, 11, 13, 16, 17].includes(a)) arx = Math.min(arx, -.7);
     if (this.look.f && ![5, 15, 4, 9, 10, 11, 17].includes(a)) alx = Math.min(alx, -.9);
     const k = Math.min(1, dt * 12), lr = (o, v) => o + (v - o) * k;
-    L[0].rotation.x = lr(L[0].rotation.x, lx); L[1].rotation.x = lr(L[1].rotation.x, rx);
+    L[0].rotation.x = lr(L[0].rotation.x, lx); L[1].rotation.x = lr(L[1].rotation.x, rx); L[0].rotation.z = lr(L[0].rotation.z, lzL); L[1].rotation.z = lr(L[1].rotation.z, lzR);
     K[0].rotation.x = lr(K[0].rotation.x, lk); K[1].rotation.x = lr(K[1].rotation.x, rk);
     A[0].rotation.x = lr(A[0].rotation.x, alx); A[1].rotation.x = lr(A[1].rotation.x, arx);
     A[0].rotation.z = lr(A[0].rotation.z, -alz); A[1].rotation.z = lr(A[1].rotation.z, -arz);
@@ -528,7 +540,7 @@ export class Chara {
     this.exT = (this.exT || 0) - dt; this.talkT = (this.talkT || 0) - dt;
     const k = this.exT > 0 ? this.exK : [9, 14, 11, 10, 7, 16].includes(a) ? 'happy' : [6, 17].includes(a) ? 'calm' : null;
     if (k === 'happy') { ey = 4; mo = 1; } else if (k === 'laugh') { ey = 4; mo = 1; ck = 2; } else if (k === 'love') { ey = 4; mo = 0; ck = 2; }
-    else if (k === 'wow') { ey = 0; mo = 2; } else if (k === 'sad') { ey = 2; mo = 3; } else if (k === 'angry') { ey = 3; br = 3; mo = 3; }
+    else if (k === 'wow') { ey = 11; mo = 2; } else if (k === 'sad') { ey = 12; mo = 3; } else if (k === 'angry') { ey = 10; mo = 3; }
     else if (k === 'sleep' || k === 'calm') { ey = 9; mo = k === 'sleep' ? 2 : 0; } else if (k === 'think') { ey = 1; mo = 3; } else if (k === 'smile') { ey = 4; mo = 0; }
     if (a === 5 || a === 15) mo = Math.sin(t * 6) > .2 ? 2 : 0; // 咀嚼
     else if (this.talkT > 0 && k !== 'sleep') mo = Math.sin(t * 14) > 0 ? 1 : mo === 1 ? 0 : mo; // 說話

@@ -58,7 +58,7 @@ let W;
 const G = window.G = {
   mode: 'title', name: store.get('name', ''), look: (() => { const l = store.get('look', randomLook()); if (!store.get('qMig', false)) { l.fc = 1; store.set('qMig', true); store.set('look', l); } return l; })(), money: 300,
   pos: new THREE.Vector3(96, 0, 0), ry: -PI / 2, me: null, myId: 'me', online: false,
-  remotes: new Map(), owners: {}, seat: null, shop: null, order: null, queue: [], npcCust: [], emoteT: 0, busy: false, gm: false, timeOff: 0, eatT: 0, follow: null, whisper: null,
+  remotes: new Map(), owners: {}, seat: null, shop: null, order: null, queue: [], npcCust: [], emoteT: 0, busy: false, gm: false, timeOff: 0, eatT: 0, follow: null, whisper: null, sta: 100, tired: false,
 };
 const cam = { yaw: PI / 2 - .5, pitch: .32, dist: 6.5, tx: 0, ty: 0, tz: 0, auto: false };
 const net = new Net(SERVER);
@@ -155,6 +155,7 @@ function addRemote(p) {
   updCount();
 }
 function delRemote(id) { const r = G.remotes.get(id); if (!r) return; scene.remove(r.ch.root); G.remotes.delete(id); updCount(); }
+function updSta() { const b = $('#sta'); if (!b) return; const show = G.sta < 99.5 && G.mode === 'walk'; b.classList.toggle('hide', !show); if (show) { b.firstElementChild.style.width = G.sta + '%'; b.classList.toggle('tired', !!G.tired); } }
 function updCount() { $('#online').textContent = G.online ? `👥 ${G.remotes.size + 1} / 80 人在線 ▾` : '🏮 單人模式（離線）'; }
 
 // NPC 町人（人少時代替玩家逛街、吃東西、聊天）、掌櫃
@@ -274,6 +275,7 @@ function updNPCs(dt) {
 const DM = {}; const dm = c => DM[c] || (DM[c] = new THREE.MeshStandardMaterial({ color: c, roughness: .55 }));
 const BOWL = (() => { const p = []; for (let i = 0; i <= 8; i++) { const t = i / 8; p.push(new THREE.Vector2(.06 + .1 * Math.sin(t * PI / 2), t * .1)); } return new THREE.LatheGeometry(p, 16); })();
 function makeDish(d) {
+  if (['takoyaki', 'yakisoba', 'wataame', 'ringo', 'ika', 'ame'].includes(d.type)) { const h = makeHeld(d); h.rotation.set(0, 0, 0); h.scale.setScalar(1.5); const w = new THREE.Group(); w.add(h); return w; }
   const g = new THREE.Group(); const c = d.c || [];
   if (d.type === 'bowl') { g.add(new THREE.Mesh(BOWL, dm('#7a1f1f'))); const s = new THREE.Mesh(new THREE.CircleGeometry(.145, 16), dm(c[0])); s.rotation.x = -PI / 2; s.position.y = .085; g.add(s); const n = new THREE.Mesh(new THREE.TorusGeometry(.06, .02, 6, 12), dm(c[1] || '#d8c69a')); n.rotation.x = PI / 2; n.position.y = .09; g.add(n); }
   else if (d.type === 'zaru') { g.add(new THREE.Mesh(new THREE.BoxGeometry(.3, .03, .3), dm('#b89a5a'))); const n = new THREE.Mesh(new THREE.SphereGeometry(.1, 10, 6), dm(c[0])); n.scale.y = .35; n.position.y = .04; g.add(n); }
@@ -350,10 +352,10 @@ function openShop(s) {
   const d = s.def, own = G.owners[d.id];
   if (d.play) {
     const p = $('#panel'); p.innerHTML = `<h2>${d.name}<small>${d.kind}</small></h2>
-    <p class="sub">${d.play === 'kingyo' ? '用紙網撈金魚，紙網濕了會破！撈到的金魚會裝袋給你。' : '用軟木塞槍打下架上的獎品，打中就送你！'}　一回 <b>${d.price}</b> 文</p>
+    <p class="sub">${({ kingyo: '用紙網撈金魚，紙網濕了會破！撈到的金魚會裝袋給你。', shateki: '用軟木塞槍打下架上的獎品，打中就送你！', wanage: '把竹圈套在獎品上，套中就送你！一回 5 個圈。', yoyo: '用紙繩鉤子釣水球，紙繩濕了會斷！', kuji: '從箱子裡抽一張籤，看看今天手氣如何！' })[d.play]}　一回 <b>${d.price}</b> 文</p>
     <div class="btns"><button id="bPlay" class="big alt">🎮 玩一回</button><button id="bX2">算了</button></div>`;
     show('#panel'); $('#bX2').onclick = closePanels;
-    $('#bPlay').onclick = () => { if (!afford(d.price)) return toast('錢不夠喔'); addMoney(-d.price); closePanels(); (d.play === 'kingyo' ? playKingyo : playShateki)(s); };
+    $('#bPlay').onclick = () => { if (!afford(d.price)) return toast('錢不夠喔'); addMoney(-d.price); closePanels(); ({ kingyo: playKingyo, shateki: playShateki, wanage: playWanage, yoyo: playYoyo, kuji: playKuji })[d.play](s); };
     return;
   }
   const p = $('#panel'); p.innerHTML = `<h2>${d.name}<small>${d.kind}</small></h2>
@@ -581,6 +583,12 @@ function makeHeld(d) {
     }
     case 'cup': { const cup = M_(new THREE.CylinderGeometry(.045, .035, .07, 14), '#4a3a2e', 0, .035, 0); const t = M_(new THREE.CircleGeometry(.04, 14), c[0], 0, .068, 0, -PI / 2); bites.push(t); g.rotation.x = .9; break; }
     case 'tokkuri': { M_(new THREE.CylinderGeometry(.03, .02, .03, 12), '#f4f0e4', 0, .015, 0); bites.push(M_(new THREE.CircleGeometry(.026, 12), '#f0e6c0', 0, .029, 0, -PI / 2)); g.rotation.x = .9; break; }
+    case 'takoyaki': { M_(new THREE.BoxGeometry(.13, .015, .07), '#c9a868', 0, 0, 0); for (let i = 0; i < 6; i++) bites.push(M_(new THREE.SphereGeometry(.018, 10, 8), c[0], -.04 + (i % 3) * .04, .018, -.016 + Math.floor(i / 3) * .032)); M_(new THREE.CylinderGeometry(.002, .002, .12, 3), '#d8c08a', .04, .04, 0, 0, 0, .9); g.rotation.x = .9; break; }
+    case 'yakisoba': { M_(new THREE.BoxGeometry(.15, .03, .1), '#f4f4f0', 0, .015, 0); const t = M_(new THREE.BoxGeometry(.13, .02, .08), c[0], 0, .035, 0); bites.push(t); M_(new THREE.BoxGeometry(.02, .005, .02), '#e8455c', .03, .047, .01); chop(); g.rotation.x = .9; break; }
+    case 'wataame': { M_(new THREE.CylinderGeometry(.004, .004, .2, 4), '#d8c08a', 0, .02, 0); for (let i = 0; i < 4; i++) bites.unshift(M_(new THREE.SphereGeometry(.05 - i * .006, 10, 8), c[0], (i % 2 - .5) * .02, .14 + i * .035, (i % 3 - 1) * .015)); g.rotation.x = .35; break; }
+    case 'ringo': { M_(new THREE.CylinderGeometry(.004, .004, .18, 4), '#d8c08a', 0, .03, 0); const a = M_(new THREE.SphereGeometry(.045, 14, 12), new THREE.MeshStandardMaterial({ color: c[0], roughness: .1, metalness: .05 }), 0, .14, 0); a.scale.y = .9; bites.push(a); g.rotation.x = .5; break; }
+    case 'ika': { M_(new THREE.CylinderGeometry(.004, .004, .2, 4), '#d8c08a', 0, .02, 0); const b = M_(new THREE.ConeGeometry(.04, .16, 8), c[0], 0, .18, 0, PI); bites.push(b); for (let i = 0; i < 4; i++) bites.push(M_(new THREE.CylinderGeometry(.006, .003, .07, 4), c[0], -.02 + i * .013, .08, 0)); g.rotation.x = .5; break; }
+    case 'ame': { M_(new THREE.CylinderGeometry(.003, .003, .18, 4), '#d8c08a', 0, .02, 0); const b = M_(new THREE.SphereGeometry(.035, 12, 10), new THREE.MeshStandardMaterial({ color: c[0], roughness: .1, transparent: true, opacity: .9 }), 0, .13, 0); b.scale.set(1, .8, 1.3); bites.push(b, M_(new THREE.SphereGeometry(.02, 10, 8), c[0], 0, .16, .03)); g.rotation.x = .5; break; }
     case 'box': { M_(new THREE.BoxGeometry(.16, .05, .12), '#1a1414', 0, .025, 0); const t = M_(new THREE.BoxGeometry(.14, .015, .1), c[0], 0, .055, 0); M_(new THREE.BoxGeometry(.165, .052, .01), '#a8282a', 0, .025, .06); bites.push(t); chop(); g.rotation.x = .9; break; }
     default: { // 和菓子・冷奴・炸什錦：放在懷紙上
       M_(new THREE.PlaneGeometry(.13, .13), '#f8f6f0', 0, 0, 0, -PI / 2, 0, PI / 4);
@@ -995,6 +1003,7 @@ const CALLS = {
   gofuku: ['新しい反物、入りましたよ〜', '新布料到貨囉～'], kamiyui: ['髪結い、いかがですか〜', '要不要整理一下頭髮～'],
   komamono: ['かんざし、扇子、なんでもあるよ〜', '髮簪扇子應有盡有～'], ukiyoe: ['錦絵、新作入りました〜', '新出的浮世繪喔～'],
   ekisha: ['当たるも八卦、当たらぬも八卦〜', '來算個命吧～'], yuya: ['いい湯だよ〜、寄ってらっしゃい', '熱呼呼的好湯喔～'],
+  takoyaki: ['たこ焼き、焼きたてだよ〜', '剛烤好的章魚燒～'], yakisoba: ['焼きそば〜、ソースの香り〜', '香噴噴的炒麵喔～'], wataame: ['ふわふわ綿あめ〜', '軟綿綿的棉花糖～'], ringoame: ['りんご飴、甘いよ〜', '甜甜的蘋果糖～'], ikayaki: ['いか焼き、いい匂い〜', '烤魷魚好香喔～'], amezaiku: ['飴細工、なんでも作るよ〜', '想要什麼造型的糖都做給你～'], wanage: ['輪投げ、入ったら持ってきな〜', '套圈圈，套中就送你～'], yoyo: ['ヨーヨー釣り、いかが〜', '釣水球喔～'], kuji: ['くじ引き、特賞は蛇の目傘〜', '抽籤喔，特獎是蛇目傘～'],
 };
 const callCD = {}; let callT = 3, callGlobal = 0;
 function callTick(dt) {
@@ -1006,7 +1015,7 @@ function callTick(dt) {
   const [s, d] = cands[Math.floor(Math.random() * Math.min(2, cands.length))]; const [ja, zh] = CALLS[s.def.id];
   callCD[s.def.id] = performance.now() / 1000 + 14 + Math.random() * 14; callGlobal = 3.5 + Math.random() * 3.5;
   const k = keepers[s.def.id]; if (k) { k.say(zh, 3.5); k.play(7); setTimeout(() => k.play(0), 1200); }
-  SND.call(ja, zh, 1 - d / 30, .9 + (s.def.x % 7) / 30);
+  SND.call(ja, zh, 1 - d / 30, .9 + (Math.abs(Math.round(s.front.x)) % 7) / 30);
 }
 // 棒手振り：挑扁擔沿街叫賣的小販（由路過的町人喊）
 const PEDDLERS = [['きんぎょ〜え〜、きんぎょ〜', '金魚喔～賣金魚～'], ['いわし〜、いわしこ〜', '沙丁魚～新鮮的沙丁魚～'], ['なっと〜、なっと〜', '納豆～納豆喔～'], ['ふうりん〜、ふうりん〜', '風鈴～涼快的風鈴～'], ['あまざけ〜、あまいあまざけ〜', '甜酒釀～甜甜的甘酒～'], ['たけや〜、さおだけ〜', '竹竿～賣竹竿～'], ['しゃぼん玉〜、玉や〜', '泡泡～吹泡泡喔～']];
@@ -1020,6 +1029,40 @@ function peddlerTick(dt) {
 // 祭典前一分鐘提醒
 let festWarned = 0;
 function festNotice() { const t = nextFestIn(); if (t > 0 && t < 60 && festWarned < Date.now() - 120000) { festWarned = Date.now(); toast('🏮 夏祭り再一分鐘開始！神轎會從大街經過', 4000); } }
+
+// ---------- 縁日：套圈圈、釣水球、抽籤 ----------
+function prizeAcc(id, msg) { const a = ACC.find(x => x.id === id); if (!a) return; invAdd(a.id); const lk = { ...G.look }; lk[a.slot] = a.v; G.look = lk; G.me.setLook(lk); store.set('look', lk); net.send({ t: 'look', lk }); G.me.emoji('🎉'); toast(msg || `得到「${a.n}」！已收進 🎒 持ち物`, 3000); }
+function playWanage(shop) {
+  const M2 = gameModal('⭕ 輪投げ', '點獎品把竹圈丟過去，套中就送你！一共 5 個圈。');
+  const P = [...Array(8)].map((_, i) => ({ x: 50 + (i % 4) * 85, y: 70 + Math.floor(i / 4) * 80, r: 22, c: ['#e8455c', '#3f97ad', '#e8c56a', '#5c9a68'][i % 4], got: false, prize: ['uchiwa', 'kazaguruma', 'sensu', 'money'][i % 4] }));
+  let rings = 5, fly = null, wins = 0, done = false;
+  const draw = () => { const g = M2.g; g.fillStyle = '#e8dcc0'; g.fillRect(0, 0, 360, 240); P.forEach(p => { g.fillStyle = '#8a6a3a'; g.fillRect(p.x - 6, p.y, 12, 30); if (!p.got) { g.fillStyle = p.c; g.beginPath(); g.arc(p.x, p.y, 14, 0, 7); g.fill(); } });
+    if (fly) { const t = fly.t, x = fly.x0 + (fly.x1 - fly.x0) * t, y = fly.y0 + (fly.y1 - fly.y0) * t - Math.sin(t * Math.PI) * 60; g.strokeStyle = '#c8a050'; g.lineWidth = 4; g.beginPath(); g.ellipse(x, y, 18, 8, 0, 0, 7); g.stroke(); }
+    M2.stat(`剩下 ${rings} 個圈　套中 ${wins} 個`); };
+  const tick = () => { if (done) return; if (fly) { fly.t += .05; if (fly.t >= 1) { const hit = P.find(p => !p.got && Math.hypot(p.x - fly.x1, p.y - fly.y1) < 16 && Math.random() < .55); if (hit) { hit.got = true; wins++; sfx(880, .2); if (hit.prize === 'money') { addMoney(20, '輪投げ'); } else prizeAcc(hit.prize); } else sfx(300, .1); fly = null; if (rings <= 0) { done = true; setTimeout(() => { M2.close(); toast(wins ? `套中 ${wins} 個！` : '一個都沒套中…下次加油！', 2500); }, 600); } } } draw(); requestAnimationFrame(tick); };
+  M2.cv.onpointerdown = e => { if (fly || rings <= 0) return; const [x, y] = cvPos(M2.cv, e); rings--; fly = { x0: 180, y0: 235, x1: x + (Math.random() - .5) * 24, y1: y + (Math.random() - .5) * 18, t: 0 }; };
+  tick();
+}
+function playYoyo(shop) {
+  const M2 = gameModal('🎈 ヨーヨー釣り', '點水球的橡皮圈把它釣起來！紙繩用 3 次就會斷。');
+  const B = [...Array(9)].map((_, i) => ({ x: 60 + Math.random() * 240, y: 50 + Math.random() * 140, a: Math.random() * 6, c: ['#e8455c', '#f2d27a', '#7ab8e8', '#f29ac0', '#8ad89a'][i % 5] }));
+  let left = 3, got = 0, done = false; const t0 = performance.now();
+  const draw = () => { const g = M2.g; g.fillStyle = '#4f9ac0'; g.fillRect(0, 0, 360, 240); B.forEach(b => { b.a += .01; b.x += Math.cos(b.a) * .3; b.y += Math.sin(b.a * 1.3) * .25; b.x = Math.max(20, Math.min(340, b.x)); b.y = Math.max(20, Math.min(220, b.y)); g.fillStyle = b.c; g.beginPath(); g.arc(b.x, b.y, 16, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.moveTo(b.x, b.y - 16); g.lineTo(b.x + 8, b.y - 26); g.stroke(); }); M2.stat(`紙繩還能用 ${left} 次　釣到 ${got} 個`); };
+  const end = () => { done = true; M2.close(); if (got) prizeAcc('yoyo', `釣到 ${got} 個水球！拿一個在手上玩吧～`); else toast('紙繩斷了…下次加油！', 2500); };
+  const tick = () => { if (done) return; draw(); if (performance.now() - t0 > 20000) return end(); requestAnimationFrame(tick); };
+  M2.cv.onpointerdown = e => { if (done) return; const [x, y] = cvPos(M2.cv, e); const i = B.findIndex(b => Math.hypot(b.x + 8 - x, b.y - 26 - y) < 14 || Math.hypot(b.x - x, b.y - y) < 10); left--; if (i >= 0 && Math.random() < .7) { B.splice(i, 1); got++; sfx(880, .2); } else sfx(300, .1); if (left <= 0 || !B.length) setTimeout(end, 500); };
+  tick();
+}
+function playKuji(shop) {
+  const M2 = gameModal('🎋 くじ引き', '點一下籤箱抽籤！');
+  const T = [['特賞', 'janome', .04], ['一等', 'chochin', .1], ['二等', 'kazaguruma', .2], ['三等', 'uchiwa', .3], ['參加賞', 'money', 1]];
+  let drawn = false; const g = M2.g;
+  const paint = (txt) => { g.fillStyle = '#f6efe0'; g.fillRect(0, 0, 360, 240); g.fillStyle = '#c8322a'; g.fillRect(130, 60, 100, 90); g.fillStyle = '#fff8e8'; g.font = '28px serif'; g.textAlign = 'center'; g.fillText('福引', 180, 115); if (txt) { g.fillStyle = '#2a1d14'; g.font = 'bold 36px serif'; g.fillText(txt, 180, 210); } };
+  paint(''); M2.stat('祝你好運！');
+  M2.cv.onpointerdown = () => { if (drawn) return; drawn = true; const r = Math.random(); let acc = 0; const hit = T.find(t => (acc += t[2]) > r) || T[4];
+    paint(hit[0]); sfx(hit[1] === 'money' ? 440 : 880, .3);
+    setTimeout(() => { M2.close(); if (hit[1] === 'money') { addMoney(5, '參加賞'); toast('參加賞：退你 5 文，下次會更好！', 2500); } else prizeAcc(hit[1], `🎊 ${hit[0]}！得到獎品，已收進 🎒 持ち物`); }, 1600); };
+}
 
 // ---------- 祭典遊戲：撈金魚、射的 ----------
 function gameModal(title, hint) {
@@ -1303,8 +1346,11 @@ function update(dt) {
     if ((G.mode === 'seat' || G.mode === 'bath') && len > .5 && !G.busy) standUp();
     let anim = 0, speed = 0;
     if (G.mode === 'walk' && len > .05 && !cam.auto) {
-      const run = keys.ShiftLeft || keys.ShiftRight || joy.mag > .9;
-      speed = (run ? 6 : 3.2) * len;
+      // 跑步耗體力：體力用完會喘，恢復到 45 才能再跑；花魁不跑、走外八文字慢步
+      const wantRun = (keys.ShiftLeft || keys.ShiftRight || joy.mag > .9) && !G.me.gm;
+      const run = wantRun && !G.tired && G.sta > 0;
+      if (run) { G.sta -= 20 * dt; if (G.sta <= 0) { G.sta = 0; G.tired = true; G.me.say('はぁ…はぁ…', 2.5); G.me.emoji('💦'); toast('跑太久喘不過氣了，休息一下再跑吧', 2500); } }
+      speed = (G.me.gm ? 1.6 : run ? 6 : G.tired ? 2.4 : 3.2) * len;
       const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw), rx = -fz, rz = fx;
       let dx = fx * iz + rx * ix, dz = fz * iz + rz * ix; const dl = Math.hypot(dx, dz); dx /= dl; dz /= dl;
       const nx = G.pos.x + dx * speed * dt, nz = G.pos.z + dz * speed * dt;
@@ -1312,6 +1358,8 @@ function update(dt) {
       G.ry = angLerp(G.ry, Math.atan2(dx, dz), Math.min(1, dt * 10)); anim = run ? 2 : 1; G.emoteT = 0;
     }
     if (G.mode === 'walk') G.pos.y = heightAt(G.pos.x, G.pos.z);
+    { const running = anim === 2; if (!running) { G.sta = Math.min(100, G.sta + (speed > 0 ? 10 : 20) * dt); if (G.tired && G.sta >= 45) { G.tired = false; G.me.say('呼～好了！', 1.5); } }
+      if (G.mode === 'walk' && speed === 0 && G.tired && !(G.emoteT > 0)) anim = 18; updSta(); }
     const rideSp = updRide(dt); if (G.mode === 'ride') anim = 3;
     if (G.mode === 'hail') { updHail(dt, len); if (G.mode === 'hail') anim = 16; } updLeave(dt);
     if (G.emoteT > 0) { G.emoteT -= dt; anim = G.emote; }
@@ -1361,17 +1409,20 @@ function update(dt) {
   if (bloom) bloom.strength = .18 + W.night * .55;
 }
 let viewOff = 0;
+let viewOffX = 0;
 function updViewOffset() {
-  let target = 0;
-  if (G.mode === 'title' && camera.aspect < 1) { // 直式建立人物：人物移到面板上方的空白區正中央
-    const c = $('#title .card'); if (c) { const r = c.getBoundingClientRect(); target = Math.max(0, innerHeight - r.top) * .5 - innerHeight * .04; }
+  let target = 0, tx = 0;
+  if (G.mode === 'title') { // 建立人物：把人物移到「面板沒擋到的空間」正中央（直式往上、橫式往右）
+    const c = $('#title .card'); if (c && !$('#title').classList.contains('hide')) { const r = c.getBoundingClientRect();
+      if (camera.aspect < 1 || r.width > innerWidth * .8) target = Math.max(0, innerHeight - r.top) * .5 - innerHeight * .04;
+      else if (r.right > 0) tx = -(r.right * .5); }
   }
   if (innerWidth <= 700 && G.mode !== 'title') {
     for (const id of ['#panel', '#mg', '#pcard', '#chatBox']) { const el = $(id); if (el && !el.classList.contains('hide')) { const r = el.getBoundingClientRect(); if (r.top > innerHeight * .35) target = Math.max(target, (innerHeight - r.top) * .55); } }
   }
   document.body.classList.toggle('sheet', target > 0);
-  viewOff += (target - viewOff) * .15;
-  if (viewOff > 1) camera.setViewOffset(innerWidth, innerHeight, 0, viewOff, innerWidth, innerHeight); else if (camera.view && camera.view.enabled) camera.clearViewOffset();
+  viewOff += (target - viewOff) * .15; viewOffX += (tx - viewOffX) * .15;
+  if (viewOff > 1 || viewOffX < -1) camera.setViewOffset(innerWidth, innerHeight, viewOffX, viewOff, innerWidth, innerHeight); else if (camera.view && camera.view.enabled) camera.clearViewOffset();
 }
 const PERF = new URLSearchParams(location.search).has('perf'); let perfF = 0, perfT = performance.now();
 if (PERF) renderer.info.autoReset = false;
@@ -1441,9 +1492,10 @@ if (isTouch) document.body.classList.add('touch');
   // 全部素材同時下載（原本分三批依序等）；花魁貼圖只有 GM 用，背景載入不擋開場
   Promise.all([loadImg('img/tex/oiran_out.jpg'), loadImg('img/tex/oiran_in.jpg')]).then(([a, b]) => { TX.IMG.oiranOut = a; TX.IMG.oiranIn = b; if (G.me && G.me.gm) G.me.setLook(G.look); });
   const L = (pre, n, ext) => Promise.all([...Array(n).keys()].map(i => loadImg(`img/tex/${pre}${i}.${ext}`)));
-  const [art, ey, br, mo, mt, ob] = await Promise.all([Promise.all(['roof', 'plaster', 'wood', 'dirt'].map(k => loadImg('img/tex/' + k + '.jpg')).concat([...Array(11).keys()].map(i => loadImg('img/tex/kanban' + i + '.png')))), L('eyes', 5, 'png'), L('brows', 4, 'png'), L('mouths', 4, 'png'), L('motif', 9, 'png'), L('obi', 6, 'jpg')]);
+  const [art, ey, br, mo, mt, ob, exe, hairImg] = await Promise.all([Promise.all(['roof', 'plaster', 'wood', 'dirt'].map(k => loadImg('img/tex/' + k + '.jpg')).concat([...Array(11).keys()].map(i => loadImg('img/tex/kanban' + i + '.png')))), L('eyes', 5, 'png'), L('brows', 4, 'png'), L('mouths', 4, 'png'), L('motif', 9, 'png'), L('obi', 6, 'jpg'), L('eyex', 4, 'png'), loadImg('img/tex/hair.jpg')]);
   ['roof', 'plaster', 'wood', 'dirt'].forEach((k, i) => TX.IMG[k] = art[i]); TX.IMG.kanban = art.slice(4);
-  if (ey.every(Boolean) && br.every(Boolean) && mo.every(Boolean)) TX.IMG.face = { eyes: ey, brows: br, mouths: mo };
+  if (ey.every(Boolean) && br.every(Boolean) && mo.every(Boolean)) TX.IMG.face = { eyes: ey, brows: br, mouths: mo, ex: exe.every(Boolean) ? exe : null };
+  if (hairImg) TX.IMG.hair = hairImg;
   if (mt.every(Boolean)) TX.IMG.motifs = mt; if (ob.every(Boolean)) TX.IMG.obi = ob;
   W = buildWorld(scene);
   W.sunLight = scene.children.find(o => o.isDirectionalLight);
@@ -1510,6 +1562,10 @@ async function runTest() {
     for (let g = 0; MG.on && g < 600; g++) { const st = MG.st; if (st && !st.done) { if (st.g === 'tap' && Math.abs(st.v - st.zc) < st.zw / 4) mgPress(true); if (st.g === 'mash') mgPress(true); if (st.g === 'hold') { if (!st.held) mgPress(true); else if (st.v >= st.zc) mgPress(false); } } await sleep(25); }
     ok(!MG.on && G.money > m1, '做完收錢 +' + (G.money - m1) + ' 文');
     await sleep(500); leaveOwner(); ok(G.mode === 'walk' && !G.owners.chaya, '收店');
+    { // 縁日屋台：買章魚燒、抽籤
+      const ty = W.shops.find(x => x.def.id === 'takoyaki'); ok(ty && ty.seats.length === 2, '參道屋台（章魚燒）有板凳');
+      G.pos.set(ty.front.x, 0, ty.front.z); openShop(ty); $('#bCust').click(); order(ty, ty.def.menu[0]); ok(await until(() => G.look.f === 'takoyaki:tako6'), '買到章魚燒拿在手上'); standUp();
+      const kj = W.shops.find(x => x.def.id === 'kuji'); openShop(kj); $('#bPlay').click(); $('#pgc').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); ok(await until(() => $('#pg').classList.contains('hide'), 5000), '抽籤完成'); }
     { // 祭典：強制開一場，跑一段時間不能出錯，神轎附近要撿得到福餅
       const off0 = window.__festOff; window.__festOff = 720 - (Date.now() / 1000) % 720 + 5; let fe = null;
       try { for (let i = 0; i < 300; i++) update(1 / 30); } catch (e) { fe = e.message; }

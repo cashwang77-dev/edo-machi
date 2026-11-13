@@ -17,6 +17,12 @@ const EKI = [S('筮竹', '搖籤', 'mash'), S('占う', '占卜', 'tap')];
 const YU = [S('湯加減', '調水溫', 'hold'), S('番台', '收錢', 'tap')];
 
 const D = (type, ...c) => ({ type, c });
+const TAKO = [S('流し込む', '倒麵糊', 'tap'), S('返す', '翻面', 'mash'), S('ソース', '淋醬', 'tap')];
+const YAKISOBA = [S('炒める', '翻炒', 'mash'), S('ソース', '淋醬', 'tap'), S('盛る', '裝盒', 'tap')];
+const WATA = [S('ざらめ', '放砂糖', 'tap'), S('巻く', '捲棉花糖', 'mash')];
+const RINGO = [S('飴を煮る', '熬糖', 'hold'), S('くぐらせる', '沾糖', 'tap')];
+const IKA = [S('焼く', '烤魷魚', 'hold'), S('タレ', '刷醬', 'tap')];
+const AME = [S('練る', '揉糖', 'mash'), S('細工', '捏造型', 'tap'), S('色付け', '上色', 'tap')];
 // 飾品目錄：slot＝裝在哪（hat 頭部、hs 髮飾、m 面具、w 腰間、c 手持、b 背上）
 export const SLOT_NAME = { hat: '頭部', hs: '髮飾', m: '面具', w: '腰間', c: '手持', b: '背上' };
 export const ACC = [
@@ -29,7 +35,7 @@ export const ACC = [
   { id: 'okame', n: 'おかめ', zh: '阿龜面具', slot: 'm', v: 3, p: 50 }, { id: 'tengu', n: '天狗', zh: '天狗面具', slot: 'm', v: 4, p: 70 },
   { id: 'hannya', n: '般若', zh: '般若面具', slot: 'm', v: 5, p: 90 }, { id: 'oni', n: '鬼の面', zh: '鬼面具', slot: 'm', v: 6, p: 70 },
   { id: 'nekomen', n: '猫の面', zh: '貓面具', slot: 'm', v: 7, p: 55 }, { id: 'shishi', n: '獅子', zh: '獅子面具', slot: 'm', v: 8, p: 80 },
-  { id: 'kingyo', n: '金魚', zh: '金魚袋', slot: 'c', v: 7, p: 0, prize: 1 },
+  { id: 'kingyo', n: '金魚', zh: '金魚袋', slot: 'c', v: 7, p: 0, prize: 1 }, { id: 'yoyo', n: 'ヨーヨー', zh: '水球', slot: 'c', v: 8, p: 0, prize: 1 },
   { id: 'inro', n: '印籠', zh: '印籠', slot: 'w', v: 1, p: 80 }, { id: 'kinchaku', n: '巾着', zh: '巾著袋', slot: 'w', v: 2, p: 30 },
   { id: 'daisho', n: '大小', zh: '武士雙刀', slot: 'w', v: 3, p: 150 }, { id: 'tabako', n: '煙草入れ', zh: '煙草入れ', slot: 'w', v: 4, p: 45 },
   { id: 'sensu', n: '扇子', zh: '扇子', slot: 'c', v: 1, p: 30 }, { id: 'bangasa', n: '番傘', zh: '紅紙傘', slot: 'c', v: 2, p: 50 },
@@ -150,3 +156,17 @@ export const FORTUNE = {
   kuji: [['大吉', '萬事如意，今天點的每一碗都特別好吃。'], ['中吉', '在橋上會遇到有緣人。'], ['小吉', '小小的好運藏在糰子的第三顆裡。'], ['吉', '平穩的一天，適合看夕陽。'], ['末吉', '慢慢來，好事在後頭。'], ['凶', '小心別在河邊滑倒……換個髮型轉轉運吧。']],
   palm: [['財運', '掌紋顯示你很會做生意，試著開一家店吧！'], ['戀愛運', '櫻花樹下，會有人跟你搭話。'], ['健康運', '多泡湯、多走路，身體會很好。'], ['人緣', '你身邊總是熱熱鬧鬧，朋友會越來越多。']],
 };
+
+// ---- 縁日屋台：神社參道兩側（side 0＝不在大街上，用 pos 擺放）----
+const Y = (id, name, kind, sign, noren, x, north, extra) => ({ id, name, kind, sign, noren, w: 4.4, floors: 1, side: 0, yatai: true, pos: { x, z: north ? -5.4 : 5.4, ry: north ? 0 : Math.PI }, wall: '#e6dac0', ...extra });
+SHOPS.push(
+  Y('takoyaki', 'たこ八', 'たこ焼き（屋台）', 'たこ焼', '#c8322a', -104, true, { prop: 'takoyaki', menu: [{ id: 'tako6', n: 'たこ焼き', zh: '章魚燒（6 顆）', p: 12, dish: D('takoyaki', '#c98a3a'), steps: TAKO }] }),
+  Y('yakisoba', '鉄板屋', '焼きそば（屋台）', '焼そば', '#2f5f8a', -109.5, true, { prop: 'yakisoba', menu: [{ id: 'ysoba', n: '焼きそば', zh: '炒麵', p: 15, dish: D('yakisoba', '#8a5a2a'), steps: YAKISOBA }] }),
+  Y('wanage', '輪投げ屋', '輪投げ（遊戲）', '輪投げ', '#3b6a5a', -115, true, { prop: 'wanage', play: 'wanage', price: 10 }),
+  Y('ringoame', '紅玉屋', 'りんご飴（屋台）', 'りんご飴', '#a8232e', -120.5, true, { prop: 'ringo', menu: [{ id: 'ringo', n: 'りんご飴', zh: '蘋果糖', p: 10, dish: D('ringo', '#c8202e'), steps: RINGO }, { id: 'anzu', n: 'あんず飴', zh: '杏桃糖', p: 8, dish: D('ringo', '#f0a030'), steps: RINGO }] }),
+  Y('kuji', '福引屋', 'くじ引き（遊戲）', 'くじ', '#7a4a9a', -126, true, { prop: 'kuji', play: 'kuji', price: 10 }),
+  Y('wataame', '雲屋', '綿あめ（屋台）', 'わたあめ', '#e87a9a', -104, false, { prop: 'wataame', menu: [{ id: 'wpink', n: '綿あめ（桃）', zh: '粉紅棉花糖', p: 8, dish: D('wataame', '#f6c6dc'), steps: WATA }, { id: 'wblue', n: '綿あめ（空）', zh: '水藍棉花糖', p: 8, dish: D('wataame', '#c6e2f6'), steps: WATA }] }),
+  Y('ikayaki', '浜焼', 'いか焼き（屋台）', 'いか焼', '#8a6a2a', -109.5, false, { prop: 'ika', menu: [{ id: 'ika', n: 'いか焼き', zh: '烤魷魚', p: 12, dish: D('ika', '#c87a3a'), steps: IKA }] }),
+  Y('yoyo', 'ヨーヨー釣り', 'ヨーヨー釣り（遊戲）', 'ヨーヨー', '#1f6a9a', -115, false, { prop: 'yoyo', play: 'yoyo', price: 10 }),
+  Y('amezaiku', '飴細工 吉', '飴細工（屋台）', '飴細工', '#5a7a3a', -120.5, false, { prop: 'ame', menu: [{ id: 'ameusa', n: '飴細工・兎', zh: '糖兔子', p: 20, dish: D('ame', '#f6f2f6'), steps: AME }, { id: 'amekin', n: '飴細工・金魚', zh: '糖金魚', p: 20, dish: D('ame', '#f05a28'), steps: AME }] }),
+);
