@@ -1,11 +1,11 @@
 // 江戶町 3D 世界
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import * as TX from './tex.js?v=202611181356';
-import { SHOPS, STREET } from './shops.js?v=202611181356';
-import { buildTemple } from './temple.js?v=202611181356';
-import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611181356';
-import { buildMeisho2, walkSouth } from './meisho2.js?v=202611181356';
+import * as TX from './tex.js?v=202611181601';
+import { SHOPS, STREET } from './shops.js?v=202611181601';
+import { buildTemple } from './temple.js?v=202611181601';
+import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611181601';
+import { buildMeisho2, walkSouth } from './meisho2.js?v=202611181601';
 
 const PI = Math.PI;
 export const ARCH = x => (x > 110 && x < 140) ? 1.7 * Math.sin(PI * (x - 110) / 30) : 0;
@@ -636,6 +636,8 @@ export function buildWorld(scene) {
       m4.compose(new THREE.Vector3(x, h / 2, z), q, new THREE.Vector3(w, h, d)); walls.setMatrixAt(k, m4);
       m4.compose(new THREE.Vector3(x, h, z), q, new THREE.Vector3(w + 1, d * .9, d + 1)); roofs.setMatrixAt(k, m4); k++;
     }
+    { const wc = ['#e6dcc6', '#d9cdb4', '#ece4d2', '#cdbfa2', '#b9a07c', '#d8c8a8'], rc = ['#4c535d', '#3f4650', '#5a4a3e', '#4d5a52', '#565b66', '#6a5848'], col = new THREE.Color(), r2 = rng(99);
+      for (let i = 0; i < k; i++) { walls.setColorAt(i, col.set(wc[Math.floor(r2() * wc.length)])); roofs.setColorAt(i, col.set(rc[Math.floor(r2() * rc.length)])); } walls.material.color.set('#ffffff'); roofs.material.color.set('#ffffff'); }
     walls.count = roofs.count = k; walls.castShadow = roofs.castShadow = true; walls.receiveShadow = roofs.receiveShadow = true;
     scene.add(walls, roofs);
     for (let i = 0; i < 70; i++) { const x = -250 + rand() * 500, z = (rand() < .5 ? -1 : 1) * (25 + rand() * 140); if (x > 100 && x < 150) continue; if (x > -300 && x < -94 && z > 22 && z < 148) continue; (rand() < .5 ? pine : sakura)(B, x, z, 1 + rand() * .6, rand); }
@@ -682,7 +684,7 @@ export function buildWorld(scene) {
   const sun = new THREE.DirectionalLight('#fff', 2.5); sun.castShadow = true;
   sun.shadow.camera.left = sun.shadow.camera.bottom = -45; sun.shadow.camera.right = sun.shadow.camera.top = 45; sun.shadow.camera.near = 1; sun.shadow.camera.far = 220; sun.shadow.bias = -.0005; sun.shadow.normalBias = .03;
   scene.add(sun, sun.target);
-  const hemi = new THREE.HemisphereLight('#cfe0ff', '#7a6a50', 1); scene.add(hemi);
+  const hemi = new THREE.HemisphereLight('#d8e4ff', '#9a7c54', 1.05); scene.add(hemi);
   scene.fog = new THREE.FogExp2('#c0d0dc', .006);
   const pool = []; for (let i = 0; i < 8; i++) { const l = new THREE.PointLight('#ffb070', 0, 13, 1.7); scene.add(l); pool.push(l); }
   const petals = new Petals(scene), ff = new Fireflies(scene), puffs = new Puffs(scene);
@@ -699,7 +701,7 @@ export function buildWorld(scene) {
     sky.position.copy(camPos);
     const ld = sunDir.y > -.02 ? sunDir : tmp.copy(sunDir).negate();
     sun.position.copy(focus).addScaledVector(ld, 100); sun.target.position.copy(focus); sun.color.copy(D.sun); sun.intensity = D.sunI * (sunDir.y > -.02 ? Math.min(1, sunDir.y * 6 + .3) : .9);
-    hemi.intensity = D.hemi; hemi.color.copy(D.top).lerp(new THREE.Color('#ffffff'), .5); hemi.groundColor.set('#6a5a44').multiplyScalar(.6 + D.hemi * .4);
+    hemi.intensity = D.hemi; hemi.color.copy(D.top).lerp(new THREE.Color('#ffffff'), .5); hemi.groundColor.set('#8a6c48').multiplyScalar(.6 + D.hemi * .4);
     scene.fog.color.copy(D.fog); scene.fog.density = .0045 + D.lan * .0035;
     waterMat.uniforms.uTime.value = time; waterMat.uniforms.uSky.value.copy(D.bot).lerp(D.top, .3); waterMat.uniforms.uSunDir.value.copy(sunDir); waterMat.uniforms.uSunCol.value.copy(D.sun); waterMat.uniforms.uFog.value.copy(D.fog); waterMat.uniforms.uFogD.value = scene.fog.density; waterMat.uniforms.uGlow.value = D.lan;
     waterMat.uniforms.uDeep.value.set('#1d3b3a').multiplyScalar(.35 + .65 * (1 - D.lan));

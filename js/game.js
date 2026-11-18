@@ -1,18 +1,19 @@
 // 江戶町 主程式
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611181356';
-import { RIDE_Y } from './chara.js?v=202611181356';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611181356';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611181356';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611181356';
-import { Net } from './net.js?v=202611181356';
-import { cleanText } from './filter.js?v=202611181356';
-import { SND } from './audio.js?v=202611181356';
-import * as TX from './tex.js?v=202611181356';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611181601';
+import { RIDE_Y } from './chara.js?v=202611181601';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611181601';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611181601';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611181601';
+import { Net } from './net.js?v=202611181601';
+import { cleanText } from './filter.js?v=202611181601';
+import { SND } from './audio.js?v=202611181601';
+import * as TX from './tex.js?v=202611181601';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -26,7 +27,7 @@ const PI = Math.PI;
 let quality = store.get('q', isTouch ? 1 : 2);
 const AQ = { f: 0, t: 0, warm: 0 };
 const renderer = new THREE.WebGLRenderer({ antialias: quality > 0, powerPreference: 'high-performance' });
-renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.06;
 renderer.shadowMap.enabled = quality > 0; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.prepend(renderer.domElement);
 const scene = new THREE.Scene();
@@ -60,7 +61,7 @@ const G = window.G = {
   pos: new THREE.Vector3(96, 0, 0), ry: -PI / 2, me: null, myId: 'me', online: false,
   remotes: new Map(), owners: {}, seat: null, shop: null, order: null, queue: [], npcCust: [], emoteT: 0, busy: false, gm: false, timeOff: 0, eatT: 0, follow: null, whisper: null, sta: 100, tired: false,
 };
-const cam = { yaw: PI / 2 - .5, pitch: .32, dist: 6.5, tx: 0, ty: 0, tz: 0, auto: false };
+const cam = { yaw: PI / 2 - .5, pitch: .32, dist: 6.5, tx: 0, ty: 0, tz: 0, auto: false, iso: false, isoDist: 14 };
 const net = new Net(SERVER);
 
 // ---------- 小工具 ----------
@@ -99,9 +100,9 @@ addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'Space') m
 // 滑鼠／觸控拖曳轉鏡頭
 let drag = null;
 renderer.domElement.addEventListener('pointerdown', e => { if (cam.auto && G.mode !== 'title') { toggleView(); return; } drag = { id: e.pointerId, x: e.clientX, y: e.clientY }; });
-addEventListener('pointermove', e => { if (!drag || drag.id !== e.pointerId) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; cam.yaw -= dx * .006; cam.pitch = Math.min(1.25, Math.max(.05, cam.pitch + dy * .004)); });
-addEventListener('pointerup', e => { if (drag && drag.id === e.pointerId) drag = null; });
-renderer.domElement.addEventListener('wheel', e => { cam.dist = Math.min(16, Math.max(2.2, cam.dist * (1 + Math.sign(e.deltaY) * .1))); }, { passive: true });
+addEventListener('pointermove', e => { if (!drag || drag.id !== e.pointerId) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; cam.yaw -= dx * .006; if (!cam.iso) cam.pitch = Math.min(1.25, Math.max(.05, cam.pitch + dy * .004)); });
+addEventListener('pointerup', e => { if (drag && drag.id === e.pointerId) { drag = null; if (cam.iso) cam.snap = true; } });
+renderer.domElement.addEventListener('wheel', e => { if (cam.iso) { cam.isoDist = Math.min(24, Math.max(8, cam.isoDist * (1 + Math.sign(e.deltaY) * .1))); return; } cam.dist = Math.min(16, Math.max(2.2, cam.dist * (1 + Math.sign(e.deltaY) * .1))); }, { passive: true });
 // 搖桿
 const jb = $('#joy'), jk = $('#joyK');
 jb.addEventListener('pointerdown', e => { joy.id = e.pointerId; jb.setPointerCapture(e.pointerId); joyMove(e); e.stopPropagation(); });
@@ -112,7 +113,7 @@ function joyMove(e) { const r = jb.getBoundingClientRect(); let x = (e.clientX -
 // 雙指縮放
 const pts = new Map();
 renderer.domElement.addEventListener('pointerdown', e => pts.set(e.pointerId, [e.clientX, e.clientY]));
-renderer.domElement.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; const old = [...pts.values()]; const pd = old.length === 2 ? Math.hypot(old[0][0] - old[1][0], old[0][1] - old[1][1]) : 0; pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 2) { const n = [...pts.values()]; const nd = Math.hypot(n[0][0] - n[1][0], n[0][1] - n[1][1]); if (pd) cam.dist = Math.min(16, Math.max(2.2, cam.dist * pd / nd)); drag = null; } });
+renderer.domElement.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; const old = [...pts.values()]; const pd = old.length === 2 ? Math.hypot(old[0][0] - old[1][0], old[0][1] - old[1][1]) : 0; pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 2) { const n = [...pts.values()]; const nd = Math.hypot(n[0][0] - n[1][0], n[0][1] - n[1][1]); if (pd) { if (cam.iso) cam.isoDist = Math.min(24, Math.max(8, cam.isoDist * pd / nd)); else cam.dist = Math.min(16, Math.max(2.2, cam.dist * pd / nd)); } drag = null; } });
 const ptEnd = e => pts.delete(e.pointerId); renderer.domElement.addEventListener('pointerup', ptEnd); renderer.domElement.addEventListener('pointercancel', ptEnd);
 
 // ---------- 鏡頭射線 vs 建築阻擋框（slab 法）----------
@@ -903,6 +904,31 @@ function updRide(dt) {
   G.pos.y = RIDE_Y + heightAt(G.pos.x, G.pos.z); return C.sp;
 }
 // 路上的空車：乘り場停靠＋大街來回；點一下就能搭。太遠不畫、不更新（省效能）
+// 路邊花草：沿著可走範圍的邊緣（牆腳、樹下、路緣）自動長出；草一批、花一批＝只多 2 次繪製、不投影
+function floraTex(kind) {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 128; const g = c.getContext('2d');
+  if (kind === 'grass') { for (let i = 0; i < 26; i++) { const x = 14 + Math.random() * 100, h = 50 + Math.random() * 70, lean = (Math.random() - .5) * 40; const gr = g.createLinearGradient(0, 128, 0, 128 - h); gr.addColorStop(0, '#3f6a2a'); gr.addColorStop(1, Math.random() < .5 ? '#a8d468' : '#8cc457');
+      g.fillStyle = gr; g.beginPath(); g.moveTo(x - 4, 128); g.quadraticCurveTo(x + lean * .3, 128 - h * .6, x + lean, 128 - h); g.quadraticCurveTo(x + lean * .3 + 2, 128 - h * .5, x + 4, 128); g.fill(); } }
+  else { g.fillStyle = '#4f7a34'; for (let i = 0; i < 9; i++) { const x = 20 + Math.random() * 88; g.fillRect(x, 70 + Math.random() * 20, 3, 60); }
+    for (let i = 0; i < 6; i++) { const x = 22 + Math.random() * 84, y = 34 + Math.random() * 44; g.fillStyle = '#ffffff'; for (let p = 0; p < 5; p++) { const a = p / 5 * 6.283; g.beginPath(); g.arc(x + Math.cos(a) * 7, y + Math.sin(a) * 7, 6, 0, 7); g.fill(); } g.fillStyle = '#f2c94c'; g.beginPath(); g.arc(x, y, 4, 0, 7); g.fill(); } }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+function spawnFlora() {
+  if (!GRID) buildGrid(); const { x0, z0, w, h } = GR, edges = [];
+  for (let j = 1; j < h - 1; j++) for (let i = 1; i < w - 1; i++) { const k = j * w + i; if (!GRID[k]) continue; const x = x0 + i + .5, z = z0 + j + .5; if (x > 102 && x < 142) continue; // 河岸與橋上不長
+    const n = [GRID[k - 1] ? 0 : [-1, 0], GRID[k + 1] ? 0 : [1, 0], GRID[k - w] ? 0 : [0, -1], GRID[k + w] ? 0 : [0, 1]].filter(Boolean); if (n.length) edges.push([x, z, n[0]]);
+    else if (((x < -140 && z > 44) || (x > 140 && z > 40)) && (i * 7 + j * 13) % 9 === 0) edges.push([x, z, [0, 0]]); } // 公園／庭園空地也撒一些
+  const rnd = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+  const geo = new THREE.PlaneGeometry(1, 1); geo.translate(0, .5, 0); const cross = mergeGeometries([geo, geo.clone().rotateY(PI / 2)]);
+  const lowQ = quality === 0, make = (kind, n, sz, cols) => {
+    const m = new THREE.MeshLambertMaterial({ map: floraTex(kind), alphaTest: .5, side: THREE.DoubleSide }), im = new THREE.InstancedMesh(cross, m, n);
+    const M4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), col = new THREE.Color(); let c = 0;
+    for (let t = 0; t < n * 4 && c < n; t++) { const [x, z, d] = edges[Math.floor(rnd() * edges.length)]; const px = x + d[0] * .35 + (rnd() - .5) * .5, pz = z + d[1] * .35 + (rnd() - .5) * .5; const s = sz * (.7 + rnd() * .6);
+      e.set(0, rnd() * PI, 0); q.setFromEuler(e); M4.compose(new THREE.Vector3(px, 0, pz), q, new THREE.Vector3(s, s * (.8 + rnd() * .4), s)); im.setMatrixAt(c, M4); im.setColorAt(c, col.set(cols[Math.floor(rnd() * cols.length)])); c++; }
+    im.count = c; im.castShadow = false; im.receiveShadow = true; im.frustumCulled = false; scene.add(im); return im;
+  };
+  if (edges.length) { make('grass', lowQ ? 1400 : 3600, .8, ['#ffffff', '#e8f0d0', '#d8e8b8']); make('flower', lowQ ? 400 : 1000, .5, ['#ffd0dc', '#fff6d8', '#e8d0ff', '#ffe08a', '#ffffff']); }
+}
 const CABS = [];
 const CAB_STANDS = [[-60, 4.6, PI / 2], [92, -4.6, -PI / 2], [160, -28, PI / 2], [-131, 52, PI / 2], [-104, -9, -PI / 2], [150, 44, PI], [-112, 60, -PI / 2]];
 function spawnCabs() {
@@ -1476,12 +1502,14 @@ function update(dt) {
     if (G.mode === 'owner') anim = MG.on ? 4 : 0;
     G.me.play(anim); G.me.root.position.copy(G.pos); G.me.root.rotation.y = G.ry; G.me.update(dt, speed); G.me.updRide(dt, rideSp);
     // 鏡頭
-    const tgt = new THREE.Vector3(G.pos.x, G.pos.y + 1.45, G.pos.z);
+    const iso = cam.iso && !cam.auto && !G.cu, tgt = new THREE.Vector3(G.pos.x, G.pos.y + (iso ? .9 : 1.45), G.pos.z);
     if (cam.auto) { cam.yaw += dt * .06; cam.pitch += (.18 - cam.pitch) * dt * .5; }
+    if (iso) { cam.pitch += (.74 - cam.pitch) * Math.min(1, dt * 4); if (cam.snap && !drag) { const s = Math.round(cam.yaw / (PI / 4)) * (PI / 4); cam.yaw += (s - cam.yaw) * Math.min(1, dt * 8); if (Math.abs(s - cam.yaw) < .002) { cam.yaw = s; cam.snap = false; } } }
+    { const fv = iso ? 34 : 55; if (Math.abs(camera.fov - fv) > .05) { camera.fov += (fv - camera.fov) * Math.min(1, dt * 5); camera.updateProjectionMatrix(); } }
     cam.tx += (tgt.x - cam.tx) * Math.min(1, dt * 8); cam.ty += (tgt.y - cam.ty) * Math.min(1, dt * 8); cam.tz += (tgt.z - cam.tz) * Math.min(1, dt * 8);
-    let dist = cam.auto ? 11 : cam.dist;
+    let dist = cam.auto ? 11 : iso ? cam.isoDist : cam.dist;
     const off = new THREE.Vector3(Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch));
-    { const hit = rayBlock(cam.tx, cam.ty, cam.tz, off, dist); if (hit < dist) dist = Math.max(.7, hit - .3); }
+    if (!iso) { const hit = rayBlock(cam.tx, cam.ty, cam.tz, off, dist); if (hit < dist) dist = Math.max(.7, hit - .3); }
     cam.cd = cam.cd == null || dist < cam.cd ? dist : cam.cd + (dist - cam.cd) * Math.min(1, dt * 2.5); dist = cam.cd;
     camera.position.set(cam.tx + off.x * dist, Math.max(.4 + heightAt(cam.tx, cam.tz), cam.ty + off.y * dist), cam.tz + off.z * dist);
     camera.lookAt(cam.tx, cam.ty, cam.tz);
@@ -1592,6 +1620,10 @@ $('#bSet').onclick = () => { show('#settings'); document.querySelectorAll('#sett
 const sndBtns = () => document.querySelectorAll('#settings [data-snd]').forEach(b => b.classList.toggle('on', !!SND.on[b.dataset.snd]));
 document.querySelectorAll('#settings [data-snd]').forEach(b => b.onclick = () => { SND.start(); SND.setOn(b.dataset.snd, !SND.on[b.dataset.snd]); sndBtns(); });
 sndBtns();
+const cvBtns = () => document.querySelectorAll('#settings [data-cv]').forEach(b => b.classList.toggle('on', +b.dataset.cv === (cam.iso ? 1 : 0)));
+document.querySelectorAll('#settings [data-cv]').forEach(b => b.onclick = () => { setIso(+b.dataset.cv === 1); cvBtns(); });
+function setIso(on) { cam.iso = on; store.set('iso', on); if (on) { cam.snap = true; toast('斜上方俯瞰：左右拖曳旋轉（放開會對齊 45 度），滾輪／雙指縮放', 3000); } else cam.pitch = .32; }
+cam.iso = !!store.get('iso', false); cvBtns();
 document.querySelectorAll('#settings [data-q]').forEach(b => b.onclick = () => { quality = +b.dataset.q; store.set('q', quality); store.set('qUser', true); applyQuality(); document.querySelectorAll('#settings [data-q]').forEach(x => x.classList.toggle('on', +x.dataset.q === quality)); });
 document.querySelectorAll('.modal').forEach(m => m.addEventListener('pointerdown', e => { if (e.target === m) m.classList.add('hide'); }));
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('.modal').classList.add('hide'));
@@ -1612,7 +1644,7 @@ if (isTouch) document.body.classList.add('touch');
   W = buildWorld(scene);
   W.sunLight = scene.children.find(o => o.isDirectionalLight);
   setupPost(); applyQuality();
-  addMe(); spawnNPCs(); spawnCabs(); spawnDeer(); buildTitle();
+  addMe(); spawnNPCs(); spawnCabs(); spawnDeer(); buildTitle(); spawnFlora();
   initMatsuri({ scene, Chara, SND, announce, toast, pos: () => G.pos, night: () => W.night || 0, gift: v => addMoney(v, '福餅') });
   spawnKids();
   $('#loading').classList.add('hide');

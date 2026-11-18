@@ -1,7 +1,7 @@
 // 江戶町 名所南區（神社南門出去）：江戶城天守、不忍池弁天堂、歌舞伎中村座、回向院相撲土俵
 // 靜態物件全部 bake 進合併網格；走近按 E 有特寫與介紹
 import * as THREE from 'three';
-import { hipRoof } from './temple.js?v=202611181356';
+import { hipRoof } from './temple.js?v=202611181601';
 const PI = Math.PI;
 
 export const SHINOBAZU = { x: -122, z: 102, rx: 15, rz: 11, isl: 4.6 }; // 不忍池（中島可走、北側石橋）
@@ -33,7 +33,7 @@ export function buildMeisho2(ctx) {
 
   // 地面（砂利）＋參道
   {
-    const gv = std('sGravel', { map: TX.gravel().clone(), color: '#b4a68a' }); gv.map.repeat.set(22, 20); gv.map.needsUpdate = true;
+    const gv = std('sGrass', { map: TX.ground('g2').clone(), color: '#b8c890' }); gv.map.repeat.set(26, 24); gv.map.needsUpdate = true; // 名所南區像公園：草地
     const g = new THREE.Mesh(new THREE.PlaneGeometry(112, 104), gv); g.rotation.x = -PI / 2; g.position.set(-152.5, .02, 92); g.receiveShadow = true; scene.add(g);
     const sp = std('spathS', { map: TX.stone().clone() }); sp.map.repeat.set(1.5, 10); sp.map.needsUpdate = true;
     const p = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 24), sp); p.rotation.x = -PI / 2; p.position.set(-125, .03, 34); p.receiveShadow = true; scene.add(p);
