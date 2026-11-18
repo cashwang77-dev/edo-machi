@@ -5,15 +5,15 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611181625';
-import { RIDE_Y } from './chara.js?v=202611181625';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611181625';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611181625';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611181625';
-import { Net } from './net.js?v=202611181625';
-import { cleanText } from './filter.js?v=202611181625';
-import { SND } from './audio.js?v=202611181625';
-import * as TX from './tex.js?v=202611181625';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611181629';
+import { RIDE_Y } from './chara.js?v=202611181629';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611181629';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611181629';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611181629';
+import { Net } from './net.js?v=202611181629';
+import { cleanText } from './filter.js?v=202611181629';
+import { SND } from './audio.js?v=202611181629';
+import * as TX from './tex.js?v=202611181629';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -746,7 +746,7 @@ async function switchRoom(i, x, z) {
 }
 
 // ---------- 人力車：點路上的空車或按🛺叫車 → 選名所／點地圖／找玩家，車資依距離 ----------
-const RIDE = { fare2: 40 };
+const RIDE = { fare2: 40 }; const RIDE_SPD = 4.8; // 乘車速度＝走路(3.2)的 1.5 倍，慢慢欣賞風景
 const DEST = [['大街中央', 0, 3], ['神社', -116, 4], ['千本鳥居', -125, -30], ['名所南區', -125, 50], ['江戶城', -212, 92], ['不忍池', -122, 86], ['中村座', -166, 66], ['回向院相撲', -170, 104], ['日本橋', 106, 0], ['雷門', 158, 4], ['露天風呂', 153, 8], ['東光寺', 178, -42], ['五重塔', 155, -90], ['金閣寺', 180, 97]];
 const GM_DEST = DEST;
 // 路線規劃：地圖切 1 公尺格子（可走＝walkable 且不碰障礙物），從起點做一次最短路，就能得到到每個地方的距離與路線
@@ -896,7 +896,7 @@ function updRide(dt) {
   const goal = C.same ? (C.i < C.pts.length ? C.pts[C.i] : stop) : { x: G.pos.x + Math.sin(G.ry) * 10, z: G.pos.z + Math.cos(G.ry) * 10 };
   const dx = goal.x - G.pos.x, dz = goal.z - G.pos.z, d = Math.hypot(dx, dz);
   const last = C.same && C.i >= C.pts.length;
-  C.sp = Math.min(14, C.sp + dt * 9); if (last) C.sp = Math.min(C.sp, Math.max(1.5, d * 2.2));
+  C.sp = Math.min(RIDE_SPD, C.sp + dt * 4); if (last) C.sp = Math.min(C.sp, Math.max(1.5, d * 2.2));
   const step = Math.min(d, C.sp * dt);
   if (d > .05) { G.pos.x += dx / d * step; G.pos.z += dz / d * step; G.ry = angLerp(G.ry, Math.atan2(dx, dz), Math.min(1, dt * 6)); }
   if (d < (last ? .35 : 1.2)) { if (!last) C.i++; else { // 到了（中途點放寬，轉彎比較順）
