@@ -1,7 +1,7 @@
 // 江戶町 名所：雷門、海上大鳥居（嚴島）、千本鳥居（伏見稻荷）、金閣寺（鹿苑寺）、五重塔
 // 靜態物件全部 bake 進合併網格（不增加繪製次數）；走近按 E 有特寫與介紹
 import * as THREE from 'three';
-import { hipRoof } from './temple.js?v=202611181629';
+import { hipRoof } from './temple.js?v=202611181641';
 const PI = Math.PI;
 
 export const KINKAKU_POND = { x: 180, z: 78, rx: 21, rz: 15 }; // 金閣寺鏡湖池（不可走入）

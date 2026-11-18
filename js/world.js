@@ -1,11 +1,11 @@
 // 江戶町 3D 世界
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import * as TX from './tex.js?v=202611181629';
-import { SHOPS, STREET } from './shops.js?v=202611181629';
-import { buildTemple } from './temple.js?v=202611181629';
-import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611181629';
-import { buildMeisho2, walkSouth } from './meisho2.js?v=202611181629';
+import * as TX from './tex.js?v=202611181641';
+import { SHOPS, STREET } from './shops.js?v=202611181641';
+import { buildTemple } from './temple.js?v=202611181641';
+import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611181641';
+import { buildMeisho2, walkSouth } from './meisho2.js?v=202611181641';
 
 const PI = Math.PI;
 export const ARCH = x => (x > 110 && x < 140) ? 1.7 * Math.sin(PI * (x - 110) / 30) : 0;
@@ -619,7 +619,8 @@ export function buildWorld(scene) {
 
   // 背景街區（instanced）
   {
-    const n = 900; const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), std('bgw', { color: '#d9cfb8' }), n);
+    const n = 900; const fac = new THREE.TextureLoader().load('img/tex/facade.jpg'); fac.colorSpace = THREE.SRGBColorSpace; fac.anisotropy = 4; // 手繪町家立面
+    const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), std('bgw', { color: '#ffffff', map: fac }), n);
     const sh = new THREE.Shape(); sh.moveTo(-.5, 0); sh.lineTo(.5, 0); sh.lineTo(0, .45); sh.closePath();
     const rg = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false }); rg.translate(0, 0, -.5); rg.rotateY(PI / 2);
     const roofs = new THREE.InstancedMesh(rg, std('bgr', { color: '#4c535d', roughness: .7 }), n);
@@ -636,7 +637,7 @@ export function buildWorld(scene) {
       m4.compose(new THREE.Vector3(x, h / 2, z), q, new THREE.Vector3(w, h, d)); walls.setMatrixAt(k, m4);
       m4.compose(new THREE.Vector3(x, h, z), q, new THREE.Vector3(w + 1, d * .9, d + 1)); roofs.setMatrixAt(k, m4); k++;
     }
-    { const wc = ['#e6dcc6', '#d9cdb4', '#ece4d2', '#cdbfa2', '#b9a07c', '#d8c8a8'], rc = ['#4c535d', '#3f4650', '#5a4a3e', '#4d5a52', '#565b66', '#6a5848'], col = new THREE.Color(), r2 = rng(99);
+    { const wc = ['#ffffff', '#f6efe2', '#efe6d6', '#fbf4e8', '#e8dcc8', '#f2e8da'], rc = ['#4c535d', '#3f4650', '#5a4a3e', '#4d5a52', '#565b66', '#6a5848'], col = new THREE.Color(), r2 = rng(99);
       for (let i = 0; i < k; i++) { walls.setColorAt(i, col.set(wc[Math.floor(r2() * wc.length)])); roofs.setColorAt(i, col.set(rc[Math.floor(r2() * rc.length)])); } walls.material.color.set('#ffffff'); roofs.material.color.set('#ffffff'); }
     walls.count = roofs.count = k; walls.castShadow = roofs.castShadow = true; walls.receiveShadow = roofs.receiveShadow = true;
     scene.add(walls, roofs);
@@ -693,9 +694,23 @@ export function buildWorld(scene) {
   if (W.templeSmoke) puffs.emitter(W.templeSmoke, 3.5, 1.2, '#d8d4cc', .5);
   W.ringRope = () => { W.temple.ropeT = 2.2; }; W.strike = () => { W.temple.strikeT = 1.6; };
 
+  // 手繪雲：14 朵合併成一個網格（1 次繪製），繞天空慢慢飄，顏色跟早晚變
+  {
+    const tex = new THREE.TextureLoader().load('img/tex/clouds.png'); tex.colorSpace = THREE.SRGBColorSpace;
+    const r = rng(77), geos = [];
+    for (let i = 0; i < 14; i++) {
+      const a = i / 14 * PI * 2 + r() * .3, R = 650 + r() * 450, w = 340 + r() * 380, h = w * .5, y = 190 + r() * 260, q = Math.floor(r() * 4);
+      const g = new THREE.PlaneGeometry(w, h); const uv = g.attributes.uv; const u0 = (q % 2) * .5, v0 = q < 2 ? .5 : 0;
+      for (let k = 0; k < uv.count; k++) uv.setXY(k, u0 + uv.getX(k) * .5, v0 + uv.getY(k) * .5);
+      g.rotateY(-a - PI / 2); g.translate(Math.cos(a) * R, y, Math.sin(a) * R); geos.push(g);
+    }
+    const cm = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, side: THREE.DoubleSide });
+    const clouds = new THREE.Mesh(mergeGeometries(geos), cm); clouds.renderOrder = -0.5; clouds.frustumCulled = false; scene.add(clouds); W.clouds = clouds;
+  }
   let lt = 0; const sunDir = new THREE.Vector3(); const tmp = new THREE.Vector3();
   W.update = (dt, time, tday, focus, camPos, quality) => {
     const D = sampleDay(tday);
+    if (W.clouds) { const day = Math.max(0, Math.min(1, (D.hemi - .4) / .6)); W.clouds.rotation.y = time * .004; W.clouds.material.color.setRGB(1, 1, 1).lerp(D.sun, .35).multiplyScalar(.28 + .72 * day); W.clouds.material.opacity = .65 + .35 * day; }
     const th = (tday - .25) * PI * 2; sunDir.set(Math.cos(th) * .85, Math.sin(th), .42).normalize();
     skyMat.uniforms.uTop.value.copy(D.top); skyMat.uniforms.uBot.value.copy(D.bot); skyMat.uniforms.uSunDir.value.copy(sunDir); skyMat.uniforms.uSunCol.value.copy(D.sun); skyMat.uniforms.uStars.value = D.stars; skyMat.uniforms.uTime.value = time;
     sky.position.copy(camPos);
