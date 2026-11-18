@@ -21,6 +21,8 @@ art_src/sprites/<原型>/A.png,B.png → tools/sprite_cut.py（find_figures 找�
 - [x] 11/18 原型 1 f1（女・島田髷）A 圖 → tools/sprite_cut.py → img/spr/f1.*；js/sprite.js SpriteChara；shots/sprview.html 試看（8 人換色＋花紋＋8 方向＋走路）成功，截圖 docs/立繪原型_1118.png
   - f1 A 圖方向：正面只有 1 格、背面 2 格 → B 圖要補正面/背面走路 4 格
   - 遮罩門檻：和服 sat<.13 且 .42<亮度<.93；腰帶 紅色且在頭部 38% 以下
-- [ ] f1 B 圖：正面走路 4、背面走路 4、5 方向站立、坐下（正/斜/側）、揮手、鞠躬
-- [ ] 其餘 7 原型（女：おかっぱ、ポニー、垂髪；男：丁髷、総髪、坊主、散切り）
+- [x] f1 B 圖（正背走路、5 方向站/坐、揮手/鞠躬/掩嘴笑/歡呼）
+- [x] 11/18 8 原型全部完成：f1 島田髷、f2 おかっぱ、f3 ポニー、f4 垂髪、m1 丁髷、m2 総髪、m3 坊主、m4 散切り（img/spr/*，plan 在 art_src/sprites/*_plan.json），合照 docs/立繪8原型_1118.png
+  - 待修：m3 坐下斜前那格腳邊有一小段長椅線（黏在人物上）
+  - 和服遮罩只算頭部 34% 以下（避免剃頭、灰眼被換色）；腰帶 38% 以下
 - [ ] 遊戲整合：SpriteChara 補齊 Chara 介面（say/emoji/setName/lod/setRide/坐/動作）、NPC 先換、再換玩家與換裝 UI

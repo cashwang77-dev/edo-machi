@@ -43,6 +43,13 @@ for an, dirs in plan['anims'].items():
             al = A[..., 3]; hh = al.shape[0]
             for y in range(int(hh * .85), hh):
                 if (al[y] > 128).mean() > .93: A[max(0, y - 1):y + 2, :, 3] = 0
+            # 刪掉和人物分開的小碎塊（長椅線、雜點）
+            from scipy.ndimage import label
+            lb, nlb = label(A[..., 3] > 100)
+            if nlb > 1:
+                sizes = np.bincount(lb.ravel()); sizes[0] = 0; big = sizes.max()
+                for li in range(1, nlb + 1):
+                    if sizes[li] < big * .04: A[lb == li, 3] = 0
             rgba = Image.fromarray(A, 'RGBA')
             rgba = rgba.crop(rgba.getbbox()); cells.append((an, d, rgba, k))
             if an == 'walk': HW.setdefault(k, []).append(rgba.height)
@@ -68,6 +75,7 @@ if True:
         red = (al2 > .5) & (sat > .35) & (r_ > g_ * 1.5) & (r_ > b_ * 1.4) & (mx > .3)
         top = FH - 6 - rs.height; head_line = (top + rs.height * .38) / FH   # 頭（髮飾）以上的紅色不算腰帶
         obi = red & (yy > head_line)
+        kimono = kimono & (yy > (top + rs.height * .34) / FH)   # 頭部（剃過的頭頂、灰色眼睛）不算和服
         M = np.zeros((FH, FW, 3), np.uint8); M[..., 0] = kimono * 255; M[..., 1] = obi * 255
         frames.setdefault(an, {}).setdefault(d, []).append({'i': len(out), 'top': int(top)})
         out.append(fr); outm.append(Image.fromarray(M))
