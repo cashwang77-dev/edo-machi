@@ -5,7 +5,7 @@ V=$(date +%Y%m%d%H%M); sed -i -E "s#js/game.js\?v=[0-9a-z]+#js/game.js?v=$V#" in
 # 模組之間的 import 也統一加同一個版本號（避免新 game.js 配到快取的舊 chara.js 等）
 sed -i -E "s#(from '\./[a-z0-9]+\.js)(\?v=[0-9a-z]+)?'#\1?v=$V'#g" js/*.js
 grep -q "from '\./[a-z0-9]*\.js?v=$V'" js/game.js || { echo "版本號替換失敗"; exit 1; }
-for f in js/*.js server/worker.js; do node --check "$f" || { echo "語法錯誤：$f"; exit 1; }; done
+for f in js/*.js server/worker.js; do cp "$f" "$TEMP/_chk.mjs"; node --check "$TEMP/_chk.mjs" || { echo "語法錯誤：$f"; exit 1; }; done # 用 .mjs 以模組模式檢查（.js 會漏掉模組語法錯誤）
 git add -A && git -c user.name="cashwang77-dev" -c user.email="cashwang77-dev@users.noreply.github.com" commit -qm "$1
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
