@@ -112,7 +112,29 @@ function mergeGroup(gr) {
 const BLOB_G = new THREE.CircleGeometry(.36, 16), BLOB_M = new THREE.MeshBasicMaterial({ map: TX.radial('blob', 'rgba(0,0,0,.42)', 'rgba(0,0,0,0)'), transparent: true, depthWrite: false });
 // 卡通著色（動畫風）：三階明暗，成本與標準材質相同
 const GRAD = (() => { const d = new Uint8Array([120, 120, 120, 255, 200, 200, 200, 255, 255, 255, 255, 255]); const t = new THREE.DataTexture(d, 3, 1); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
-function TM(o = {}) { const { roughness, metalness, ...r } = o; return new THREE.MeshToonMaterial({ gradientMap: GRAD, ...r }); }
+// 人物材質加工（不增加繪製次數、不增加模型）：輪廓邊緣微暗＝像描邊、背光側柔和邊緣光、衣服下擺略暗＝立體感
+const TOON_FX = sh => {
+  sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
+varying float vWy; varying vec3 vOP;`).replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+vWy = (modelMatrix * vec4(transformed, 1.0)).y - modelMatrix[3].y; vOP = transformed;`);
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying float vWy; varying vec3 vOP;`).replace('#include <opaque_fragment>', `{
+    #ifdef OKUMI
+    if (vOP.z > 0. && vOP.y < .17) { float ex = -.03 - (.17 - vOP.y) * .06, dl = vOP.x - ex; // 右衽：左前片壓右前片的交疊線
+      outgoingLight *= 1. - .38 * (1. - smoothstep(.0, .006, abs(dl))); if (dl > .006 && dl < .016) outgoingLight *= 1.08; }
+    #endif
+    float ndv = abs(dot(normalize(normal), normalize(vViewPosition)));
+    outgoingLight *= mix(.74, 1., smoothstep(.06, .42, ndv));           // 邊緣暗化（描邊感）
+    outgoingLight += (reflectedLight.directDiffuse + reflectedLight.indirectDiffuse) * pow(1. - ndv, 3.) * .3; // 柔和邊緣光（跟著環境光，晚上不會發亮）
+    outgoingLight *= mix(.86, 1., smoothstep(.02, .32, vWy));            // 腳邊略暗（接地感）
+  }
+  #include <opaque_fragment>`);
+};
+function skirtMat(km) { // 同一件和服的下襬版本（多一條前襟線），每件和服快取一份
+  if (!km.userData.sk) { const m = km.clone(); m.defines = { ...(m.defines || {}), OKUMI: '' }; m.onBeforeCompile = TOON_FX; m.customProgramCacheKey = () => 'toonfx1ok'; km.userData.sk = m; }
+  return km.userData.sk;
+}
+function TM(o = {}) { const { roughness, metalness, ...r } = o; const m = new THREE.MeshToonMaterial({ gradientMap: GRAD, ...r }); m.onBeforeCompile = TOON_FX; m.customProgramCacheKey = () => 'toonfx1'; return m; }
 function mat(c, o = {}) { const k = c + JSON.stringify(o); return M[k] || (M[k] = TM({ color: c, roughness: .85, ...o })); }
 const hairMat = TM({ map: TX.hairTex(), color: '#ffffff', roughness: .38, metalness: .06 });
 function fabricMat(lk) {
@@ -198,8 +220,8 @@ export class Chara {
     this.look = lk;
     const km = fabricMat(lk), skin = mat(SKINS[lk.s % 3], { roughness: .55, emissive: '#6a2a18', emissiveIntensity: .07 }), obi = obiMat(lk.o % OBI.length);
     this.obiageM.material = mat(['#e8889a', '#f2d27a', '#8ab4d8', '#f4f0e4', '#c8a0d8', '#a8d8b0'][(lk.o + 3) % 6], { roughness: .7 });
-    this.torsoM.material = this.skirtM.material = km; this.legs.forEach(l => { l.userData.th.material = km; l.userData.sh.material = skin; l.userData.geta.material = mat('#7a5634'); l.userData.geta.scale.y = 1; l.userData.teeth.forEach((t, i) => { t.material = mat('#5a3e26'); t.scale.set(1, 1, 1); t.position.y = -.06; t.visible = true; }); });
-    this.collarC.forEach(c => c.material = km); this.skirtLowM.material = km; this.arms.forEach(a => { a.userData.sl.material = km; a.userData.arm.material = km; a.userData.sl.scale.set(1, 1, 1); a.userData.h.material = a.userData.th.material = skin; a.userData.lin.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4]); a.userData.lin.visible = true; a.userData.lin.userData.minor = true; });
+    this.torsoM.material = km; this.skirtM.material = skirtMat(km); this.legs.forEach(l => { l.userData.th.material = km; l.userData.sh.material = skin; l.userData.geta.material = mat('#7a5634'); l.userData.geta.scale.y = 1; l.userData.teeth.forEach((t, i) => { t.material = mat('#5a3e26'); t.scale.set(1, 1, 1); t.position.y = -.06; t.visible = true; }); });
+    this.collarC.forEach(c => c.material = km); this.skirtLowM.material = skirtMat(km); this.arms.forEach(a => { a.userData.sl.material = km; a.userData.arm.material = km; a.userData.sl.scale.set(1, 1, 1); a.userData.h.material = a.userData.th.material = skin; a.userData.lin.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4]); a.userData.lin.visible = true; a.userData.lin.userData.minor = true; });
     this.fukiM.material = mat(['#c8322a', '#f4f0e4', '#d8a8b8', '#e8c56a'][(lk.k + lk.o) % 4], { roughness: .6 });
     this.obiM.material = obi; this.bowM.material = obi; this.headM.material = skin; this.neckM.material = skin; this.buildFace(lk, skin); this.apply3d();
     this.cordM.material = mat(['#c8322a', '#e8c56a', '#3a6a8a', '#f4f0e4', '#8a3a6a', '#2f6a4a'][(lk.o + 2) % 6]);
@@ -411,7 +433,7 @@ export class Chara {
   // 遠處省略細節（效能）
   outfit(lk, km, skin) {
     if (this.outG) this.upper.remove(this.outG); this.outG = new THREE.Group(); this.upper.add(this.outG);
-    this.skirtG.scale.set(1, 1, 1); this.skirtSY = 1; this.skirtM.material = km;
+    this.skirtG.scale.set(1, 1, 1); this.skirtSY = 1; this.skirtM.material = skirtMat(km);
     const y = (lk.y || 0) % OUTFITS.length, oc = OUTER[(lk.yc || 0) % OUTER.length];
     if (y === 1) { // 羽織：外套罩在和服外面，長到大腿，前面羽織繩
       const hm = TM({ map: TX.fabric(oc) });
