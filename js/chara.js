@@ -1,6 +1,6 @@
 // 江戶人物（程式建模 v2）：有膝蓋的雙腿、上身＋下襬、細緻臉部、和服袖、足袋木屐、髮型、配件、花魁
 import * as THREE from 'three';
-import * as TX from './tex.js';
+import * as TX from './tex.js?v=202611181355';
 import { mergeGeometries } from '../vendor/addons/utils/BufferGeometryUtils.js';
 
 export const KIMONO = [
@@ -48,6 +48,15 @@ function deformHead(g, r) {
   g.computeVertexNormals(); return g;
 }
 const HEADP = (x, y, z, r = .125) => headShape(x / r, y / r, z / r).map(v => v * r);
+// 圓角方塊：把方塊頂點推到內縮方塊外 r 的位置（一個網格、面數少）
+function roundBox(w, h, d, r, sx = 4, sy = 4, sz = 4, f) {
+  const g = new THREE.BoxGeometry(w, h, d, sx, sy, sz), P = g.attributes.position, hw = w / 2, hh = h / 2, hd = d / 2;
+  for (let i = 0; i < P.count; i++) { let x = P.getX(i), y = P.getY(i), z = P.getZ(i);
+    const cx = Math.max(-hw + r, Math.min(hw - r, x)), cy = Math.max(-hh + r, Math.min(hh - r, y)), cz = Math.max(-hd + r, Math.min(hd - r, z));
+    const dx = x - cx, dy = y - cy, dz = z - cz, l = Math.hypot(dx, dy, dz); if (l > 1e-6) { x = cx + dx / l * r; y = cy + dy / l * r; z = cz + dz / l * r; }
+    if (f) [x, y, z] = f(x, y, z, hw, hh, hd); P.setXYZ(i, x, y, z); }
+  g.computeVertexNormals(); return g;
+}
 // ---------- 共用幾何 ----------
 const G = {
   torso: new THREE.LatheGeometry(V2([[0, .16], [.183, .16], [.17, .26], [.172, .36], [.176, .44], [.168, .5], [.14, .55], [.098, .59], [.06, .615], [.035, .628], [0, .632]]), 28),
@@ -56,9 +65,9 @@ const G = {
   skirtLow: new THREE.LatheGeometry(V2([[0, -.2], [.16, -.2], [.175, -.19], [.17, -.14], [.165, -.06], [.16, .02]]), 28),
   thigh: new THREE.CylinderGeometry(.062, .054, .25, 12),
   shin: new THREE.CylinderGeometry(.042, .036, .17, 10),
-  tabi: new THREE.BoxGeometry(.07, .05, .13),
-  geta: new THREE.BoxGeometry(.085, .025, .19),
-  tooth: new THREE.BoxGeometry(.08, .04, .025),
+  tabi: roundBox(.07, .05, .13, .022, 6, 3, 6, (x, y, z, hw, hh, hd) => { if (z > hd * .3) { const t = (z - hd * .3) / (hd * .7); x *= 1 - .18 * t; if (Math.abs(x + .012) < .006 && y > -hh * .2) z -= .01 * t; } return [x, y, z]; }), // 足袋：腳尖收圓、拇趾分開的凹痕
+  geta: roundBox(.085, .025, .19, .009, 3, 1, 4),
+  tooth: roundBox(.08, .04, .025, .006, 2, 2, 1),
   strap: new THREE.TorusGeometry(.03, .006, 4, 10, PI),
   obi: new THREE.CylinderGeometry(.19, .192, .19, 24),
   cord: new THREE.TorusGeometry(.19, .008, 4, 28),
@@ -73,11 +82,14 @@ const G = {
     const P = g.attributes.position; for (let i = 0; i < P.count; i++) { const y = P.getY(i), t = Math.min(1, -y / .36); P.setX(i, P.getX(i) * (.55 + .6 * t)); P.setZ(i, P.getZ(i) + .012 * Math.sin(t * PI)); }
     g.computeVertexNormals(); return g; })(),
   arm: new THREE.CylinderGeometry(.04, .036, .26, 10),
-  hand: (() => { const g = new THREE.BoxGeometry(.06, .095, .042, 4, 6, 3), P = g.attributes.position, hw = .03, hh = .0475, hd = .021, r = .016;
+  thumb: new THREE.CapsuleGeometry(.03, .045, 3, 8),
+  hand: (() => { const g = new THREE.BoxGeometry(.06, .095, .042, 12, 8, 3), P = g.attributes.position, hw = .03, hh = .0475, hd = .021, r = .016;
     for (let i = 0; i < P.count; i++) { let x = P.getX(i), y = P.getY(i), z = P.getZ(i);
       const cx = Math.max(-hw + r, Math.min(hw - r, x)), cy = Math.max(-hh + r, Math.min(hh - r, y)), cz = Math.max(-hd + r * .6, Math.min(hd - r * .6, z));
       let dx = x - cx, dy = y - cy, dz = z - cz; const l = Math.hypot(dx, dy, dz) || 1; x = cx + dx / l * r; y = cy + dy / l * r; z = cz + dz / l * r * .9;
-      const t = Math.max(0, -y / hh); x *= 1 - .14 * t; z *= 1 - .18 * t; z += .006 * (1 - (x / hw) ** 2) * Math.sign(z) * (z > 0 ? 1 : .3); P.setXYZ(i, x, y, z); }
+      const t = Math.max(0, -y / hh); x *= 1 - .14 * t; z *= 1 - .18 * t; z += .006 * (1 - (x / hw) ** 2) * Math.sign(z) * (z > 0 ? 1 : .3);
+      if (y < -.004) { const f = Math.min(1, (-.004 - y) / .02), gr = Math.pow(Math.abs(Math.cos((x / hw) * PI * 2)), 6); z *= 1 - .22 * gr * f; if (y < -hh + r) y += .005 * gr; } // 指縫
+      P.setXYZ(i, x, y, z); }
     g.computeVertexNormals(); return g; })(),
   neck: new THREE.CylinderGeometry(.045, .05, .08, 10),
   head: deformHead(new THREE.SphereGeometry(.125, 28, 20), .125),
@@ -199,7 +211,7 @@ export class Chara {
       const sl = mesh(G.sleeve, mat('#888'), a, s * .012, -.015, -.02, 0, 0, 0, 1, 1, 1);
       const lin = mesh(G.sleeve, mat('#c8322a'), a, s * .012, -.03, -.02, 0, 0, 0, .85, 1, .98, false);
       const h = mesh(G.hand, mat('#f1d2b6'), a, 0, -.29, .08, .35, 0, 0, .9, 1, .75);
-      const th = mesh(G.hand, mat('#f1d2b6'), a, -s * .02, -.27, .1, .3, 0, s * .8, .45, .6, .45, false);
+      const th = mesh(G.thumb, mat('#f1d2b6'), a, -s * .024, -.265, .1, .3, 0, s * .8, .5, .62, .5, false);
       a.userData = { sl, h, arm, lin, th }; this.upper.add(a); this.arms.push(a);
     }
     // 頭
@@ -597,6 +609,7 @@ export class Chara {
     box(.66, .03, .03, wood, 0, .9, 1.8);
     // 提燈（車側）
     const lan = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .12, 10), mat('#f4ead0', { emissive: '#ffb050', emissiveIntensity: .8 })); lan.position.set(.38, .98, .2); K.add(lan);
+    mergeGroup(K); for (const w of this.wheels) mergeGroup(w);
     if (Puller) { const p = this.puller = new Puller({ k: 0, p: 1, o: 3, h: 0, s: 1, hat: 3, ey: 3, br: 1, mo: 0, ck: 0, fc: 1 }, ''); p.root.position.set(0, 0, 2.0); K.add(p.root); }
   }
   updRide(dt, speed) {

@@ -1,11 +1,11 @@
 // 江戶町 3D 世界
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import * as TX from './tex.js';
-import { SHOPS, STREET } from './shops.js';
-import { buildTemple } from './temple.js';
-import { buildMeisho, KINKAKU_POND } from './meisho.js';
-import { buildMeisho2, walkSouth } from './meisho2.js';
+import * as TX from './tex.js?v=202611181355';
+import { SHOPS, STREET } from './shops.js?v=202611181355';
+import { buildTemple } from './temple.js?v=202611181355';
+import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611181355';
+import { buildMeisho2, walkSouth } from './meisho2.js?v=202611181355';
 
 const PI = Math.PI;
 export const ARCH = x => (x > 110 && x < 140) ? 1.7 * Math.sin(PI * (x - 110) / 30) : 0;

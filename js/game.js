@@ -4,15 +4,15 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js';
-import { RIDE_Y } from './chara.js';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js';
-import { Net } from './net.js';
-import { cleanText } from './filter.js';
-import { SND } from './audio.js';
-import * as TX from './tex.js';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611181355';
+import { RIDE_Y } from './chara.js?v=202611181355';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611181355';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611181355';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611181355';
+import { Net } from './net.js?v=202611181355';
+import { cleanText } from './filter.js?v=202611181355';
+import { SND } from './audio.js?v=202611181355';
+import * as TX from './tex.js?v=202611181355';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -637,9 +637,10 @@ renderer.domElement.addEventListener('pointerdown', e => { pdown = { x: e.client
 renderer.domElement.addEventListener('pointerup', e => {
   if (!pdown || G.mode === 'title' || cam.auto) return; const d = Math.hypot(e.clientX - pdown.x, e.clientY - pdown.y); if (d > 8 || performance.now() - pdown.t > 450) return;
   const v = new THREE.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(v, camera);
-  const cands = []; for (const [id, r] of G.remotes) cands.push({ id, root: r.ch.root, kind: 'p' }); for (const n of NPCS) if (n.ch.root.visible) cands.push({ npc: n, root: n.ch.root, kind: 'n' });
+  const cands = []; for (const [id, r] of G.remotes) cands.push({ id, root: r.ch.root, kind: 'p' }); for (const n of NPCS) if (n.ch.root.visible) cands.push({ npc: n, root: n.ch.root, kind: 'n' }); for (const c of CABS) if (c.cart.root.visible && !(c.busy > 0)) cands.push({ cab: c, root: c.cart.root, kind: 'cab' });
   let best = null, bd = 1e9;
   for (const c of cands) { const hit = ray.intersectObject(c.root, true)[0]; if (hit && hit.distance < bd && hit.distance < 40) { bd = hit.distance; best = c; } }
+  if (best && best.kind === 'cab') { if (best.cab.cart.root.position.distanceTo(G.pos) > 14) return toast('🛺 走近一點再招手叫車吧'); return openRide(best.cab); }
   if (best) openCard(best);
 });
 function faceTo(p) { G.ry = Math.atan2(p.x - G.pos.x, p.z - G.pos.z); }
@@ -743,89 +744,140 @@ async function switchRoom(i, x, z) {
   G.online = true; G.room = i; if (x != null) { G.pos.set(x, heightAt(x, z), z); } updCount(); toast(`已到江戶町${ROOM_ZH['edo' + i]}`);
 }
 
-// ---------- 人力車：選一位真人玩家，車夫拉你過去（別條街也行）----------
-const RIDE = { fare: 20, fare2: 40 };
-function openRide() {
-  if (!G.online) return toast('人力車要連上伺服器才能找其他玩家喔');
-  if (G.mode !== 'walk') return toast('先起身再叫人力車吧');
-  RIDE.rooms = null; drawRide(); net.send({ t: 'who' });
+// ---------- 人力車：點路上的空車或按🛺叫車 → 選名所／點地圖／找玩家，車資依距離 ----------
+const RIDE = { fare2: 40 };
+const DEST = [['大街中央', 0, 3], ['神社', -116, 4], ['千本鳥居', -125, -30], ['名所南區', -125, 50], ['江戶城', -212, 92], ['不忍池', -122, 86], ['中村座', -166, 66], ['回向院相撲', -170, 104], ['日本橋', 106, 0], ['雷門', 158, 4], ['露天風呂', 153, 8], ['東光寺', 178, -42], ['五重塔', 155, -90], ['金閣寺', 180, 97]];
+const GM_DEST = DEST;
+// 路線規劃：地圖切 1 公尺格子（可走＝walkable 且不碰障礙物），從起點做一次最短路，就能得到到每個地方的距離與路線
+const GR = { x0: -300, z0: -115, w: 535, h: 260 }; let GRID = null;
+function buildGrid() {
+  const { x0, z0, w, h } = GR, g = new Uint8Array(w * h);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) g[j * w + i] = walkable(x0 + i + .5, z0 + j + .5) ? 1 : 0;
+  const m = .55, cell = (i, j) => i >= 0 && j >= 0 && i < w && j < h;
+  for (const c of W.colliders) {
+    if (c.r !== undefined) { const r = c.r + m; for (let j = Math.floor(c.z - r - z0); j <= Math.ceil(c.z + r - z0); j++) for (let i = Math.floor(c.x - r - x0); i <= Math.ceil(c.x + r - x0); i++) if (cell(i, j) && Math.hypot(x0 + i + .5 - c.x, z0 + j + .5 - c.z) < r) g[j * w + i] = 0; }
+    else for (let j = Math.floor(c.z0 - m - z0); j <= Math.ceil(c.z1 + m - z0); j++) for (let i = Math.floor(c.x0 - m - x0); i <= Math.ceil(c.x1 + m - x0); i++) { const x = x0 + i + .5, z = z0 + j + .5; if (cell(i, j) && x > c.x0 - m && x < c.x1 + m && z > c.z0 - m && z < c.z1 + m) g[j * w + i] = 0; }
+  }
+  GRID = g;
 }
-const GM_DEST = [['大街中央', 0, 3], ['神社', -116, 4], ['千本鳥居', -125, -30], ['名所南區', -125, 50], ['江戶城', -212, 92], ['不忍池', -122, 86], ['中村座', -166, 66], ['回向院相撲', -170, 104], ['日本橋', 106, 0], ['雷門', 158, 4], ['露天風呂', 153, 8], ['東光寺', 178, -42], ['五重塔', 155, -90], ['金閣寺', 180, 97]];
+function gCell(x, z) { // 最近的可走格
+  if (!GRID) buildGrid(); const { x0, z0, w, h } = GR; const ci = Math.floor(x - x0), cj = Math.floor(z - z0);
+  for (let r = 0; r < 6; r++) for (let j = cj - r; j <= cj + r; j++) for (let i = ci - r; i <= ci + r; i++) { if (Math.max(Math.abs(i - ci), Math.abs(j - cj)) !== r || i < 0 || j < 0 || i >= w || j >= h) continue; if (GRID[j * w + i]) return j * w + i; }
+  return -1;
+}
+function flood(from) { // Dijkstra（二元堆積），回傳距離與前一格
+  const { w, h } = GR, N = w * h, D = new Float64Array(N).fill(1e9), P = new Int32Array(N).fill(-1), s = gCell(from.x, from.z);
+  const FL = { D, P, s, from }; if (s < 0) return FL;
+  const hk = [], hv = []; const push = (k, v) => { let i = hk.length; hk.push(k); hv.push(v); while (i > 0) { const p = (i - 1) >> 1; if (hv[p] <= v) break; hk[i] = hk[p]; hv[i] = hv[p]; i = p; } hk[i] = k; hv[i] = v; };
+  const pop = () => { const k = hk[0], lk = hk.pop(), lv = hv.pop(); if (hk.length) { let i = 0; const n = hk.length; while (true) { let c = 2 * i + 1; if (c >= n) break; if (c + 1 < n && hv[c + 1] < hv[c]) c++; if (hv[c] >= lv) break; hk[i] = hk[c]; hv[i] = hv[c]; i = c; } hk[i] = lk; hv[i] = lv; } return k; };
+  D[s] = 0; push(s, 0); const NB = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [-1, -1, 1.414]];
+  while (hk.length) { const dv = hv[0], u = pop(); if (dv > D[u]) continue; const ui = u % w, uj = (u / w) | 0;
+    for (const [di, dj, c] of NB) { const i = ui + di, j = uj + dj; if (i < 0 || j < 0 || i >= w || j >= h) continue; const v = j * w + i; if (!GRID[v]) continue;
+      if (di && dj && (!GRID[uj * w + i] || !GRID[j * w + ui])) continue; const nd = dv + c; if (nd < D[v]) { D[v] = nd; P[v] = u; push(v, nd); } } }
+  return FL;
+}
+const gClear = (a, b) => { const { x0, z0, w } = GR, d = Math.hypot(b.x - a.x, b.z - a.z), n = Math.ceil(d / .35); for (let k = 1; k < n; k++) { const t = k / n, i = Math.floor(a.x + (b.x - a.x) * t - x0), j = Math.floor(a.z + (b.z - a.z) * t - z0); if (!GRID[j * w + i]) return false; } return true; };
+function pathFrom(FL, to) { // 回傳 { pts, len } 或 null（到不了）
+  const t = gCell(to.x, to.z); if (t < 0 || FL.s < 0 || FL.D[t] >= 1e9) return null;
+  const { x0, z0, w } = GR, cells = []; for (let k = t; k >= 0; k = FL.P[k]) { cells.push({ x: x0 + (k % w) + .5, z: z0 + ((k / w) | 0) + .5 }); if (k === FL.s) break; }
+  cells.reverse(); const raw = [FL.from, ...cells.slice(1, -1), to], pts = [raw[0]];
+  for (let i = 0; i < raw.length - 1;) { let j = i + 1; while (j + 1 < raw.length && gClear(raw[i], raw[j + 1])) j++; pts.push(raw[j]); i = j; } // 拉直
+  return { pts, len: FL.D[t] };
+}
+function routeTo(from, to) { const r = pathFrom(flood(from), to); return r || { pts: [from, to], len: Math.hypot(to.x - from.x, to.z - from.z) }; }
+const lineOK = (a, b) => { if (!GRID) buildGrid(); return gClear(a, b); };
+const fareOf = len => Math.max(8, Math.round(len / 8)); // 每 8 步 1 文，最低 8 文
 function snapWalk(x, z) { if (okAt(x, z)) return { x, z }; for (let r = .5; r < 16; r += .5) for (let a = 0; a < 6.28; a += .5 / r) { const qx = x + Math.cos(a) * r, qz = z + Math.sin(a) * r; if (okAt(qx, qz)) return { x: qx, z: qz }; } return null; }
 function gmRide(x, z, n) { // GM 專用：免費、不用等車、跑得快
   if (G.mode !== 'walk') return toast('先起身再搭車吧');
   startRide({ id: '__gm', n, x, z, room: 'edo' + G.room, gmFast: true }, true);
 }
-function drawRide() {
-  const p = $('#panel'); const myRoom = 'edo' + G.room;
-  const all = RIDE.rooms ? Object.entries(RIDE.rooms).sort().flatMap(([r, l]) => l.filter(q => !(q.id === G.myId && r === myRoom)).map(q => ({ ...q, room: r }))) : null;
-  const gmH = G.gm ? `<p class="sub" style="margin:4px 0">👑 GM 快速移動（免費、免等車）：點名所，或直接點地圖</p>
-  <div class="chips gmdest">${GM_DEST.map(([n], i) => `<button class="chipw" data-gd="${i}">${n}</button>`).join('')}</div>
-  <canvas id="gmMap" width="520" height="260" style="width:100%;border-radius:10px;border:1.5px solid var(--line);cursor:crosshair;margin:6px 0"></canvas>
-  <p class="sub" style="margin:2px 0 0">或去找玩家：</p>` : '';
-  p.innerHTML = `<h2>🛺 人力車<small>車夫拉你到玩家身邊</small></h2>${gmH}
-  <p class="sub">車資：同一條街 ${RIDE.fare} 文・到別條街 ${RIDE.fare2} 文　身上：<b>${G.gm ? '∞' : G.money}</b> 文<br>叫車後車夫會從街上跑過來載你</p>
-  <div class="rlist">${!all ? '<p class="sub">車夫正在打聽大家在哪裡…</p>' : all.length ? all.map(q => { const same = q.room === myRoom, fee = same ? RIDE.fare : RIDE.fare2;
-    return `<button class="rp" data-id="${q.id}" data-room="${q.room}" ${afford(fee) ? '' : 'disabled'}><b>${q.gm ? '👑 ' : ''}${esc(q.n)}</b><small>${ROOM_ZH[q.room] || q.room}・${placeName(q.x, q.z)}</small><span>${fee} 文</span></button>`; }).join('') : '<p class="sub">現在沒有其他真人玩家在線，晚點再來吧！</p>'}</div>
-  <div class="btns"><button id="rX">算了</button></div>`;
-  show('#panel'); $('#rX').onclick = closePanels;
-  if (G.gm) {
-    const cv = $('#gmMap'); drawMini(cv);
-    p.querySelectorAll('[data-gd]').forEach(b => b.onclick = () => { const [n, x, z] = GM_DEST[+b.dataset.gd]; gmRide(x, z, n); });
-    cv.onclick = e => { const r = cv.getBoundingClientRect(), sx = cv.width / 540, px = (e.clientX - r.left) * cv.width / r.width, py = (e.clientY - r.top) * cv.height / r.height;
-      const x = px / sx - 300, z = (py - cv.height * .5) / sx, q = snapWalk(x, z); if (!q) return toast('那裡車子到不了，點近一點的路吧'); gmRide(q.x, q.z, placeName(q.x, q.z)); };
-  }
-  p.querySelectorAll('.rp').forEach(b => b.onclick = () => { const q = all.find(x => x.id === b.dataset.id && x.room === b.dataset.room); hailRide(q); });
+function openRide(cab) {
+  if (G.mode !== 'walk') return toast('先起身再搭車吧');
+  RIDE.from = cab || null; RIDE.rooms = null; drawRide(); if (G.online) net.send({ t: 'who' });
 }
-net.on('who', m => { RIDE.rooms = m.rooms; if (!$('#panel').classList.contains('hide') && $('#panel .rlist')) drawRide(); });
+function drawRide() {
+  const p = $('#panel'); const myRoom = 'edo' + G.room, cab = RIDE.from, me = { x: G.pos.x, z: G.pos.z };
+  const all = RIDE.rooms ? Object.entries(RIDE.rooms).sort().flatMap(([r, l]) => l.filter(q => !(q.id === G.myId && r === myRoom)).map(q => ({ ...q, room: r }))) : null;
+  const FL = RIDE.FL = flood(me), lenTo = q => { const r = pathFrom(FL, q); return r ? r.len : Math.hypot(q.x - me.x, q.z - me.z) * 1.4; }; // 一次搜尋算出到每個地方的路程
+  const dFee = DEST.map(([, x, z]) => fareOf(lenTo({ x, z })));
+  const pFee = q => q.room === myRoom ? fareOf(lenTo(q)) : RIDE.fare2;
+  const gm = G.gm;
+  p.innerHTML = `<h2>🛺 人力車<small>${cab ? '車夫：「客官要去哪？」' : '叫一台車過來載你'}</small></h2>
+  <p class="sub" style="margin:4px 0">${gm ? '👑 GM 免費、免等車，一下就到' : `車資依距離：約每 8 步 1 文（最低 8 文）　身上 <b>${G.money}</b> 文`}</p>
+  <div class="chips gmdest">${DEST.map(([n], i) => `<button class="chipw" data-gd="${i}" ${gm || afford(dFee[i]) ? '' : 'disabled'}>${n}${gm ? '' : `<small> ${dFee[i]}文</small>`}</button>`).join('')}</div>
+  <canvas id="gmMap" width="520" height="260" style="width:100%;border-radius:10px;border:1.5px solid var(--line);cursor:crosshair;margin:6px 0"></canvas>
+  <p class="sub" style="margin:0">↑ 也可以直接點地圖上想去的地方</p>
+  ${G.online ? `<p class="sub" style="margin:8px 0 0">去找玩家：</p><div class="rlist">${!all ? '<p class="sub">車夫正在打聽大家在哪裡…</p>' : all.length ? all.map(q => { const fee = pFee(q);
+    return `<button class="rp" data-id="${q.id}" data-room="${q.room}" ${gm || afford(fee) ? '' : 'disabled'}><b>${q.gm ? '👑 ' : ''}${esc(q.n)}</b><small>${ROOM_ZH[q.room] || q.room}・${placeName(q.x, q.z)}</small><span>${gm ? '' : fee + ' 文'}</span></button>`; }).join('') : '<p class="sub">現在沒有其他真人玩家在線</p>'}</div>` : ''}
+  <div class="btns"><button id="rX">算了</button></div>`;
+  show('#panel'); $('#rX').onclick = () => { RIDE.from = null; closePanels(); };
+  const go = (q, fee) => { if (gm && q.room === myRoom) return gmRide(q.x, q.z, q.n); bookRide(q, gm ? 0 : fee); };
+  const cv = $('#gmMap'); drawMini(cv);
+  p.querySelectorAll('[data-gd]').forEach(b => b.onclick = () => { const i = +b.dataset.gd, [n, x, z] = DEST[i]; go({ id: '__place', n, x, z, room: myRoom, place: true }, dFee[i]); });
+  cv.onclick = e => { const r = cv.getBoundingClientRect(), sx = cv.width / 540, px = (e.clientX - r.left) * cv.width / r.width, py = (e.clientY - r.top) * cv.height / r.height;
+    const x = px / sx - 300, z = (py - cv.height * .5) / sx, q = snapWalk(x, z); if (!q) return toast('那裡車子到不了，點近一點的路吧');
+    const n = placeName(q.x, q.z); go({ id: '__place', n, x: q.x, z: q.z, room: myRoom, place: true }, fareOf(lenTo(q))); };
+  p.querySelectorAll('.rp').forEach(b => b.onclick = () => { const q = all.find(x => x.id === b.dataset.id && x.room === b.dataset.room); go(q, pFee(q)); });
+}
+net.on('who', m => { RIDE.rooms = m.rooms; if (!$('#panel').classList.contains('hide') && $('#panel #gmMap')) drawRide(); });
+// 付錢後：點的是路上空車 → 直接上車；按🛺叫車 → 車夫從附近跑過來
+function bookRide(q, fee) {
+  if (!afford(fee)) return toast(`錢不夠喔（車資 ${fee} 文）`);
+  if (fee) addMoney(-fee, '人力車'); closePanels(); G.follow = null;
+  const cab = RIDE.from; RIDE.from = null;
+  if (cab && !(cab.busy > 0)) { const r = cab.cart.root; cab.busy = 45; r.visible = false; G.pos.x = r.position.x; G.pos.z = r.position.z; G.ry = r.rotation.y; G.me.say('麻煩了！', 2); return startRide(q, true, fee); }
+  hailRide(q, fee);
+}
 // 空車：借用 Chara 的人力車模型（車＋車夫），掛在獨立的 Group 上
 function makeCart(x, z, ry) { const c = { root: new THREE.Group() }; Chara.prototype.setRide.call(c, true, Chara); c.kuruma.position.y = 0; c.root.position.set(x, heightAt(x, z), z); c.root.rotation.y = ry; scene.add(c.root); return c; }
 function dropCart(c) { if (c) scene.remove(c.root); }
-function hailRide(q) {
-  const same = q.room === 'edo' + G.room, fee = same ? RIDE.fare : RIDE.fare2;
-  if (!afford(fee)) return toast(`錢不夠喔（車資 ${fee} 文）`);
-  addMoney(-fee, '人力車'); closePanels(); G.follow = null;
-  // 從大街上離玩家約 22 公尺的地方出發，跑到玩家身邊
-  const onSt = G.pos.x > -98 && G.pos.x < 104 && Math.abs(G.pos.z) < 8;
-  const sx = onSt ? Math.max(-95, Math.min(100, G.pos.x + (G.pos.x > 0 ? -22 : 22))) : G.pos.x + 14, sz = onSt ? 0 : G.pos.z;
-  const cart = makeCart(sx, sz, Math.atan2(G.pos.x - sx, G.pos.z - sz));
-  RIDE.hail = { cart, q, fee, same, sp: 0, t: 0 }; G.mode = 'hail'; G.me.play(16); G.me.say('人力車～這邊！', 2.5);
-  toast(`🛺 已叫車（${fee} 文），車夫正跑過來…　走開會取消並退錢`, 3500); sfx(600, .15);
+function hailRide(q, fee) {
+  // 找最近的空車跑過來；沒有就從附近路上出發
+  let best = null, bd = 60; for (const c of CABS) { if (c.busy > 0 || !c.cart.root.visible) continue; const d = c.cart.root.position.distanceTo(G.pos); if (d < bd) { bd = d; best = c; } }
+  let cart, cab = null;
+  if (best) { cab = best; cab.busy = 60; cab.cart.root.visible = false; const r = best.cart.root; cart = makeCart(r.position.x, r.position.z, r.rotation.y); }
+  else { const s = snapWalk(G.pos.x + 14, G.pos.z) || snapWalk(G.pos.x - 14, G.pos.z) || { x: G.pos.x, z: G.pos.z + 3 }; cart = makeCart(s.x, s.z, Math.atan2(G.pos.x - s.x, G.pos.z - s.z)); }
+  RIDE.hail = { cart, q, fee, sp: 0, t: 0, cab }; G.mode = 'hail'; G.me.play(16); G.me.say('人力車～這邊！', 2.5);
+  toast(`🛺 已叫車${fee ? `（${fee} 文）` : ''}，車夫正跑過來…　走開會取消${fee ? '並退錢' : ''}`, 3500); sfx(600, .15);
 }
-function cancelHail(msg) { const H = RIDE.hail; if (!H) return; RIDE.leave = { cart: H.cart, t: 0 }; addMoney(H.fee, '退款'); RIDE.hail = null; G.mode = 'walk'; toast(msg || '已取消叫車，退回車資'); }
+function cancelHail(msg) { const H = RIDE.hail; if (!H) return; RIDE.leave = { cart: H.cart, t: 0 }; if (H.cab) H.cab.busy = 8; if (H.fee) addMoney(H.fee, '退款'); RIDE.hail = null; G.mode = 'walk'; toast(msg || '已取消叫車' + (H.fee ? '，退回車資' : '')); }
 function updHail(dt, moveLen) {
   const H = RIDE.hail; if (!H) return;
   if (moveLen > .5) return cancelHail();
   H.t += dt; const c = H.cart, p = c.root.position;
   const side = { x: G.pos.x + Math.cos(G.ry) * 1.1, z: G.pos.z - Math.sin(G.ry) * 1.1 }; // 停在玩家側邊
   const dx = side.x - p.x, dz = side.z - p.z, d = Math.hypot(dx, dz);
-  H.sp = Math.min(6, H.sp + dt * 5, Math.max(.8, d * 1.6));
+  H.sp = Math.min(7, H.sp + dt * 5, Math.max(.8, d * 1.6));
   if (d > .3) { const st = Math.min(d, H.sp * dt); p.x += dx / d * st; p.z += dz / d * st; p.y = heightAt(p.x, p.z); c.root.rotation.y = angLerp(c.root.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 5)); }
   Chara.prototype.updRide.call(c, dt, d > .3 ? H.sp : 0);
   if (d <= .3 || H.t > 25) { // 上車
-    G.pos.x = p.x; G.pos.z = p.z; G.ry = c.root.rotation.y; dropCart(c); RIDE.hail = null; G.me.say('麻煩了！', 2); startRide(H.q, true);
+    G.pos.x = p.x; G.pos.z = p.z; G.ry = c.root.rotation.y; dropCart(c); RIDE.hail = null; G.me.say('麻煩了！', 2); startRide(H.q, true, H.fee);
   }
 }
 function updLeave(dt) { const L = RIDE.leave; if (!L) return; L.t += dt; const c = L.cart, ry = c.root.rotation.y; c.root.position.x += Math.sin(ry) * 5 * dt; c.root.position.z += Math.cos(ry) * 5 * dt; Chara.prototype.updRide.call(c, dt, 5); if (L.t > 5) { dropCart(c); RIDE.leave = null; } }
-function startRide(q, paid) {
-  const same = q.room === 'edo' + G.room, fee = same ? RIDE.fare : RIDE.fare2;
-  if (!paid) { if (!afford(fee)) return toast('錢不夠喔'); addMoney(-fee, '人力車'); }
+function startRide(q, paid, fee) {
+  const same = q.room === 'edo' + G.room;
+  if (!paid) { fee = same ? fareOf(routeTo(G.pos, q).len) : RIDE.fare2; if (!afford(fee)) return toast('錢不夠喔'); addMoney(-fee, '人力車'); }
   closePanels(); G.follow = null;
   G.mode = 'ride'; G.me.setRide(true, Chara); net.send({ t: 'ride', on: 1 });
-  G.pos.y = RIDE_Y; const from = { x: G.pos.x, z: G.pos.z };
-  // 路線：先拉到大街中央，沿著大街跑，再轉進目的地
+  G.pos.y = RIDE_Y + heightAt(G.pos.x, G.pos.z); const from = { x: G.pos.x, z: G.pos.z };
   const tgt = () => { const R = same && G.remotes.get(q.id); return R ? { x: R.ch.root.position.x, z: R.ch.root.position.z } : { x: q.x, z: q.z }; };
-  const onStreet = (x, z) => x > -100 && x < 106 && Math.abs(z) < 30;
-  const t0 = tgt(); const pts = [from];
-  if (same && onStreet(from.x, from.z) && onStreet(t0.x, t0.z)) { pts.push({ x: from.x, z: 0 }, { x: t0.x, z: 0 }); }
-  RIDE.cur = { pts, i: 1, q, same, tgt, sp: 0, end: !same ? 2.6 : 0, t: 0, fast: !!q.gmFast };
+  const t0 = tgt(); const pts = same && !q.gmFast ? routeTo(from, t0).pts.slice(0, -1) : [from]; // 沿路網跑，最後一段直接到目的地
+  RIDE.cur = { pts, i: 1, q, same, tgt, sp: 0, end: !same ? 2.6 : 0, t: 0, fast: !!q.gmFast, place: !!q.place };
   if (q.gmFast) { G.me.say(`去${q.n}！`); sfx(520, .15); closeup(1.6, { dist: 4.2, h: 1.6, ang: .9, look: .9, spin: .25 }); return; }
-  G.me.say(same ? `麻煩載我去找「${q.n}」！` : `麻煩載我去${ROOM_ZH[q.room]}找「${q.n}」！`); sfx(520, .15);
+  G.me.say(q.place ? `麻煩載我去${q.n}！` : same ? `麻煩載我去找「${q.n}」！` : `麻煩載我去${ROOM_ZH[q.room]}找「${q.n}」！`); sfx(520, .15);
   closeup(2.2, { dist: 4.2, h: 1.6, ang: .9, look: .9, spin: .25 });
 }
 async function arriveOther(q) {
   const x = q.x + 1.6, z = q.z; G.me.setRide(false); G.mode = 'walk'; G.pos.y = 0; net.send({ t: 'ride', on: 0 });
   await switchRoom(+q.room.replace('edo', ''), x, z);
+}
+function endRide(msg, faceP) {
+  RIDE.cur = null; G.me.setRide(false); G.mode = 'walk'; net.send({ t: 'ride', on: 0 });
+  RIDE.leave = { cart: makeCart(G.pos.x, G.pos.z, G.ry), t: 0 };
+  const s = snapWalk(G.pos.x - Math.cos(G.ry) * 1.0, G.pos.z + Math.sin(G.ry) * 1.0) || snapWalk(G.pos.x, G.pos.z); if (s) { G.pos.x = s.x; G.pos.z = s.z; }
+  G.pos.y = heightAt(G.pos.x, G.pos.z); if (faceP) faceTo(faceP); toast(msg); G.me.say('謝謝車夫！'); sfx(660, .2);
 }
 function updRide(dt) {
   const C = RIDE.cur; if (G.mode !== 'ride' || !C) return 0;
@@ -834,23 +886,42 @@ function updRide(dt) {
     if (!C.t0) { C.t0 = performance.now(); C.f = { x: G.pos.x, z: G.pos.z }; }
     const T = C.tgt(), k = Math.min(1, (performance.now() - C.t0) / 2500), e = k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
     const nx = C.f.x + (T.x - C.f.x) * e, nz = C.f.z + (T.z - C.f.z) * e; if (Math.hypot(nx - G.pos.x, nz - G.pos.z) > .01) G.ry = angLerp(G.ry, Math.atan2(nx - G.pos.x, nz - G.pos.z), .3);
-    G.pos.x = nx; G.pos.z = nz; G.pos.y = RIDE_Y;
-    if (k >= 1) { RIDE.cur = null; G.me.setRide(false); G.mode = 'walk'; G.pos.y = heightAt(G.pos.x, G.pos.z); net.send({ t: 'ride', on: 0 }); RIDE.leave = { cart: makeCart(G.pos.x, G.pos.z, G.ry), t: 0 }; toast(`🛺 到了：${C.q.n}`); G.me.say('謝謝車夫！'); sfx(660, .2); return 0; }
+    G.pos.x = nx; G.pos.z = nz; G.pos.y = RIDE_Y + heightAt(nx, nz);
+    if (k >= 1) { endRide(`🛺 到了：${C.q.n}`); return 0; }
     return 13;
   }
   if (!C.same && C.t > C.end) { RIDE.cur = null; arriveOther(C.q); return 0; }
-  const T = C.tgt(); const stop = C.fast ? { x: T.x, z: T.z } : { x: T.x + 1.4 * Math.sign(G.pos.x - T.x || 1), z: T.z + .6 };
+  const T = C.tgt(); const stop = C.place ? { x: T.x, z: T.z } : { x: T.x + 1.4 * Math.sign(G.pos.x - T.x || 1), z: T.z + .6 };
   const goal = C.same ? (C.i < C.pts.length ? C.pts[C.i] : stop) : { x: G.pos.x + Math.sin(G.ry) * 10, z: G.pos.z + Math.cos(G.ry) * 10 };
   const dx = goal.x - G.pos.x, dz = goal.z - G.pos.z, d = Math.hypot(dx, dz);
   const last = C.same && C.i >= C.pts.length;
-  C.sp = C.fast ? Math.min(40, C.sp + dt * 30) : Math.min(13, C.sp + dt * 9); if (last) C.sp = Math.min(C.sp, Math.max(1.5, d * 2.2));
+  C.sp = Math.min(14, C.sp + dt * 9); if (last) C.sp = Math.min(C.sp, Math.max(1.5, d * 2.2));
   const step = Math.min(d, C.sp * dt);
   if (d > .05) { G.pos.x += dx / d * step; G.pos.z += dz / d * step; G.ry = angLerp(G.ry, Math.atan2(dx, dz), Math.min(1, dt * 6)); }
-  if (d < .35) { if (!last) C.i++; else { // 到了
-    RIDE.cur = null; G.me.setRide(false); G.mode = 'walk'; G.pos.y = heightAt(G.pos.x, G.pos.z); net.send({ t: 'ride', on: 0 });
-    RIDE.leave = { cart: makeCart(G.pos.x, G.pos.z, G.ry), t: 0 }; G.pos.x -= Math.cos(G.ry) * 1.0; G.pos.z += Math.sin(G.ry) * 1.0;
-    const R = G.remotes.get(C.q.id); if (R) faceTo(R.ch.root.position); toast(C.fast ? `🛺 到了：${C.q.n}` : `🛺 到了！「${C.q.n}」就在旁邊`); G.me.say('謝謝車夫！'); sfx(660, .2); return 0; } }
-  G.pos.y = RIDE_Y; return C.sp;
+  if (d < (last ? .35 : 1.2)) { if (!last) C.i++; else { // 到了（中途點放寬，轉彎比較順）
+    const R = G.remotes.get(C.q.id); endRide(C.place ? `🛺 到了：${C.q.n}` : `🛺 到了！「${C.q.n}」就在旁邊`, R && R.ch.root.position); return 0; } }
+  G.pos.y = RIDE_Y + heightAt(G.pos.x, G.pos.z); return C.sp;
+}
+// 路上的空車：乘り場停靠＋大街來回；點一下就能搭。太遠不畫、不更新（省效能）
+const CABS = [];
+const CAB_STANDS = [[-60, 4.6, PI / 2], [92, -4.6, -PI / 2], [160, -28, PI / 2], [-131, 52, PI / 2], [-104, -9, -PI / 2], [150, 44, PI], [-112, 60, -PI / 2]];
+function spawnCabs() {
+  for (const [x, z, ry] of CAB_STANDS) { const cart = makeCart(x, z, ry); CABS.push({ cart, kind: 'stand', home: [x, z, ry] }); W.colliders.push({ x: x + Math.sin(ry) * .9, z: z + Math.cos(ry) * .9, r: 1.1 }); }
+  for (let i = 0; i < 3; i++) CABS.push({ cart: makeCart(0, 0, 0), kind: 'cruise', lane: [2.4, -2.4, 2.4][i], ph: i / 3 });
+}
+function updCabs(dt) {
+  const cp = camera.position, now = (Date.now() + (G.timeOff || 0)) / 1000;
+  for (const c of CABS) {
+    const r = c.cart.root;
+    if (c.busy > 0) { c.busy -= dt; if (c.busy > 0) continue; r.visible = true; }
+    let sp = 0;
+    if (c.kind === 'cruise') { // 大街 -88↔98 來回，位置由共用時間算出，大家看到的一樣
+      const L = 186, per = L * 2 / 4.5, t = (now / per + c.ph) % 1, fw = t < .5, u = fw ? t * 2 : 2 - t * 2;
+      r.position.set(-88 + u * L, 0, fw ? c.lane : -c.lane); r.rotation.y = fw ? PI / 2 : -PI / 2; sp = 4.5;
+    }
+    const d = r.position.distanceTo(cp), vis = d < 40; r.visible = vis; if (!vis) continue;
+    Chara.prototype.updRide.call(c.cart, dt, sp); if (c.cart.puller && c.cart.puller.lod) c.cart.puller.lod(d * 1.6); // 車夫提早簡化
+  }
 }
 net.on('ride', m => { const R = G.remotes.get(m.id); if (R) { R.ch.setRide(!!m.on, Chara); R.riding = !!m.on; } });
 
@@ -1396,7 +1467,7 @@ function update(dt) {
     { const running = anim === 2; if (!running) { G.sta = Math.min(100, G.sta + (speed > 0 ? 10 : 20) * dt); if (G.tired && G.sta >= 45) { G.tired = false; G.me.say('呼～好了！', 1.5); } }
       if (G.mode === 'walk' && speed === 0 && G.tired && !(G.emoteT > 0)) anim = 18; updSta(); }
     const rideSp = updRide(dt); if (G.mode === 'ride') anim = 3;
-    if (G.mode === 'hail') { updHail(dt, len); if (G.mode === 'hail') anim = 16; } updLeave(dt);
+    if (G.mode === 'hail') { updHail(dt, len); if (G.mode === 'hail') anim = 16; } updLeave(dt); updCabs(dt);
     if (G.emoteT > 0) { G.emoteT -= dt; anim = G.emote; }
     if (G.mode === 'seat') anim = 3;
     if (G.eatT > 0) { const fd = G.me.foodG.children[0]; if (fd && fd.userData.bites) { const b = fd.userData.bites, k = Math.floor((1 - G.eatT / 4) * (b.length + .5)); b.forEach((m, i) => m.visible = i >= k); }
@@ -1541,7 +1612,7 @@ if (isTouch) document.body.classList.add('touch');
   W = buildWorld(scene);
   W.sunLight = scene.children.find(o => o.isDirectionalLight);
   setupPost(); applyQuality();
-  addMe(); spawnNPCs(); spawnDeer(); buildTitle();
+  addMe(); spawnNPCs(); spawnCabs(); spawnDeer(); buildTitle();
   initMatsuri({ scene, Chara, SND, announce, toast, pos: () => G.pos, night: () => W.night || 0, gift: v => addMoney(v, '福餅') });
   spawnKids();
   $('#loading').classList.add('hide');
@@ -1633,4 +1704,4 @@ async function runTest() {
   const d = document.createElement('pre'); d.style.cssText = 'position:fixed;left:8px;top:50px;z-index:99;background:rgba(255,255,255,.92);font-size:15px;padding:8px;margin:0'; d.textContent = (fail ? 'FAIL\n' : 'PASS\n') + log.join('\n'); document.body.appendChild(d);
 }
 if (QS.get('test') === 'flow') { store.set('helped', true); const go = () => (W && G.me) ? setTimeout(runTest, 1500) : setTimeout(go, 300); setTimeout(go, 300); } // 等世界建好再測
-window.EDO = { RIDE, switchRoom, startRide, hailRide, gmRide, drawRide, G, walkable, upd: dt => update(dt), render, renderer, scene, NPCS, keepers, step: n => { for (let i = 0; i < n; i++) update(1 / 30); render(); }, SND, openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };
+window.EDO = { RIDE, flood, pathFrom, routeTo, lineOK, CABS, openRide, okAt, switchRoom, startRide, hailRide, gmRide, drawRide, G, walkable, upd: dt => update(dt), render, renderer, scene, NPCS, keepers, step: n => { for (let i = 0; i < n; i++) update(1 / 30); render(); }, SND, openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };
