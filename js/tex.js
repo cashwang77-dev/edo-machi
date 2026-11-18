@@ -252,15 +252,14 @@ const MOTIF = { 13: [9, null], 14: [10, '#f2d27a'], 15: [11, null], 16: [14, nul
 function motifAlpha(i) {
   const k = 'MA' + i; if (cache[k]) return cache[k];
   const src = typeof i === 'string' ? IMG.basepat && IMG.basepat[+i[1]] : IMG.motifs[i]; if (!src) return null;
-  const [c, g] = cv(256, 256); g.drawImage(src, 0, 0, 256, 256);
+  const [c, g] = cv(256, 256); const sw = src.width || 256, sh = src.height || 256; g.drawImage(src, sw * .03, sh * .03, sw * .94, sh * .94, 0, 0, 256, 256); // 裁掉外圈亮邊（拼貼格線）
   const d = g.getImageData(0, 0, 256, 256), p = d.data;
   for (let j = 0; j < p.length; j += 4) { const l = (p[j] * .3 + p[j + 1] * .59 + p[j + 2] * .11); p[j] = p[j + 1] = p[j + 2] = 255; p[j + 3] = Math.max(0, Math.min(255, (l - 40) * 1.4)); }
   g.putImageData(d, 0, 0); return cache[k] = c;
 }
 // 絲綢光澤：斜向的柔光與細織紋
 function silk(g, n) {
-  const gr = g.createLinearGradient(0, 0, n, n); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.45, 'rgba(255,255,255,.07)'); gr.addColorStop(.55, 'rgba(255,255,255,.1)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = gr; g.fillRect(0, 0, n, n);
+  for (let x = 0; x < n; x += 4) { g.fillStyle = 'rgba(255,255,255,.025)'; g.fillRect(x, 0, 1, n); } // 經線（可無縫拼接）
   for (let y = 0; y < n; y += 2) { g.fillStyle = 'rgba(0,0,0,.035)'; g.fillRect(0, y, n, 1); }
 }
 // 臉部貼花：把 Gemini 畫的眼、眉、嘴＋腮紅、痣畫在透明畫布上

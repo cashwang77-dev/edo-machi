@@ -50,18 +50,18 @@ function deformHead(g, r) {
 const HEADP = (x, y, z, r = .125) => headShape(x / r, y / r, z / r).map(v => v * r);
 // ---------- 共用幾何 ----------
 const G = {
-  torso: new THREE.LatheGeometry(V2([[0, .16], [.183, .16], [.17, .26], [.172, .36], [.176, .44], [.168, .5], [.14, .55], [.098, .59], [.06, .615], [.035, .628], [0, .632]]), 20),
-  skirt: new THREE.LatheGeometry(V2([[0, -.44], [.168, -.44], [.176, -.435], [.18, -.42], [.184, -.34], [.19, -.22], [.194, -.1], [.192, -.03], [.19, 0], [.188, .08], [.184, .17]]), 20),
-  fuki: new THREE.TorusGeometry(.176, .011, 5, 20),
-  skirtLow: new THREE.LatheGeometry(V2([[0, -.2], [.16, -.2], [.175, -.19], [.17, -.14], [.165, -.06], [.16, .02]]), 20),
-  thigh: new THREE.CylinderGeometry(.062, .054, .25, 10),
+  torso: new THREE.LatheGeometry(V2([[0, .16], [.183, .16], [.17, .26], [.172, .36], [.176, .44], [.168, .5], [.14, .55], [.098, .59], [.06, .615], [.035, .628], [0, .632]]), 28),
+  skirt: new THREE.LatheGeometry(V2([[0, -.44], [.168, -.44], [.176, -.435], [.18, -.42], [.184, -.34], [.19, -.22], [.194, -.1], [.192, -.03], [.19, 0], [.188, .08], [.184, .17]]), 28),
+  fuki: new THREE.TorusGeometry(.176, .011, 5, 28),
+  skirtLow: new THREE.LatheGeometry(V2([[0, -.2], [.16, -.2], [.175, -.19], [.17, -.14], [.165, -.06], [.16, .02]]), 28),
+  thigh: new THREE.CylinderGeometry(.062, .054, .25, 12),
   shin: new THREE.CylinderGeometry(.042, .036, .17, 10),
   tabi: new THREE.BoxGeometry(.07, .05, .13),
   geta: new THREE.BoxGeometry(.085, .025, .19),
   tooth: new THREE.BoxGeometry(.08, .04, .025),
   strap: new THREE.TorusGeometry(.03, .006, 4, 10, PI),
-  obi: new THREE.CylinderGeometry(.19, .192, .19, 10),
-  cord: new THREE.TorusGeometry(.19, .008, 4, 20),
+  obi: new THREE.CylinderGeometry(.19, .192, .19, 24),
+  cord: new THREE.TorusGeometry(.19, .008, 4, 28),
   taiko: (() => { const sh = new THREE.Shape(), w = .29, h = .24; sh.moveTo(-w / 2, -h / 2); sh.lineTo(w / 2, -h / 2); sh.lineTo(w / 2, h / 2 - .06); sh.quadraticCurveTo(w / 2, h / 2 + .03, 0, h / 2 + .035); sh.quadraticCurveTo(-w / 2, h / 2 + .03, -w / 2, h / 2 - .06); sh.closePath();
     const g = new THREE.ExtrudeGeometry(sh, { depth: .05, bevelEnabled: true, bevelThickness: .02, bevelSize: .015, bevelSegments: 4, curveSegments: 14 }); g.translate(0, 0, -.025); g.computeVertexNormals(); const U = g.attributes.uv; for (let i = 0; i < U.count; i++) U.setXY(i, U.getX(i) * 3.2 + .5, U.getY(i) * 3.2 + .5); return g; })(),
   knotB: new THREE.BoxGeometry(.12, .07, .05),
@@ -73,7 +73,12 @@ const G = {
     const P = g.attributes.position; for (let i = 0; i < P.count; i++) { const y = P.getY(i), t = Math.min(1, -y / .36); P.setX(i, P.getX(i) * (.55 + .6 * t)); P.setZ(i, P.getZ(i) + .012 * Math.sin(t * PI)); }
     g.computeVertexNormals(); return g; })(),
   arm: new THREE.CylinderGeometry(.04, .036, .26, 10),
-  hand: new THREE.CapsuleGeometry(.034, .036, 4, 10),
+  hand: (() => { const g = new THREE.BoxGeometry(.06, .095, .042, 4, 6, 3), P = g.attributes.position, hw = .03, hh = .0475, hd = .021, r = .016;
+    for (let i = 0; i < P.count; i++) { let x = P.getX(i), y = P.getY(i), z = P.getZ(i);
+      const cx = Math.max(-hw + r, Math.min(hw - r, x)), cy = Math.max(-hh + r, Math.min(hh - r, y)), cz = Math.max(-hd + r * .6, Math.min(hd - r * .6, z));
+      let dx = x - cx, dy = y - cy, dz = z - cz; const l = Math.hypot(dx, dy, dz) || 1; x = cx + dx / l * r; y = cy + dy / l * r; z = cz + dz / l * r * .9;
+      const t = Math.max(0, -y / hh); x *= 1 - .14 * t; z *= 1 - .18 * t; z += .006 * (1 - (x / hw) ** 2) * Math.sign(z) * (z > 0 ? 1 : .3); P.setXYZ(i, x, y, z); }
+    g.computeVertexNormals(); return g; })(),
   neck: new THREE.CylinderGeometry(.045, .05, .08, 10),
   head: deformHead(new THREE.SphereGeometry(.125, 28, 20), .125),
   decal: deformHead(new THREE.SphereGeometry(.1265, 24, 18, PI / 2 - .9, 1.8, PI * .28, PI * .5), .1265),
@@ -85,7 +90,7 @@ const G = {
   mouth: new THREE.TorusGeometry(.014, .0035, 4, 10, PI),
   cheek: new THREE.CircleGeometry(.022, 12),
   collar: new THREE.BoxGeometry(.04, .24, .015),
-  eri: new THREE.BoxGeometry(.03, .3, .012),
+  eri: (() => { const g = new THREE.BoxGeometry(.03, .3, .012, 1, 8, 1), P = g.attributes.position; for (let i = 0; i < P.count; i++) { const y = P.getY(i); P.setZ(i, P.getZ(i) - 1.1 * y * y + .012); } g.computeVertexNormals(); return g; })(),
   capTop: deformHead(new THREE.SphereGeometry(.133, 18, 10, 0, PI * 2, 0, PI * .37), .133),
   capBack: deformHead(new THREE.SphereGeometry(.133, 18, 11, PI / 2 + .9, PI * 2 - 1.8, PI * .32, PI * .4), .133),
   side: deformHead(new THREE.SphereGeometry(.134, 18, 11, PI / 2 + .9, PI * 2 - 1.8, PI * .3, PI * .3), .134),
