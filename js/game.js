@@ -680,6 +680,7 @@ function announce(s, n) { const b = $('#banner'); b.innerHTML = `<small>📜 ${e
 const ROOM_ZH = { edo1: '一丁目', edo2: '二丁目', edo3: '三丁目', edo4: '四丁目', edo5: '五丁目' };
 const GMS = { tab: 'all', q: '', rooms: null, timer: null, open: new Set() };
 function placeName(x, z) {
+  if (x < -200) return '江戶城'; if (x < -100 && z > 22) { if (z > 80 && x > -142) return '不忍池'; if (x < -160 && z < 90) return '中村座'; if (x < -150 && z > 95) return '回向院相撲'; return '名所南區'; }
   if (x > 140 && z < -38) return '東光寺'; if (x > 138 && z > 38) return '金閣寺'; if (x < -110 && z < -23) return '千本鳥居'; if (x > 145 && x < 160 && Math.abs(z) < 6) return '雷門'; if (x > 100 && x < 118) return '日本橋'; if (z < -20) return '神社一帶'; if (x < -90) return '町西';
   let best = '大街', bd = 9e9; for (const sh of SHOPS) { const d = Math.abs(sh.x - x) + Math.abs((sh.side || 1) * 11 - z); if (d < bd) { bd = d; best = sh.name || best; } } return bd < 14 ? best + '前' : '大街';
 }
@@ -749,15 +750,31 @@ function openRide() {
   if (G.mode !== 'walk') return toast('先起身再叫人力車吧');
   RIDE.rooms = null; drawRide(); net.send({ t: 'who' });
 }
+const GM_DEST = [['大街中央', 0, 3], ['神社', -116, 4], ['千本鳥居', -125, -30], ['名所南區', -125, 50], ['江戶城', -212, 92], ['不忍池', -122, 86], ['中村座', -166, 66], ['回向院相撲', -170, 104], ['日本橋', 106, 0], ['雷門', 158, 4], ['露天風呂', 153, 8], ['東光寺', 178, -42], ['五重塔', 155, -90], ['金閣寺', 180, 97]];
+function snapWalk(x, z) { if (okAt(x, z)) return { x, z }; for (let r = .5; r < 16; r += .5) for (let a = 0; a < 6.28; a += .5 / r) { const qx = x + Math.cos(a) * r, qz = z + Math.sin(a) * r; if (okAt(qx, qz)) return { x: qx, z: qz }; } return null; }
+function gmRide(x, z, n) { // GM 專用：免費、不用等車、跑得快
+  if (G.mode !== 'walk') return toast('先起身再搭車吧');
+  startRide({ id: '__gm', n, x, z, room: 'edo' + G.room, gmFast: true }, true);
+}
 function drawRide() {
   const p = $('#panel'); const myRoom = 'edo' + G.room;
   const all = RIDE.rooms ? Object.entries(RIDE.rooms).sort().flatMap(([r, l]) => l.filter(q => !(q.id === G.myId && r === myRoom)).map(q => ({ ...q, room: r }))) : null;
-  p.innerHTML = `<h2>🛺 人力車<small>車夫拉你到玩家身邊</small></h2>
+  const gmH = G.gm ? `<p class="sub" style="margin:4px 0">👑 GM 快速移動（免費、免等車）：點名所，或直接點地圖</p>
+  <div class="chips gmdest">${GM_DEST.map(([n], i) => `<button class="chipw" data-gd="${i}">${n}</button>`).join('')}</div>
+  <canvas id="gmMap" width="520" height="260" style="width:100%;border-radius:10px;border:1.5px solid var(--line);cursor:crosshair;margin:6px 0"></canvas>
+  <p class="sub" style="margin:2px 0 0">或去找玩家：</p>` : '';
+  p.innerHTML = `<h2>🛺 人力車<small>車夫拉你到玩家身邊</small></h2>${gmH}
   <p class="sub">車資：同一條街 ${RIDE.fare} 文・到別條街 ${RIDE.fare2} 文　身上：<b>${G.gm ? '∞' : G.money}</b> 文<br>叫車後車夫會從街上跑過來載你</p>
   <div class="rlist">${!all ? '<p class="sub">車夫正在打聽大家在哪裡…</p>' : all.length ? all.map(q => { const same = q.room === myRoom, fee = same ? RIDE.fare : RIDE.fare2;
     return `<button class="rp" data-id="${q.id}" data-room="${q.room}" ${afford(fee) ? '' : 'disabled'}><b>${q.gm ? '👑 ' : ''}${esc(q.n)}</b><small>${ROOM_ZH[q.room] || q.room}・${placeName(q.x, q.z)}</small><span>${fee} 文</span></button>`; }).join('') : '<p class="sub">現在沒有其他真人玩家在線，晚點再來吧！</p>'}</div>
   <div class="btns"><button id="rX">算了</button></div>`;
   show('#panel'); $('#rX').onclick = closePanels;
+  if (G.gm) {
+    const cv = $('#gmMap'); drawMini(cv);
+    p.querySelectorAll('[data-gd]').forEach(b => b.onclick = () => { const [n, x, z] = GM_DEST[+b.dataset.gd]; gmRide(x, z, n); });
+    cv.onclick = e => { const r = cv.getBoundingClientRect(), sx = cv.width / 540, px = (e.clientX - r.left) * cv.width / r.width, py = (e.clientY - r.top) * cv.height / r.height;
+      const x = px / sx - 300, z = (py - cv.height * .5) / sx, q = snapWalk(x, z); if (!q) return toast('那裡車子到不了，點近一點的路吧'); gmRide(q.x, q.z, placeName(q.x, q.z)); };
+  }
   p.querySelectorAll('.rp').forEach(b => b.onclick = () => { const q = all.find(x => x.id === b.dataset.id && x.room === b.dataset.room); hailRide(q); });
 }
 net.on('who', m => { RIDE.rooms = m.rooms; if (!$('#panel').classList.contains('hide') && $('#panel .rlist')) drawRide(); });
@@ -801,7 +818,8 @@ function startRide(q, paid) {
   const onStreet = (x, z) => x > -100 && x < 106 && Math.abs(z) < 30;
   const t0 = tgt(); const pts = [from];
   if (same && onStreet(from.x, from.z) && onStreet(t0.x, t0.z)) { pts.push({ x: from.x, z: 0 }, { x: t0.x, z: 0 }); }
-  RIDE.cur = { pts, i: 1, q, same, tgt, sp: 0, end: !same ? 2.6 : 0, t: 0 };
+  RIDE.cur = { pts, i: 1, q, same, tgt, sp: 0, end: !same ? 2.6 : 0, t: 0, fast: !!q.gmFast };
+  if (q.gmFast) { G.me.say(`去${q.n}！`); sfx(520, .15); closeup(1.6, { dist: 4.2, h: 1.6, ang: .9, look: .9, spin: .25 }); return; }
   G.me.say(same ? `麻煩載我去找「${q.n}」！` : `麻煩載我去${ROOM_ZH[q.room]}找「${q.n}」！`); sfx(520, .15);
   closeup(2.2, { dist: 4.2, h: 1.6, ang: .9, look: .9, spin: .25 });
 }
@@ -812,18 +830,26 @@ async function arriveOther(q) {
 function updRide(dt) {
   const C = RIDE.cur; if (G.mode !== 'ride' || !C) return 0;
   C.t += dt;
+  if (C.fast) { // GM 快速移動：依真實時間 2.5 秒內直線抵達（不受畫面卡頓影響）
+    if (!C.t0) { C.t0 = performance.now(); C.f = { x: G.pos.x, z: G.pos.z }; }
+    const T = C.tgt(), k = Math.min(1, (performance.now() - C.t0) / 2500), e = k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+    const nx = C.f.x + (T.x - C.f.x) * e, nz = C.f.z + (T.z - C.f.z) * e; if (Math.hypot(nx - G.pos.x, nz - G.pos.z) > .01) G.ry = angLerp(G.ry, Math.atan2(nx - G.pos.x, nz - G.pos.z), .3);
+    G.pos.x = nx; G.pos.z = nz; G.pos.y = RIDE_Y;
+    if (k >= 1) { RIDE.cur = null; G.me.setRide(false); G.mode = 'walk'; G.pos.y = heightAt(G.pos.x, G.pos.z); net.send({ t: 'ride', on: 0 }); RIDE.leave = { cart: makeCart(G.pos.x, G.pos.z, G.ry), t: 0 }; toast(`🛺 到了：${C.q.n}`); G.me.say('謝謝車夫！'); sfx(660, .2); return 0; }
+    return 13;
+  }
   if (!C.same && C.t > C.end) { RIDE.cur = null; arriveOther(C.q); return 0; }
-  const T = C.tgt(); const stop = { x: T.x + 1.4 * Math.sign(G.pos.x - T.x || 1), z: T.z + .6 };
+  const T = C.tgt(); const stop = C.fast ? { x: T.x, z: T.z } : { x: T.x + 1.4 * Math.sign(G.pos.x - T.x || 1), z: T.z + .6 };
   const goal = C.same ? (C.i < C.pts.length ? C.pts[C.i] : stop) : { x: G.pos.x + Math.sin(G.ry) * 10, z: G.pos.z + Math.cos(G.ry) * 10 };
   const dx = goal.x - G.pos.x, dz = goal.z - G.pos.z, d = Math.hypot(dx, dz);
   const last = C.same && C.i >= C.pts.length;
-  C.sp = Math.min(13, C.sp + dt * 9); if (last) C.sp = Math.min(C.sp, Math.max(1.5, d * 2.2));
+  C.sp = C.fast ? Math.min(40, C.sp + dt * 30) : Math.min(13, C.sp + dt * 9); if (last) C.sp = Math.min(C.sp, Math.max(1.5, d * 2.2));
   const step = Math.min(d, C.sp * dt);
   if (d > .05) { G.pos.x += dx / d * step; G.pos.z += dz / d * step; G.ry = angLerp(G.ry, Math.atan2(dx, dz), Math.min(1, dt * 6)); }
   if (d < .35) { if (!last) C.i++; else { // 到了
     RIDE.cur = null; G.me.setRide(false); G.mode = 'walk'; G.pos.y = heightAt(G.pos.x, G.pos.z); net.send({ t: 'ride', on: 0 });
     RIDE.leave = { cart: makeCart(G.pos.x, G.pos.z, G.ry), t: 0 }; G.pos.x -= Math.cos(G.ry) * 1.0; G.pos.z += Math.sin(G.ry) * 1.0;
-    const R = G.remotes.get(C.q.id); if (R) faceTo(R.ch.root.position); toast(`🛺 到了！「${C.q.n}」就在旁邊`); G.me.say('謝謝車夫！'); sfx(660, .2); return 0; } }
+    const R = G.remotes.get(C.q.id); if (R) faceTo(R.ch.root.position); toast(C.fast ? `🛺 到了：${C.q.n}` : `🛺 到了！「${C.q.n}」就在旁邊`); G.me.say('謝謝車夫！'); sfx(660, .2); return 0; } }
   G.pos.y = RIDE_Y; return C.sp;
 }
 net.on('ride', m => { const R = G.remotes.get(m.id); if (R) { R.ch.setRide(!!m.on, Chara); R.riding = !!m.on; } });
@@ -1447,9 +1473,9 @@ function loop() {
 
 // ---------- 小地圖 ----------
 const mini = $('#mini'), mg = mini.getContext('2d');
-function drawMini() {
-  if (mini.classList.contains('hide')) return;
-  const w = mini.width, h = mini.height, sx = w / 380, ox = -160; const X = x => (x - ox) * sx, Z = z => h * .6 + z * sx;
+function drawMini(cv) {
+  if (!cv && mini.classList.contains('hide')) return;
+  const mg = (cv || mini).getContext('2d'), w = (cv || mini).width, h = (cv || mini).height, sx = w / 540, ox = -300; const X = x => (x - ox) * sx, Z = z => h * .5 + z * sx;
   mg.clearRect(0, 0, w, h); mg.fillStyle = 'rgba(243,234,214,.92)'; mg.fillRect(0, 0, w, h);
   mg.fillStyle = '#cdbb98'; mg.fillRect(X(-100), Z(-7), (206) * sx, 14 * sx);
   mg.fillStyle = '#d9d2c2'; mg.fillRect(X(-150), Z(-24), 52 * sx, 48 * sx);
@@ -1458,10 +1484,15 @@ function drawMini() {
   mg.fillStyle = '#c8402c'; mg.fillRect(X(-101) - 2, Z(-3), 4, 6 * sx);
   for (const s of W.shops) { mg.fillStyle = G.owners[s.def.id] ? '#c8322a' : '#5a4636'; mg.fillRect(X(s.def.x - s.def.w / 2), Z(s.def.side * 7) - (s.def.side < 0 ? 9 * sx : 0), s.def.w * sx, 9 * sx); }
   mg.fillStyle = '#7fb8b4'; mg.beginPath(); mg.arc(X(160), Z(14), 3.4 * sx, 0, 7); mg.fill();
+  // 名所南區・江戶城・金閣寺・千本鳥居
+  mg.fillStyle = '#d9d2c2'; mg.fillRect(X(-205), Z(44), 105 * sx, 96 * sx); mg.fillRect(X(-127), Z(23), 4 * sx, 21 * sx); mg.fillRect(X(140), Z(38), 76 * sx, 74 * sx); mg.fillRect(X(-126), Z(-76), 2 * sx, 53 * sx);
+  mg.fillStyle = '#6aa0b8'; mg.fillRect(X(-287), Z(57), 70 * sx, 70 * sx); mg.beginPath(); mg.ellipse(X(-122), Z(102), 15 * sx, 11 * sx, 0, 0, 7); mg.fill(); mg.beginPath(); mg.ellipse(X(180), Z(78), 21 * sx, 15 * sx, 0, 0, 7); mg.fill();
+  mg.fillStyle = '#a8a294'; mg.fillRect(X(-276), Z(68), 48 * sx, 48 * sx); mg.fillStyle = '#8a6440'; mg.fillRect(X(-228), Z(90), 24 * sx, 4 * sx);
+  mg.fillStyle = '#4a3a2e'; mg.fillRect(X(-186.5), Z(57), 13 * sx, 18 * sx); mg.fillRect(X(-174), Z(110), 8 * sx, 8 * sx); mg.fillStyle = '#c8382a'; mg.fillRect(X(-125.6), Z(-76), 1.2 * sx, 53 * sx);
   mg.fillStyle = '#d9d2c2'; mg.fillRect(X(141), Z(-106), 74 * sx, 59 * sx); mg.fillStyle = '#4a3a2e'; mg.fillRect(X(158), Z(-104), 40 * sx, 26 * sx); mg.fillRect(X(167), Z(-50), 22 * sx, 6 * sx); mg.fillStyle = '#8a6440'; mg.fillRect(X(175.5), Z(-78), 5 * sx, 38 * sx);
   mg.fillStyle = '#2a4b7c'; for (const [, R] of G.remotes) { mg.beginPath(); mg.arc(X(R.tx), Z(R.tz), 2.2, 0, 7); mg.fill(); }
   mg.fillStyle = '#e8322a'; mg.beginPath(); mg.arc(X(G.pos.x), Z(G.pos.z), 3.4, 0, 7); mg.fill(); mg.strokeStyle = '#fff'; mg.lineWidth = 1.5; mg.stroke();
-  mg.font = '600 10px sans-serif'; mg.fillStyle = '#3a2a1a'; mg.fillText('神社', X(-140), Z(-17)); mg.fillText('日本橋', X(110), Z(-6)); mg.fillText('湯', X(157), Z(6)); mg.fillStyle = '#f3ead6'; mg.fillText('東光寺', X(170), Z(-88)); mg.fillStyle = '#3a2a1a'; mg.fillText('御觸書', X(92), Z(-12));
+  mg.font = '600 10px sans-serif'; mg.fillStyle = '#3a2a1a'; mg.fillText('神社', X(-140), Z(-17)); mg.fillText('江戶城', X(-268), Z(96)); mg.fillText('中村座', X(-200), Z(54)); mg.fillText('相撲', X(-182), Z(132)); mg.fillText('不忍池', X(-138), Z(84)); mg.fillText('金閣寺', X(165), Z(108)); mg.fillText('千本鳥居', X(-150), Z(-80)); mg.fillText('日本橋', X(110), Z(-6)); mg.fillText('湯', X(157), Z(6)); mg.fillStyle = '#f3ead6'; mg.fillText('東光寺', X(170), Z(-88)); mg.fillStyle = '#3a2a1a'; mg.fillText('御觸書', X(92), Z(-12));
 }
 mini.onclick = () => { const big = mini.classList.toggle('big'); mini.width = big ? 520 : 240; mini.height = big ? 260 : 120; drawMini(); };
 
@@ -1601,5 +1632,5 @@ async function runTest() {
   document.title = (fail ? 'FAIL ' : 'PASS ') + log.length;
   const d = document.createElement('pre'); d.style.cssText = 'position:fixed;left:8px;top:50px;z-index:99;background:rgba(255,255,255,.92);font-size:15px;padding:8px;margin:0'; d.textContent = (fail ? 'FAIL\n' : 'PASS\n') + log.join('\n'); document.body.appendChild(d);
 }
-if (QS.get('test') === 'flow') { store.set('helped', true); setTimeout(runTest, 1500); }
-window.EDO = { RIDE, switchRoom, startRide, hailRide, upd: dt => update(dt), render, renderer, scene, NPCS, keepers, step: n => { for (let i = 0; i < n; i++) update(1 / 30); render(); }, SND, openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };
+if (QS.get('test') === 'flow') { store.set('helped', true); const go = () => (W && G.me) ? setTimeout(runTest, 1500) : setTimeout(go, 300); setTimeout(go, 300); } // 等世界建好再測
+window.EDO = { RIDE, switchRoom, startRide, hailRide, gmRide, drawRide, G, walkable, upd: dt => update(dt), render, renderer, scene, NPCS, keepers, step: n => { for (let i = 0; i < n; i++) update(1 / 30); render(); }, SND, openCard, openGM, camera, setHeld, get W() { return W; }, openShop, sitAt, openMenu, order, startMG, claim, cam };
