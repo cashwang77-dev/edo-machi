@@ -5,15 +5,16 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611181656';
-import { RIDE_Y } from './chara.js?v=202611181656';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611181656';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611181656';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611181656';
-import { Net } from './net.js?v=202611181656';
-import { cleanText } from './filter.js?v=202611181656';
-import { SND } from './audio.js?v=202611181656';
-import * as TX from './tex.js?v=202611181656';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611181822';
+import { RIDE_Y } from './chara.js?v=202611181822';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611181822';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611181822';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611181822';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611181822';
+import { Net } from './net.js?v=202611181822';
+import { cleanText } from './filter.js?v=202611181822';
+import { SND } from './audio.js?v=202611181822';
+import * as TX from './tex.js?v=202611181822';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -145,13 +146,16 @@ function blocked(x, z, r = .3) {
 const okAt = (x, z) => walkable(x, z) && !blocked(x, z);
 
 // ---------- 角色 ----------
+function rebuildMe(name) { // 變成 GM（花魁 3D 造型）時換掉人物
+  const old = G.me; if (old) scene.remove(old.root); addMe(); G.me.setName(name || G.name || '旅人'); G.me.tag.visible = false; G.me.root.position.copy(G.pos); G.me.root.rotation.y = G.ry;
+}
 function addMe() {
-  G.me = new Chara(G.look, G.name || '旅人'); scene.add(G.me.root); G.me.tag.visible = false;
+  G.me = new (G.gm || G.oiran ? Chara : NPCChara)(G.look, G.name || '旅人'); if (G.gm || G.oiran) G.me.gm = true, G.me.setLook(G.look); scene.add(G.me.root); G.me.tag.visible = false;
   G.me.root.position.copy(G.pos); G.me.root.rotation.y = G.ry;
 }
 function addRemote(p) {
   if (G.remotes.has(p.id)) return;
-  const ch = new Chara(p.lk, ''); if (p.gm) { ch.gm = true; ch.setLook(p.lk); } ch.setName(p.gm ? '👑 ' + p.n : p.n); ch.root.position.set(p.x, p.y || 0, p.z); scene.add(ch.root);
+  const ch = new (p.gm ? Chara : NPCChara)(p.lk, ''); if (p.gm) { ch.gm = true; ch.setLook(p.lk); } ch.setName(p.gm ? '👑 ' + p.n : p.n); ch.root.position.set(p.x, p.y || 0, p.z); scene.add(ch.root);
   G.remotes.set(p.id, { ch, n: p.n, tx: p.x, ty: p.y || 0, tz: p.z, tr: p.r || 0, a: p.a || 0, lastX: p.x, lastZ: p.z });
   updCount();
 }
@@ -160,20 +164,20 @@ function updSta() { const b = $('#sta'); if (!b) return; const show = G.sta < 99
 function updCount() { $('#online').textContent = G.online ? `👥 ${G.remotes.size + 1} / 80 人在線 ▾` : '🏮 單人模式（離線）'; }
 
 // NPC 町人（人少時代替玩家逛街、吃東西、聊天）、掌櫃
-const NPCS = []; const keepers = {};
+const NPCS = []; let NPCChara = Chara; /* 路人等 NPC 用的人物類別（啟動後換成 2D 立繪） */ const keepers = {};
 const NPC_NAMES = ['八五郎', '熊吉', '阿花', '老隱居', '與太郎', '阿菊', '源三', '阿松', '辰五郎', '阿光', '金太', '阿竹', '新吉', '阿梅', '平助', '阿雪'];
 const NPC_PAIRS = [['今天的蕎麥麵真好吃', '對吧！信濃屋是老字號'], ['要不要一起去泡湯？', '好啊，過了日本橋就到了'], ['聽說最近有人開了糰子店', '真的嗎？等等去看看'], ['夕陽真美呢', '富士山也看得好清楚'], ['你的和服好好看', '謝謝，是在丸屋買的'], ['最近生意如何？', '託您的福，還不錯'], ['浮世繪店可以畫肖像喔', '我也想畫一張！'], ['晚上河邊有螢火蟲', '那晚點一起去吧'], ['神社的櫻花開了', '去參拜順便賞花吧'], ['肚子餓了～', '去吃鰻魚飯吧！']];
 function spawnNPCs() {
   const r = Math.random;
   for (let i = 0; i < 16; i++) {
     const lk = randomLook(r); if (r() < .25) lk.hat = 1 + Math.floor(r() * 4); if (r() < .2) lk.w = 1 + Math.floor(r() * 2);
-    const ch = new Chara(lk, ''); ch.setName(NPC_NAMES[i], true);
+    const ch = new NPCChara(lk, ''); ch.setName(NPC_NAMES[i], true);
     ch.root.position.set(-90 + r() * 185, 0, (r() - .5) * 10); scene.add(ch.root);
     NPCS.push({ ch, i, st: 'idle', tx: 0, tz: 0, wait: r() * 4, t: 0, sp: 1.5 + r() * 1.1, nm: NPC_NAMES[i], seat: null, goal: null });
   }
   for (const s of W.shops) {
     const lk = randomLook(); lk.hat = 0; lk.c = 0; if (!s.def.service) { lk.k = 9; lk.p = 0; }
-    const ch = new Chara(lk, ''); ch.root.position.set(s.owner.x, s.owner.y, s.owner.z); ch.root.rotation.y = s.owner.r; scene.add(ch.root); keepers[s.def.id] = ch;
+    const ch = new NPCChara(lk, ''); ch.root.position.set(s.owner.x, s.owner.y, s.owner.z); ch.root.rotation.y = s.owner.r; scene.add(ch.root); keepers[s.def.id] = ch;
   }
 }
 function npcQuota() { const real = G.online ? G.remotes.size + 1 : 1; return Math.max(4, Math.min(16, 18 - real)); }
@@ -474,7 +478,7 @@ function npcCustomerTick(dt) {
   G.npcT = 16 + Math.random() * 18;
   if (G.npcCust.length >= 2) return;
   const s = G.shop; const seat = s.seats.find(seatFree); if (!seat) return;
-  const ch = new Chara(randomLook(), ''); ch.root.position.set(seat.x, seat.y, seat.z); ch.root.rotation.y = seat.r; ch.play(3); scene.add(ch.root);
+  const ch = new NPCChara(randomLook(), ''); ch.root.position.set(seat.x, seat.y, seat.z); ch.root.rotation.y = seat.r; ch.play(3); scene.add(ch.root);
   const item = s.def.menu.filter(m => m.p > 0)[Math.floor(Math.random() * s.def.menu.filter(m => m.p > 0).length)];
   const nm = NPCS[Math.floor(Math.random() * NPCS.length)].nm;
   const c = { ch, seat }; G.npcCust.push(c);
@@ -831,7 +835,7 @@ function bookRide(q, fee) {
   hailRide(q, fee);
 }
 // 空車：借用 Chara 的人力車模型（車＋車夫），掛在獨立的 Group 上
-function makeCart(x, z, ry) { const c = { root: new THREE.Group() }; Chara.prototype.setRide.call(c, true, Chara); c.kuruma.position.y = 0; c.root.position.set(x, heightAt(x, z), z); c.root.rotation.y = ry; scene.add(c.root); return c; }
+function makeCart(x, z, ry) { const c = { root: new THREE.Group() }; Chara.prototype.setRide.call(c, true, NPCChara); c.kuruma.position.y = 0; c.root.position.set(x, heightAt(x, z), z); c.root.rotation.y = ry; scene.add(c.root); return c; }
 function dropCart(c) { if (c) scene.remove(c.root); }
 function hailRide(q, fee) {
   // 找最近的空車跑過來；沒有就從附近路上出發
@@ -861,7 +865,7 @@ function startRide(q, paid, fee) {
   const same = q.room === 'edo' + G.room;
   if (!paid) { fee = same ? fareOf(routeTo(G.pos, q).len) : RIDE.fare2; if (!afford(fee)) return toast('錢不夠喔'); addMoney(-fee, '人力車'); }
   closePanels(); G.follow = null;
-  G.mode = 'ride'; G.me.setRide(true, Chara); net.send({ t: 'ride', on: 1 });
+  G.mode = 'ride'; G.me.setRide(true, NPCChara); net.send({ t: 'ride', on: 1 });
   G.pos.y = RIDE_Y + heightAt(G.pos.x, G.pos.z); const from = { x: G.pos.x, z: G.pos.z };
   const tgt = () => { const R = same && G.remotes.get(q.id); return R ? { x: R.ch.root.position.x, z: R.ch.root.position.z } : { x: q.x, z: q.z }; };
   const t0 = tgt(); const pts = same && !q.gmFast ? routeTo(from, t0).pts.slice(0, -1) : [from]; // 沿路網跑，最後一段直接到目的地
@@ -949,7 +953,7 @@ function updCabs(dt) {
     Chara.prototype.updRide.call(c.cart, dt, sp); if (c.cart.puller && c.cart.puller.lod) c.cart.puller.lod(d * 1.6); // 車夫提早簡化
   }
 }
-net.on('ride', m => { const R = G.remotes.get(m.id); if (R) { R.ch.setRide(!!m.on, Chara); R.riding = !!m.on; } });
+net.on('ride', m => { const R = G.remotes.get(m.id); if (R) { R.ch.setRide(!!m.on, NPCChara); R.riding = !!m.on; } });
 
 // ---------- 東光寺：參拜・投幣・搖鈴・撞鐘 ----------
 const TEMPLE_WISH = ['心願成就', '身體健康', '開運招福', '學業進步', '生意興隆', '闔家平安', '良緣到來', '旅途平安'];
@@ -1072,7 +1076,7 @@ const RET_PLAN = [ // 花魁道中：off＝[左右, 前後]（前方為正）
   { role: 'yarite', off: [0, -2.8], look: { k: 7, p: 10, o: 1, h: 2, s: 1, ey: 1, br: 1, mo: 3, ck: 0 } },
 ];
 function makeRetinue(boss) {
-  const mem = RET_PLAN.map(pl => { const ch = new Chara(pl.look, ''); if (pl.role === 'kamuro') ch.root.scale.setScalar(.66); if (pl.role === 'shinzo') ch.root.scale.setScalar(.9); scene.add(ch.root); const b = boss.root.position; ch.root.position.copy(b); return { ...pl, ch }; });
+  const mem = RET_PLAN.map(pl => { const ch = new NPCChara(pl.look, ''); if (pl.role === 'kamuro') ch.root.scale.setScalar(.66); if (pl.role === 'shinzo') ch.root.scale.setScalar(.9); scene.add(ch.root); const b = boss.root.position; ch.root.position.copy(b); return { ...pl, ch }; });
   const lb = mem[0].ch; const lan = new THREE.Group(); lan.position.set(0, -.3, .2); lan.rotation.x = 1; lb.arms[1].add(lan);
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .7, 5), dm('#3a2418')); pole.position.y = .3; lan.add(pole);
   const box = new THREE.Mesh(new THREE.CylinderGeometry(.11, .11, .32, 14), new THREE.MeshStandardMaterial({ map: TX.text('花', { w: 256, h: 128, bg: '#f6efe0', fg: '#1a1210', vertical: false }), emissive: '#ffb050', emissiveIntensity: .6 })); box.position.y = .72; box.rotation.x = -1; lan.add(box);
@@ -1111,7 +1115,7 @@ function updRetinue(dt) {
 const KIDS = [];
 function spawnKids() {
   [{ k: 1, p: 2, o: 2, h: 4, s: 0, ey: 4, mo: 1, ck: 2, fc: 1 }, { k: 4, p: 1, o: 4, h: 0, s: 1, ey: 0, mo: 1, ck: 1, fc: 1 }].forEach((lk, i) => {
-    const ch = new Chara(lk, ''); ch.root.scale.setScalar(.62); ch.root.position.set(-20 + i * 30, 0, (i - .5) * 3); scene.add(ch.root); KIDS.push({ ch, tx: 0, tz: 0, wait: i });
+    const ch = new NPCChara(lk, ''); ch.root.scale.setScalar(.62); ch.root.position.set(-20 + i * 30, 0, (i - .5) * 3); scene.add(ch.root); KIDS.push({ ch, tx: 0, tz: 0, wait: i });
   });
 }
 function updKids(dt) {
@@ -1348,10 +1352,11 @@ function toggleView() {
 function buildTitle() {
   $('#nameIn').value = G.name; $('#gmIn').value = store.get('gmk', ''); { let taps = [], lg = document.querySelector('#title .logo h1'); lg.style.pointerEvents = 'auto'; lg.addEventListener('pointerdown', () => { const t = performance.now(); taps = taps.filter(x => t - x < 2500); taps.push(t); if (taps.length >= 5) { taps = []; $('#gmRow').classList.toggle('hide'); } }); }
   const rows = [['k', '和服', KIMONO.map(k => k[1]), KIMONO.map(k => k[0])], ['p', '花紋', null, PATTERNS], ['o', '腰帶', OBI, null], ['h', '髮型', null, HAIRS], ['s', '膚色', SKINS, null], ['y', '衣裝', null, OUTFITS], ['yc', '外衣色', OUTER, null], ['ey', '眼睛', null, EYES], ['br', '眉毛', null, BROWS], ['mo', '嘴巴', null, MOUTHS], ['ck', '腮紅', null, CHEEKS], ['mk', '痣', null, MOLES], ['ft', '特徵', null, FEATS]];
+  if (NPCChara === SChara) { rows.splice(0, rows.length, rows[0], rows[1], rows[2], ['ai', '髮型', null, ARCH_LIST.map(n => ARCH_NAME[n])]); if (G.look.ai == null || G.look.aiH !== G.look.h) { G.look.ai = ARCH_LIST.indexOf(archOf(G.look)); G.look.aiH = G.look.h; } }
   $('#looks').innerHTML = rows.map(([k, t, cols, names]) => `<div class="lr"><span>${t}</span><div>${(cols || names).map((c, i) => cols ? `<button class="sw" data-k="${k}" data-v="${i}" style="background:${c}" title="${names ? names[i] : ''}"></button>` : `<button class="tx" data-k="${k}" data-v="${i}">${c}</button>`).join('')}</div></div>`).join('');
   ['ey', 'br', 'mo', 'ck', 'mk', 'fc', 'y', 'yc', 'ft'].forEach(k => { if (G.look[k] == null) G.look[k] = k === 'ck' || k === 'fc' ? 1 : 0; });
   const sync = () => document.querySelectorAll('#looks [data-k]').forEach(b => b.classList.toggle('on', G.look[b.dataset.k] == b.dataset.v));
-  document.querySelectorAll('#looks [data-k]').forEach(b => b.onclick = () => { G.look[b.dataset.k] = +b.dataset.v; G.me.setLook(G.look); sync(); G.faceZoom = ['ey', 'br', 'mo', 'ck', 'mk', 'h', 's', 'ft'].includes(b.dataset.k) ? 3.5 : 0; });
+  document.querySelectorAll('#looks [data-k]').forEach(b => b.onclick = () => { G.look[b.dataset.k] = +b.dataset.v; if (b.dataset.k === 'ai') { G.look.h = G.look.aiH = AR2H[+b.dataset.v]; } G.me.setLook(G.look); sync(); G.faceZoom = ['ey', 'br', 'mo', 'ck', 'mk', 'h', 's', 'ft'].includes(b.dataset.k) ? 3.5 : 0; });
   sync();
   $('#rnd').onclick = () => { G.look = randomLook(); G.look.hat = 0; G.look.c = 0; G.me.setLook(G.look); sync(); };
   $('#go').onclick = start;
@@ -1405,7 +1410,7 @@ setInterval(() => { if (G.online) net.send({ t: 'ping' }); }, 15000);
 net.on('welcome', m => {
   G.myId = m.id; G.timeOff = m.timeOff || 0; G.owners = m.shops || {};
   if (m.gm) {
-    G.gm = true; G.me.gm = true; G.me.setLook(G.look); G.me.setName('👑 ' + m.n); setMoney(G.money); show('#bGM');
+    G.gm = true; if (!(G.me instanceof Chara)) rebuildMe('👑 ' + m.n); G.me.gm = true; G.me.setLook(G.look); G.me.setName('👑 ' + m.n); setMoney(G.money); show('#bGM');
     // 花魁道中：環繞特寫＋櫻花＋公告橫幅
     setTimeout(() => { closeup(6, { dist: 3, h: 1.3, ang: 0, look: 1.1, spin: 1.05 }); G.me.emoji('🌸'); announce(`花魁「${m.n}」駕到`, '花魁道中'); SND.pluck(523, .1); setTimeout(() => SND.pluck(659, .1), 220); setTimeout(() => SND.pluck(784, .12), 440); }, 600);
     toast('👑 GM 模式：花魁造型、錢用不完、可使用管理面板', 3800);
@@ -1509,7 +1514,7 @@ function update(dt) {
     cam.tx += (tgt.x - cam.tx) * Math.min(1, dt * 8); cam.ty += (tgt.y - cam.ty) * Math.min(1, dt * 8); cam.tz += (tgt.z - cam.tz) * Math.min(1, dt * 8);
     let dist = cam.auto ? 11 : iso ? cam.isoDist : cam.dist;
     const off = new THREE.Vector3(Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch));
-    if (!iso) { const hit = rayBlock(cam.tx, cam.ty, cam.tz, off, dist); if (hit < dist) dist = Math.max(.7, hit - .3); }
+    { const hit = rayBlock(cam.tx, cam.ty, cam.tz, off, dist); if (hit < dist) dist = Math.max(.7, hit - .3); }
     cam.cd = cam.cd == null || dist < cam.cd ? dist : cam.cd + (dist - cam.cd) * Math.min(1, dt * 2.5); dist = cam.cd;
     camera.position.set(cam.tx + off.x * dist, Math.max(.4 + heightAt(cam.tx, cam.tz), cam.ty + off.y * dist), cam.tz + off.z * dist);
     camera.lookAt(cam.tx, cam.ty, cam.tz);
@@ -1540,6 +1545,7 @@ function update(dt) {
     callTick(dt); peddlerTick(dt); updMatsuri(dt); festNotice();
   }
   W.update(dt, time, tday(), G.me ? G.me.root.position : new THREE.Vector3(), camera.position, quality);
+  { const n = W.night || 0; SPR_LIGHT.value.setRGB(1.02 - .5 * n, 1 - .52 * n, .97 - .42 * n); } // 立繪亮度跟晝夜
   if (bloom) bloom.strength = .18 + W.night * .55;
 }
 let viewOff = 0;
@@ -1644,12 +1650,13 @@ if (isTouch) document.body.classList.add('touch');
   W = buildWorld(scene);
   W.sunLight = scene.children.find(o => o.isDirectionalLight);
   setupPost(); applyQuality();
+  await preloadSprites(); setSprCam(camera); NPCChara = spritesReady() && !QS.has('npc3d') ? SChara : Chara; // 2D 立繪（?npc3d 可切回 3D）
   addMe(); spawnNPCs(); spawnCabs(); spawnDeer(); buildTitle(); spawnFlora();
-  initMatsuri({ scene, Chara, SND, announce, toast, pos: () => G.pos, night: () => W.night || 0, gift: v => addMoney(v, '福餅') });
+  initMatsuri({ scene, Chara: NPCChara, SND, announce, toast, pos: () => G.pos, night: () => W.night || 0, gift: v => addMoney(v, '福餅') });
   spawnKids();
   $('#loading').classList.add('hide');
   if (QS.has('cam')) { G.shot = QS.get('cam').split(',').map(Number); show('#title', false); }
-  if (QS.has('oiran') && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { G.me.gm = true; G.me.setLook(G.look); G.me.setName('👑 花魁'); }
+  if (QS.has('oiran') && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { G.oiran = true; if (!(G.me instanceof Chara)) rebuildMe('👑 花魁'); G.me.gm = true; G.me.setLook(G.look); G.me.setName('👑 花魁'); }
   if (QS.has('auto')) { $('#nameIn').value = QS.get('auto') || '測試'; start(); }
   if (QS.has('chat')) setTimeout(() => { openChat(); onChat(G.myId, '你好！一起去吃糰子吧'); }, 1500);
   if (QS.has('demo')) setTimeout(() => {
