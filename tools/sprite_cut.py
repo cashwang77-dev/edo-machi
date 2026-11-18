@@ -8,12 +8,11 @@ sys.path.insert(0, os.path.expanduser('~/Downloads/夜校如月/tools'))
 from sprite_lib import remove_bg
 sys.path.insert(0, os.path.expanduser('~/.claude/skills/gemini-image'))
 
-name, src, planf = sys.argv[1], sys.argv[2], sys.argv[3]
-plan = json.load(open(planf, encoding='utf-8'))
-im = Image.open(src).convert('RGB')
+name, planf = sys.argv[1], sys.argv[2]
+plan = json.load(open(planf, encoding='utf-8'))   # {"img":{"A":路徑,...}, "anims":{"walk":{"S":[["A",r,c],...]}, "idle":{...}, "sit":{...}, "act":{"wave":[...]}}}
+IMGS = {k: Image.open(v).convert('RGB') for k, v in plan['img'].items()}
 
-# 找格子：沿用 find_figures 的切法（列＝水平空白帶，欄＝每列內的垂直空白帶）
-a = np.asarray(im).astype(int); ink = (a.min(axis=2) < 235)
+# 找格子：列＝水平空白帶，欄＝每列內的垂直空白帶
 def bands(v, gap=6, minlen=20):
     out, s = [], None
     for i, x in enumerate(v):
@@ -23,27 +22,38 @@ def bands(v, gap=6, minlen=20):
             s = None
     if s is not None and len(v) - s >= minlen: out.append((s, len(v)))
     return out
-rows = bands(ink.sum(1) > 2)
-boxes = []
-for (y0, y1) in rows:
-    cols = bands(ink[y0:y1].sum(0) > 1)
-    boxes.append([(x0, y0, x1, y1) for (x0, x1) in cols])
-print('列', len(boxes), [len(r) for r in boxes])
+BOX = {}
+for k, im in IMGS.items():
+    a = np.asarray(im).astype(int); ink = (a.min(axis=2) < 235); boxes = []
+    for (y0, y1) in bands(ink.sum(1) > 2):
+        cols = bands(ink[y0:y1].sum(0) > 1); boxes.append([(x0, y0, x1, y1) for (x0, x1) in cols])
+    BOX[k] = boxes; print(k, '列', len(boxes), [len(r) for r in boxes])
 
 FW, FH = 128, 224  # 每格輸出大小（腳底對齊在 FH-6）
-cells = {}
-H = []
-for d, lst in plan.items():
-    for (r, c) in lst:
-        x0, y0, x1, y1 = boxes[r][c]
-        cell = im.crop((x0 - 4, y0 - 4, x1 + 4, y1 + 4))
-        rgba = remove_bg(cell, minfrac=.02, hole=80)
-        bb = rgba.getbbox(); rgba = rgba.crop(bb); H.append(rgba.height)
-        cells.setdefault(d, []).append(rgba)
-scale = (FH - 14) / max(H)  # 全部同一比例，最高的人物剛好放滿
+cells = []; HW = {}   # (動作, 方向, rgba, 圖)
+for an, dirs in plan['anims'].items():
+    for d, lst in dirs.items():
+        for (k, r, c) in lst:
+            x0, y0, x1, y1 = BOX[k][r][c]
+            rgba = remove_bg(IMGS[k].crop((x0 - 4, y0 - 4, x1 + 4, y1 + 4)), minfrac=.02, hole=80)
+            # 去背後白邊收 1 像素
+            A = np.asarray(rgba).copy(); al = A[..., 3]; from scipy.ndimage import binary_erosion
+            al = np.where(binary_erosion(al > 128, iterations=1), al, 0).astype(np.uint8); A[..., 3] = al; rgba = Image.fromarray(A, 'RGBA')
+            # Gemini 偶爾在腳下畫一條地平線：刪掉「橫跨 70% 以上寬度」的細橫列（只看下方 15%）
+            al = A[..., 3]; hh = al.shape[0]
+            for y in range(int(hh * .85), hh):
+                if (al[y] > 128).mean() > .93: A[max(0, y - 1):y + 2, :, 3] = 0
+            rgba = Image.fromarray(A, 'RGBA')
+            rgba = rgba.crop(rgba.getbbox()); cells.append((an, d, rgba, k))
+            if an == 'walk': HW.setdefault(k, []).append(rgba.height)
+ref = float(np.median(HW[list(plan['img'])[0]]))
+SC = {k: ref / float(np.median(v)) for k, v in HW.items()}   # 各張圖的人物大小統一到第一張
+scale = (FH - 22) / (ref * 1.0)
+print('各圖比例', {k: round(v, 3) for k, v in SC.items()})
 frames, out, outm = {}, [], []
-for d, lst in cells.items():
-    for rgba in lst:
+if True:
+    for (an, d, rgba, k) in cells:
+        rgba = rgba.resize((max(1, round(rgba.width * SC.get(k, 1))), max(1, round(rgba.height * SC.get(k, 1)))), Image.LANCZOS)
         w, h = rgba.size; rs = rgba.resize((max(1, round(w * scale)), max(1, round(h * scale))), Image.LANCZOS)
         A = np.asarray(rs).astype(float); al = A[..., 3] / 255
         # 身體中心：用下半身（腳）的 alpha 重心對齊，避免頭髮、袖子讓人左右晃
@@ -59,7 +69,7 @@ for d, lst in cells.items():
         top = FH - 6 - rs.height; head_line = (top + rs.height * .38) / FH   # 頭（髮飾）以上的紅色不算腰帶
         obi = red & (yy > head_line)
         M = np.zeros((FH, FW, 3), np.uint8); M[..., 0] = kimono * 255; M[..., 1] = obi * 255
-        frames.setdefault(d, []).append({'i': len(out), 'top': int(top)})
+        frames.setdefault(an, {}).setdefault(d, []).append({'i': len(out), 'top': int(top)})
         out.append(fr); outm.append(Image.fromarray(M))
 n = len(out); cols = 8; rws = (n + cols - 1) // cols
 atlas = Image.new('RGBA', (cols * FW, rws * FH)); atlasm = Image.new('RGB', (cols * FW, rws * FH))
@@ -73,4 +83,4 @@ mv = np.asarray(atlasm).astype(float); base = np.asarray(atlas.convert('RGB')).a
 ov = base.copy(); ov[mv[..., 0] > 0] = ov[mv[..., 0] > 0] * .4 + np.array([60, 140, 255]) * .6; ov[mv[..., 1] > 0] = ov[mv[..., 1] > 0] * .4 + np.array([255, 220, 0]) * .6
 ov[np.asarray(atlas)[..., 3] < 10] = 255
 chk.paste(Image.fromarray(ov.astype(np.uint8)), (0, rws * FH)); chk.save(f'art_src/sprites/{name}_check.jpg', quality=88)
-print('frames', {k: len(v) for k, v in frames.items()}, 'scale', round(scale, 3))
+print('frames', {a: {d: len(v) for d, v in x.items()} for a, x in frames.items()}, 'scale', round(scale, 3))

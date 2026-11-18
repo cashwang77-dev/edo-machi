@@ -46,6 +46,7 @@ export class SpriteChara {
     if (lk.kc) this.u.uKim.value.set(lk.kc); if (lk.oc) this.u.uObi.value.set(lk.oc);
     this.u.uPat.value = lk.pat || null; this.u.uPatOn.value = lk.pat ? 1 : 0;
   }
+  // 動作：0 站 1 走 2 跑 3 坐；字串 'wave' 'bow' 'laugh' 'cheer' 為正面動作
   play(a) { this.anim = a; }
   // 依鏡頭位置選方向與畫格；ry＝角色朝向（與 Chara 相同定義：面向 +z 時 ry=0）
   update(dt, speed, cam) {
@@ -56,10 +57,14 @@ export class SpriteChara {
       const ry = this.root.rotation.y, f = [Math.sin(ry), Math.cos(ry)], right = [-d[1], d[0]];
       const th = Math.atan2(f[0] * right[0] + f[1] * right[1], -(f[0] * d[0] + f[1] * d[1]));
       let k = Math.round(th / (Math.PI / 4)); const flip = k < 0 && k > -4; k = Math.abs(k); if (k > 4) k = 4;
-      const fr = this.A.meta.frames[DIRS[k]] || this.A.meta.frames.S; let i = 1 % fr.length, bob = 0;
-      if (speed > .2) { const ph = this.t * speed * 1.6; if (fr.length >= 4) i = Math.floor(ph) % 4; else { i = Math.floor(ph / 2) % fr.length; bob = Math.abs(Math.sin(ph * Math.PI)) * .03; } }
+      const F = this.A.meta.frames, act = typeof this.anim === 'string' && F.act && F.act[this.anim];
+      const set = act ? null : speed > .2 ? F.walk : this.anim === 3 ? F.sit : F.idle;
+      let fr = act || (set && (set[DIRS[k]] || set.S)), i = 0, bob = 0;
+      if (act) { k = 0; } // 動作只有正面圖
+      if (!act && speed > .2) { const ph = this.t * speed * 1.6; i = Math.floor(ph) % fr.length; if (fr.length < 4) bob = Math.abs(Math.sin(ph * Math.PI)) * .03; }
+      else if (!act && this.anim !== 3) bob = Math.sin(this.t * 2.2) * .004; // 站著時微微呼吸
       const { fw, fh, cols, rows } = this.A.meta, idx = fr[i].i, W = cols * fw, Hh = rows * fh;
-      this.u.uRect.value.set((idx % cols) * fw / W, 1 - (Math.floor(idx / cols) + 1) * fh / Hh, fw / W, fh / Hh); this.u.uFlip.value = flip ? 1 : 0;
+      this.u.uRect.value.set((idx % cols) * fw / W, 1 - (Math.floor(idx / cols) + 1) * fh / Hh, fw / W, fh / Hh); this.u.uFlip.value = flip && !act ? 1 : 0;
       this.mesh.position.y = bob;
     }
   }
