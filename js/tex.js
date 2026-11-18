@@ -129,7 +129,7 @@ export function pattern(kind, color, alt = '#f4efe2') {
     g.fillStyle = color; g.fillRect(0, 0, 256, 256);
     const t = document.createElement('canvas'); t.width = t.height = 256; const tg = t.getContext('2d');
     tg.drawImage(motifAlpha(mi), 0, 0); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = mcol || alt; tg.fillRect(0, 0, 256, 256);
-    g.globalAlpha = .92; g.drawImage(t, 0, 0); g.globalAlpha = 1; silk(g, 256);
+    g.globalAlpha = .92; g.drawImage(t, 0, 0); g.globalAlpha = 1; silk(g, 256); cloth(g, 256);
     return cache[k] = mk(c, [2, 2]);
   }
   const [c, g] = cv(128, 128); g.fillStyle = color; g.fillRect(0, 0, 128, 128);
@@ -143,7 +143,7 @@ export function pattern(kind, color, alt = '#f4efe2') {
   else if (kind === 8) { for (let i = 0; i < 4; i++) { const cx = [30, 96, 60, 110][i], cy = [30, 40, 95, 105][i], cl = ['#e8c56a', '#e84a6a', '#6ad0e8', '#f4efe2'][i]; g.strokeStyle = cl; g.lineWidth = 2; for (let r = 0; r < 14; r++) { const a = r / 14 * Math.PI * 2; g.beginPath(); g.moveTo(cx + Math.cos(a) * 5, cy + Math.sin(a) * 5); g.lineTo(cx + Math.cos(a) * 20, cy + Math.sin(a) * 20); g.stroke(); g.fillStyle = cl; g.fillRect(cx + Math.cos(a) * 23 - 1, cy + Math.sin(a) * 23 - 1, 3, 3); } } }
   else if (kind === 9) { g.lineWidth = 2.2; for (let y = -1; y < 9; y++) for (let x = -1; x < 5; x++) { const cx = x * 32 + (y % 2) * 16, cy = y * 16; for (let r = 3; r > 0; r--) { g.strokeStyle = alt; g.globalAlpha = .9; g.beginPath(); g.arc(cx, cy, r * 5.2, Math.PI, 0); g.stroke(); } } }
   else if (kind === 5) { g.globalAlpha = .8; for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) { const cx = x * 44 + (y % 2) * 22 + 10, cy = y * 44 + 20; for (let p = 0; p < 5; p++) { const a = p / 5 * 6.283; g.beginPath(); g.ellipse(cx + Math.cos(a) * 6, cy + Math.sin(a) * 6, 5, 3.5, a, 0, 7); g.fill(); } } }
-  return cache[k] = mk(c, [2, 2]);
+  cloth(g, 128); return cache[k] = mk(c, [2, 2]);
 }
 export function radial(key, inner, outer) {
   if (cache[key]) return cache[key];
@@ -196,12 +196,12 @@ export function oiran(kind) {
 // 一般和服布料：底色＋細織紋
 export function fabric(color) {
   const k = 'FAB' + color; if (cache[k]) return cache[k];
-  if (IMG.basepat && IMG.basepat[3]) { const [c, g] = cv(256, 256); g.fillStyle = color; g.fillRect(0, 0, 256, 256); g.globalAlpha = .1; g.globalCompositeOperation = 'overlay'; g.drawImage(IMG.basepat[3], 0, 0, 256, 256); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; silk(g, 256); return cache[k] = mk(c, [2, 2]); } // Gemini 細織紋
+  if (IMG.basepat && IMG.basepat[3]) { const [c, g] = cv(256, 256); g.fillStyle = color; g.fillRect(0, 0, 256, 256); g.globalAlpha = .1; g.globalCompositeOperation = 'overlay'; g.drawImage(IMG.basepat[3], 0, 0, 256, 256); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; silk(g, 256); cloth(g, 256); return cache[k] = mk(c, [2, 2]); } // Gemini 細織紋
   const [c, g] = cv(128, 128); const r = rnd(color.length * 17 + 3);
   g.fillStyle = color; g.fillRect(0, 0, 128, 128);
   for (let y = 0; y < 128; y += 2) { g.fillStyle = `rgba(255,255,255,${.025 + r() * .02})`; g.fillRect(0, y, 128, 1); }
   for (let x = 0; x < 128; x += 2) { g.fillStyle = `rgba(0,0,0,${.03 + r() * .03})`; g.fillRect(x, 0, 1, 128); }
-  noise(g, 128, 128, .05, r, 900, 1); silk(g, 128);
+  noise(g, 128, 128, .05, r, 900, 1); silk(g, 128); cloth(g, 128);
   return cache[k] = mk(c, [2, 2]);
 }
 // 花魁布料：有 Gemini 刺繡圖就用，否則程式產生
@@ -258,6 +258,8 @@ function motifAlpha(i) {
   for (let j = 0; j < p.length; j += 4) { const l = (p[j] * .3 + p[j + 1] * .59 + p[j + 2] * .11); p[j] = p[j + 1] = p[j + 2] = 255; p[j + 3] = Math.max(0, Math.min(255, (l - 40) * 1.4)); }
   g.putImageData(d, 0, 0); return cache[k] = c;
 }
+// 手繪布料明暗：Gemini 畫的垂墜皺褶（50% 灰）以柔光疊上，只加明暗不改顏色
+function cloth(g, n) { if (!IMG.cloth) return; g.save(); g.globalCompositeOperation = 'soft-light'; g.globalAlpha = .95; g.drawImage(IMG.cloth, 0, 0, n, n); g.restore(); }
 // 絲綢光澤：斜向的柔光與細織紋
 function silk(g, n) {
   for (let x = 0; x < n; x += 4) { g.fillStyle = 'rgba(255,255,255,.025)'; g.fillRect(x, 0, 1, n); } // 經線（可無縫拼接）
