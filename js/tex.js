@@ -72,6 +72,7 @@ export function shoji(key = 'shoji') {
 export function ground(key = 'ground') {
   if (cache[key]) return cache[key];
   if (IMG.dirt && key === 'dirt') return cache[key] = fromImg(IMG.dirt, '#d8cfc0', .5);
+  if (IMG.grass && key === 'g2') return cache[key] = fromImg(IMG.grass, null); // 手繪草地
   const [c, g] = cv(512, 512); const r = rnd(21);
   g.fillStyle = '#9a8566'; g.fillRect(0, 0, 512, 512);
   for (let i = 0; i < 30; i++) { g.fillStyle = `rgba(${r() > .5 ? '80,60,40' : '190,170,140'},${.06 + r() * .06})`; g.beginPath(); g.ellipse(r() * 512, r() * 512, 30 + r() * 90, 20 + r() * 60, r() * 3, 0, 7); g.fill(); }

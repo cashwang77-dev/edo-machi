@@ -5,15 +5,15 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611181601';
-import { RIDE_Y } from './chara.js?v=202611181601';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611181601';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611181601';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611181601';
-import { Net } from './net.js?v=202611181601';
-import { cleanText } from './filter.js?v=202611181601';
-import { SND } from './audio.js?v=202611181601';
-import * as TX from './tex.js?v=202611181601';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611181612';
+import { RIDE_Y } from './chara.js?v=202611181612';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611181612';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611181612';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611181612';
+import { Net } from './net.js?v=202611181612';
+import { cleanText } from './filter.js?v=202611181612';
+import { SND } from './audio.js?v=202611181612';
+import * as TX from './tex.js?v=202611181612';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -907,7 +907,7 @@ function updRide(dt) {
 // 路邊花草：沿著可走範圍的邊緣（牆腳、樹下、路緣）自動長出；草一批、花一批＝只多 2 次繪製、不投影
 function floraTex(kind) {
   const c = document.createElement('canvas'); c.width = 128; c.height = 128; const g = c.getContext('2d');
-  if (kind === 'grass') { for (let i = 0; i < 26; i++) { const x = 14 + Math.random() * 100, h = 50 + Math.random() * 70, lean = (Math.random() - .5) * 40; const gr = g.createLinearGradient(0, 128, 0, 128 - h); gr.addColorStop(0, '#3f6a2a'); gr.addColorStop(1, Math.random() < .5 ? '#a8d468' : '#8cc457');
+  if (kind === 'grass') { for (let i = 0; i < 26; i++) { const x = 14 + Math.random() * 100, h = 50 + Math.random() * 70, lean = (Math.random() - .5) * 40; const gr = g.createLinearGradient(0, 128, 0, 128 - h); gr.addColorStop(0, '#5a8a36'); gr.addColorStop(1, Math.random() < .5 ? '#c4e67a' : '#a6d462');
       g.fillStyle = gr; g.beginPath(); g.moveTo(x - 4, 128); g.quadraticCurveTo(x + lean * .3, 128 - h * .6, x + lean, 128 - h); g.quadraticCurveTo(x + lean * .3 + 2, 128 - h * .5, x + 4, 128); g.fill(); } }
   else { g.fillStyle = '#4f7a34'; for (let i = 0; i < 9; i++) { const x = 20 + Math.random() * 88; g.fillRect(x, 70 + Math.random() * 20, 3, 60); }
     for (let i = 0; i < 6; i++) { const x = 22 + Math.random() * 84, y = 34 + Math.random() * 44; g.fillStyle = '#ffffff'; for (let p = 0; p < 5; p++) { const a = p / 5 * 6.283; g.beginPath(); g.arc(x + Math.cos(a) * 7, y + Math.sin(a) * 7, 6, 0, 7); g.fill(); } g.fillStyle = '#f2c94c'; g.beginPath(); g.arc(x, y, 4, 0, 7); g.fill(); } }
@@ -1636,8 +1636,8 @@ if (isTouch) document.body.classList.add('touch');
   // 全部素材同時下載（原本分三批依序等）；花魁貼圖只有 GM 用，背景載入不擋開場
   Promise.all([loadImg('img/tex/oiran_out.jpg'), loadImg('img/tex/oiran_in.jpg')]).then(([a, b]) => { TX.IMG.oiranOut = a; TX.IMG.oiranIn = b; if (G.me && G.me.gm) G.me.setLook(G.look); });
   const L = (pre, n, ext) => Promise.all([...Array(n).keys()].map(i => loadImg(`img/tex/${pre}${i}.${ext}`)));
-  const [art, ey, br, mo, mt, ob, exe, hairImg, bpat, feat] = await Promise.all([Promise.all(['roof', 'plaster', 'wood', 'dirt'].map(k => loadImg('img/tex/' + k + '.jpg')).concat([...Array(11).keys()].map(i => loadImg('img/tex/kanban' + i + '.png')))), L('eyes', 11, 'png'), L('brows', 8, 'png'), L('mouths', 8, 'png'), L('motif', 24, 'png'), L('obi', 6, 'jpg'), L('eyex', 4, 'png'), loadImg('img/tex/hair.jpg'), L('basepat', 4, 'png'), L('feat', 4, 'png')]);
-  ['roof', 'plaster', 'wood', 'dirt'].forEach((k, i) => TX.IMG[k] = art[i]); TX.IMG.kanban = art.slice(4);
+  const [art, ey, br, mo, mt, ob, exe, hairImg, bpat, feat] = await Promise.all([Promise.all(['roof', 'plaster', 'wood', 'dirt', 'grass'].map(k => loadImg('img/tex/' + k + '.jpg')).concat([...Array(11).keys()].map(i => loadImg('img/tex/kanban' + i + '.png')))), L('eyes', 11, 'png'), L('brows', 8, 'png'), L('mouths', 8, 'png'), L('motif', 24, 'png'), L('obi', 6, 'jpg'), L('eyex', 4, 'png'), loadImg('img/tex/hair.jpg'), L('basepat', 4, 'png'), L('feat', 4, 'png')]);
+  ['roof', 'plaster', 'wood', 'dirt', 'grass'].forEach((k, i) => TX.IMG[k] = art[i]); TX.IMG.kanban = art.slice(5);
   if (ey.every(Boolean) && br.every(Boolean) && mo.every(Boolean)) TX.IMG.face = { eyes: ey, brows: br, mouths: mo, ex: exe.every(Boolean) ? exe : null, feat: feat.every(Boolean) ? feat : null };
   if (hairImg) TX.IMG.hair = hairImg; if (bpat.every(Boolean)) TX.IMG.basepat = bpat;
   if (mt.every(Boolean)) TX.IMG.motifs = mt; if (ob.every(Boolean)) TX.IMG.obi = ob;
