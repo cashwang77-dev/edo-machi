@@ -25,4 +25,12 @@ art_src/sprites/<原型>/A.png,B.png → tools/sprite_cut.py（find_figures 找�
 - [x] 11/18 8 原型全部完成：f1 島田髷、f2 おかっぱ、f3 ポニー、f4 垂髪、m1 丁髷、m2 総髪、m3 坊主、m4 散切り（img/spr/*，plan 在 art_src/sprites/*_plan.json），合照 docs/立繪8原型_1118.png
   - 待修：m3 坐下斜前那格腳邊有一小段長椅線（黏在人物上）
   - 和服遮罩只算頭部 34% 以下（避免剃頭、灰眼被換色）；腰帶 38% 以下
-- [ ] 遊戲整合：SpriteChara 補齊 Chara 介面（say/emoji/setName/lod/setRide/坐/動作）、NPC 先換、再換玩家與換裝 UI
+- [x] 11/18 上線 144e450：js/sprite.js SChara（介面同 Chara；setName/say/emoji/setRide/updRide 借用 Chara.prototype；addHeld 沿用；arms 掛點給祭典/隊伍）
+  - game.js：NPCChara（啟動後 preloadSprites，?npc3d 切回 3D）用於 NPC/掌櫃/客人/小孩/隊伍/祭典/車夫/玩家/其他玩家；GM 花魁維持 3D（rebuildMe）
+  - 換裝：立繪模式只顯示 和服/花紋/腰帶/髮型（look.ai＋aiH；髮結床改 h 後 aiH≠h 改用 HAIR2ARCH）
+  - SPR_LIGHT 依 W.night 調亮度
+## 之後可改進
+- 飾品（斗笠、狐面、簪、印籠、巾着）目前是 emoji 小圖示 → 請 Gemini 畫手繪飾品貼紙
+- 羽織／袴／法被、臉部五官與膚色選項在立繪模式不顯示
+- m3 坐下斜前那格腳邊細線
+- 髮結床 14 種髮型對應 8 原型（重複的可再畫新原型：銀杏髷、勝山髷、兵庫髷、お団子、二つ結び、唐輪）
