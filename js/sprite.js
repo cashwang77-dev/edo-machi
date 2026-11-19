@@ -1,16 +1,16 @@
 // 2D 手繪立繪人物（RO 式紙娃娃）：一個面向鏡頭的平面＋換色著色器；每人 1 次繪製
 // SChara 與 3D 的 Chara 介面相同（root、setLook、play、update、say、emoji、setName、lod、setRide、updRide、headG、foodG、accG、waistG），遊戲端直接替換
 import * as THREE from 'three';
-import { Chara, KIMONO, OBI } from './chara.js?v=202611190847';
-import * as TX from './tex.js?v=202611190847';
-import { ACC } from './shops.js?v=202611190847';
+import { Chara, KIMONO, OBI } from './chara.js?v=202611190902';
+import * as TX from './tex.js?v=202611190902';
+import { ACC } from './shops.js?v=202611190902';
 
 const ATLAS = {}; // 原型名 → { tex, mask, meta }
-export const ARCH_LIST = ['f1', 'f2', 'f3', 'f4', 'm1', 'm2', 'm3', 'm4'];
-export const ARCH_NAME = { f1: '島田髷', f2: 'おかっぱ', f3: 'ポニー', f4: '垂髪', m1: '丁髷', m2: '総髪', m3: '坊主', m4: '散切り' };
+export const ARCH_LIST = ['f1', 'f2', 'f3', 'f4', 'm1', 'm2', 'm3', 'm4', 'f5', 'f6', 'f7', 'f8', 'f9', 'm5']; // 新的只能接在後面（玩家存的是編號）
+export const ARCH_NAME = { f1: '島田髷', f2: 'おかっぱ', f3: 'ポニー', f4: '垂髪', m1: '丁髷', m2: '総髪', m3: '坊主', m4: '散切り', f5: '唐輪', f6: '勝山髷', f7: '兵庫髷', f8: 'お団子', f9: '二つ結び', m5: '銀杏髷' };
 // 舊的 14 種髮型 → 立繪原型
-const HAIR2ARCH = ['m1', 'f1', 'm2', 'm3', 'f1', 'f2', 'f3', 'f4', 'm1', 'f1', 'f1', 'f1', 'm4', 'f3'];
-export const AR2H = [1, 5, 6, 7, 0, 2, 3, 12]; // 原型 → 代表的舊髮型編號（3D 備用）
+const HAIR2ARCH = ['m1', 'f1', 'm2', 'm3', 'f5', 'f2', 'f3', 'f4', 'm5', 'f6', 'f7', 'f8', 'm4', 'f9'];
+export const AR2H = [1, 5, 6, 7, 0, 2, 3, 12, 4, 9, 10, 11, 13, 8]; // 原型 → 代表的舊髮型編號（3D 備用）
 // 選了原型（ai）且髮型沒被髮結床改過（aiH＝h）就用原型；否則依髮型對應
 export const archOf = lk => (lk && lk.ai != null && lk.aiH === lk.h && ARCH_LIST[lk.ai]) || HAIR2ARCH[((lk && lk.h) || 0) % HAIR2ARCH.length];
 
