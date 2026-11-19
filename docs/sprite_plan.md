@@ -30,7 +30,8 @@ art_src/sprites/<原型>/A.png,B.png → tools/sprite_cut.py（find_figures 找�
   - 換裝：立繪模式只顯示 和服/花紋/腰帶/髮型（look.ai＋aiH；髮結床改 h 後 aiH≠h 改用 HAIR2ARCH）
   - SPR_LIGHT 依 W.night 調亮度
 ## 之後可改進
-- 飾品（斗笠、狐面、簪、印籠、巾着）目前是 emoji 小圖示 → 請 Gemini 畫手繪飾品貼紙
+- [x] 11/19 飾品手繪圖 36 件（tools/acc_cut.py → img/spr/acc.*；sprite.js ACC_POS/ACC_FIX 位置）
 - 羽織／袴／法被、臉部五官與膚色選項在立繪模式不顯示
 - m3 坐下斜前那格腳邊細線
-- 髮結床 14 種髮型對應 8 原型（重複的可再畫新原型：銀杏髷、勝山髷、兵庫髷、お団子、二つ結び、唐輪）
+- [x] 11/19 新增 f5 唐輪、f6 勝山髷、f7 兵庫髷、f8 お団子、f9 二つ結び、m5 銀杏髷（ARCH_LIST 只能接在後面；HAIR2ARCH 一對一）
+- f9 歡呼那格漏畫雙馬尾，改用揮手代替
