@@ -5,16 +5,16 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611190920';
-import { RIDE_Y } from './chara.js?v=202611190920';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611190920';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611190920';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611190920';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611190920';
-import { Net } from './net.js?v=202611190920';
-import { cleanText } from './filter.js?v=202611190920';
-import { SND } from './audio.js?v=202611190920';
-import * as TX from './tex.js?v=202611190920';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611190956';
+import { RIDE_Y } from './chara.js?v=202611190956';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611190956';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611190956';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611190956';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611190956';
+import { Net } from './net.js?v=202611190956';
+import { cleanText } from './filter.js?v=202611190956';
+import { SND } from './audio.js?v=202611190956';
+import * as TX from './tex.js?v=202611190956';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -150,12 +150,12 @@ function rebuildMe(name) { // 變成 GM（花魁 3D 造型）時換掉人物
   const old = G.me; if (old) scene.remove(old.root); addMe(); G.me.setName(name || G.name || '旅人'); G.me.tag.visible = false; G.me.root.position.copy(G.pos); G.me.root.rotation.y = G.ry;
 }
 function addMe() {
-  G.me = new (G.gm || G.oiran ? Chara : NPCChara)(G.look, G.name || '旅人'); if (G.gm || G.oiran) G.me.gm = true, G.me.setLook(G.look); scene.add(G.me.root); G.me.tag.visible = false;
+  G.me = new NPCChara(G.look, G.name || '旅人'); if (G.gm || G.oiran) G.me.gm = true, G.me.setLook(G.look); scene.add(G.me.root); G.me.tag.visible = false;
   G.me.root.position.copy(G.pos); G.me.root.rotation.y = G.ry;
 }
 function addRemote(p) {
   if (G.remotes.has(p.id)) return;
-  const ch = new (p.gm ? Chara : NPCChara)(p.lk, ''); if (p.gm) { ch.gm = true; ch.setLook(p.lk); } ch.setName(p.gm ? '👑 ' + p.n : p.n); ch.root.position.set(p.x, p.y || 0, p.z); scene.add(ch.root);
+  const ch = new NPCChara(p.lk, ''); if (p.gm) { ch.gm = true; ch.setLook(p.lk); } ch.setName(p.gm ? '👑 ' + p.n : p.n); ch.root.position.set(p.x, p.y || 0, p.z); scene.add(ch.root);
   G.remotes.set(p.id, { ch, n: p.n, tx: p.x, ty: p.y || 0, tz: p.z, tr: p.r || 0, a: p.a || 0, lastX: p.x, lastZ: p.z });
   updCount();
 }
@@ -1068,11 +1068,11 @@ const RET_PLAN = [ // 花魁道中：off＝[左右, 前後]（前方為正）
   { role: 'lantern', off: [0, 3.1], look: { k: 3, p: 0, o: 1, h: 0, s: 1, hat: 3, ey: 3, br: 3, mo: 3, ck: 0 } },
   { role: 'man', off: [-.75, 2.3], look: { k: 6, p: 1, o: 5, h: 2, s: 1, hat: 3, ey: 1, br: 1, mo: 0, ck: 0 } },
   { role: 'man', off: [.75, 2.3], look: { k: 6, p: 1, o: 5, h: 0, s: 2, hat: 3, ey: 3, br: 1, mo: 1, ck: 0 } },
-  { role: 'kamuro', off: [-.55, 1.2], look: { k: 1, p: 5, o: 2, h: 4, s: 0, ey: 0, br: 0, mo: 1, ck: 2, hs: 1 } },
-  { role: 'kamuro', off: [.55, 1.2], look: { k: 1, p: 5, o: 2, h: 4, s: 0, ey: 4, br: 0, mo: 0, ck: 2, hs: 1 } },
-  { role: 'umbrella', off: [.45, -.8], look: { k: 3, p: 0, o: 1, h: 0, s: 1, hat: 3, ey: 1, br: 1, mo: 3, ck: 0 } },
-  { role: 'shinzo', off: [-.6, -1.7], look: { k: 5, p: 11, o: 2, h: 1, s: 0, ey: 1, br: 0, mo: 0, ck: 1, hs: 1 } },
-  { role: 'shinzo', off: [.6, -1.9], look: { k: 5, p: 11, o: 2, h: 1, s: 0, ey: 2, br: 0, mo: 2, ck: 1, hs: 2 } },
+  { role: 'kamuro', off: [-.8, 1.5], look: { k: 1, p: 5, o: 2, h: 4, s: 0, ey: 0, br: 0, mo: 1, ck: 2, hs: 1 } },
+  { role: 'kamuro', off: [.8, 1.5], look: { k: 1, p: 5, o: 2, h: 4, s: 0, ey: 4, br: 0, mo: 0, ck: 2, hs: 1 } },
+  { role: 'umbrella', off: [1.0, -1.0], look: { k: 3, p: 0, o: 1, h: 0, s: 1, hat: 3, ey: 1, br: 1, mo: 3, ck: 0 } },
+  { role: 'shinzo', off: [-.9, -2.1], look: { k: 5, p: 11, o: 2, h: 1, s: 0, ey: 1, br: 0, mo: 0, ck: 1, hs: 1 } },
+  { role: 'shinzo', off: [.9, -2.3], look: { k: 5, p: 11, o: 2, h: 1, s: 0, ey: 2, br: 0, mo: 2, ck: 1, hs: 2 } },
   { role: 'yarite', off: [0, -2.8], look: { k: 7, p: 10, o: 1, h: 2, s: 1, ey: 1, br: 1, mo: 3, ck: 0 } },
 ];
 function makeRetinue(boss) {
@@ -1105,7 +1105,7 @@ function updRetinue(dt) {
       if (m.role === 'man' && Math.random() < dt / 7) m.ch.say(['花魁道中〜！', '道をあけておくんなさい〜', '花魁のお通り〜'][Math.floor(Math.random() * 3)], 2.5);
     }
     // 傘：竿子從撐傘男眾的手到花魁頭頂
-    const ub = R.mem.find(m => m.role === 'umbrella').ch.root.position; _v1.set(ub.x, ub.y + 1.05, ub.z); _v2.set(bp.x, bp.y + 2.75, bp.z);
+    const ub = R.mem.find(m => m.role === 'umbrella').ch.root.position; _v1.set(ub.x, ub.y + 1.05, ub.z); _v2.set(bp.x, bp.y + 3.05, bp.z);
     R.umb.position.lerp(_v2, Math.min(1, dt * 6)); R.umb.rotation.y += dt * .2;
     const dir = _v2.clone().sub(_v1); const len = dir.length(); R.shaft.position.copy(_v1).addScaledVector(dir, .5); R.shaft.scale.set(1, len, 1); R.shaft.quaternion.setFromUnitVectors(_up, dir.normalize());
   }
@@ -1410,7 +1410,7 @@ setInterval(() => { if (G.online) net.send({ t: 'ping' }); }, 15000);
 net.on('welcome', m => {
   G.myId = m.id; G.timeOff = m.timeOff || 0; G.owners = m.shops || {};
   if (m.gm) {
-    G.gm = true; if (!(G.me instanceof Chara)) rebuildMe('👑 ' + m.n); G.me.gm = true; G.me.setLook(G.look); G.me.setName('👑 ' + m.n); setMoney(G.money); show('#bGM');
+    G.gm = true; G.me.gm = true; G.me.setLook(G.look); G.me.setName('👑 ' + m.n); setMoney(G.money); show('#bGM');
     // 花魁道中：環繞特寫＋櫻花＋公告橫幅
     setTimeout(() => { closeup(6, { dist: 3, h: 1.3, ang: 0, look: 1.1, spin: 1.05 }); G.me.emoji('🌸'); announce(`花魁「${m.n}」駕到`, '花魁道中'); SND.pluck(523, .1); setTimeout(() => SND.pluck(659, .1), 220); setTimeout(() => SND.pluck(784, .12), 440); }, 600);
     toast('👑 GM 模式：花魁造型、錢用不完、可使用管理面板', 3800);
@@ -1656,7 +1656,7 @@ if (isTouch) document.body.classList.add('touch');
   spawnKids();
   $('#loading').classList.add('hide');
   if (QS.has('cam')) { G.shot = QS.get('cam').split(',').map(Number); show('#title', false); }
-  if (QS.has('oiran') && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { G.oiran = true; if (!(G.me instanceof Chara)) rebuildMe('👑 花魁'); G.me.gm = true; G.me.setLook(G.look); G.me.setName('👑 花魁'); }
+  if (QS.has('oiran') && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { G.oiran = true; G.me.gm = true; G.me.setLook(G.look); G.me.setName('👑 花魁'); }
   if (QS.has('auto')) { $('#nameIn').value = QS.get('auto') || '測試'; start(); }
   if (QS.has('chat')) setTimeout(() => { openChat(); onChat(G.myId, '你好！一起去吃糰子吧'); }, 1500);
   if (QS.has('demo')) setTimeout(() => {

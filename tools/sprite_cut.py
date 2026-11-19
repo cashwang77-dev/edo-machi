@@ -35,14 +35,14 @@ for an, dirs in plan['anims'].items():
     for d, lst in dirs.items():
         for (k, r, c) in lst:
             x0, y0, x1, y1 = BOX[k][r][c]
-            rgba = remove_bg(IMGS[k].crop((x0 - 4, y0 - 4, x1 + 4, y1 + 4)), minfrac=.02, hole=80)
+            rgba = remove_bg(IMGS[k].crop((x0 - 4, y0 - 4, x1 + 4, y1 + 4)), minfrac=.02, hole=plan.get('hole', 80))
             # 去背後白邊收 1 像素
             A = np.asarray(rgba).copy(); al = A[..., 3]; from scipy.ndimage import binary_erosion
             al = np.where(binary_erosion(al > 128, iterations=1), al, 0).astype(np.uint8); A[..., 3] = al; rgba = Image.fromarray(A, 'RGBA')
             # Gemini 偶爾在腳下畫一條地平線：刪掉「橫跨 70% 以上寬度」的細橫列（只看下方 15%）
             al = A[..., 3]; hh = al.shape[0]
             for y in range(int(hh * .85), hh):
-                if (al[y] > 128).mean() > .93: A[max(0, y - 1):y + 2, :, 3] = 0
+                if (an == 'act' or not plan.get('noline')) and (al[y] > 128).mean() > .93: A[max(0, y - 1):y + 2, :, 3] = 0
             # 刪掉和人物分開的小碎塊（長椅線、雜點）
             from scipy.ndimage import label
             lb, nlb = label(A[..., 3] > 100)
@@ -77,6 +77,7 @@ if True:
         obi = red & (yy > head_line)
         kimono = kimono & (yy > (top + rs.height * .34) / FH)   # 頭部（剃過的頭頂、灰色眼睛）不算和服
         M = np.zeros((FH, FW, 3), np.uint8); M[..., 0] = kimono * 255; M[..., 1] = obi * 255
+        if plan.get('nomask'): M[:] = 0   # 固定造型（花魁）：不換色
         frames.setdefault(an, {}).setdefault(d, []).append({'i': len(out), 'top': int(top)})
         out.append(fr); outm.append(Image.fromarray(M))
 n = len(out); cols = 8; rws = (n + cols - 1) // cols

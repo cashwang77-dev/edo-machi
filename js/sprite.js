@@ -1,16 +1,16 @@
 // 2D 手繪立繪人物（RO 式紙娃娃）：一個面向鏡頭的平面＋換色著色器；每人 1 次繪製
 // SChara 與 3D 的 Chara 介面相同（root、setLook、play、update、say、emoji、setName、lod、setRide、updRide、headG、foodG、accG、waistG），遊戲端直接替換
 import * as THREE from 'three';
-import { Chara, KIMONO, OBI } from './chara.js?v=202611190920';
-import * as TX from './tex.js?v=202611190920';
-import { ACC } from './shops.js?v=202611190920';
+import { Chara, KIMONO, OBI } from './chara.js?v=202611190956';
+import * as TX from './tex.js?v=202611190956';
+import { ACC } from './shops.js?v=202611190956';
 
 const ATLAS = {}; // 原型名 → { tex, mask, meta }
-export const ARCH_LIST = ['f1', 'f2', 'f3', 'f4', 'm1', 'm2', 'm3', 'm4', 'f5', 'f6', 'f7', 'f8', 'f9', 'm5']; // 新的只能接在後面（玩家存的是編號）
-export const ARCH_NAME = { f1: '島田髷', f2: 'おかっぱ', f3: 'ポニー', f4: '垂髪', m1: '丁髷', m2: '総髪', m3: '坊主', m4: '散切り', f5: '唐輪', f6: '勝山髷', f7: '兵庫髷', f8: 'お団子', f9: '二つ結び', m5: '銀杏髷' };
+export const ARCH_LIST = ['f1', 'f2', 'f3', 'f4', 'm1', 'm2', 'm3', 'm4', 'f5', 'f6', 'f7', 'f8', 'f9', 'm5', 'oi']; // 新的只能接在後面（玩家存的是編號）
+export const ARCH_NAME = { f1: '島田髷', f2: 'おかっぱ', f3: 'ポニー', f4: '垂髪', m1: '丁髷', m2: '総髪', m3: '坊主', m4: '散切り', f5: '唐輪', f6: '勝山髷', f7: '兵庫髷', f8: 'お団子', f9: '二つ結び', m5: '銀杏髷', oi: '花魁' };
 // 舊的 14 種髮型 → 立繪原型
 const HAIR2ARCH = ['m1', 'f1', 'm2', 'm3', 'f5', 'f2', 'f3', 'f4', 'm5', 'f6', 'f7', 'f8', 'm4', 'f9'];
-export const AR2H = [1, 5, 6, 7, 0, 2, 3, 12, 4, 9, 10, 11, 13, 8]; // 原型 → 代表的舊髮型編號（3D 備用）
+export const AR2H = [1, 5, 6, 7, 0, 2, 3, 12, 4, 9, 10, 11, 13, 8, 10]; // 原型 → 代表的舊髮型編號（3D 備用）
 // 選了原型（ai）且髮型沒被髮結床改過（aiH＝h）就用原型；否則依髮型對應
 export const archOf = lk => (lk && lk.ai != null && lk.aiH === lk.h && ARCH_LIST[lk.ai]) || HAIR2ARCH[((lk && lk.h) || 0) % HAIR2ARCH.length];
 
@@ -39,7 +39,7 @@ const ACT = { 6: 'bow', 7: 'wave', 9: 'laugh', 10: 'cheer', 11: 'cheer', 13: 'wa
 const SIT = new Set([3, 5, 8, 12]);
 const GEO = {}; const geoFor = (fw, fh) => GEO[fw + 'x' + fh] || (GEO[fw + 'x' + fh] = (() => { const g = new THREE.PlaneGeometry(H * fw / fh, H); g.translate(0, H / 2 - H * 6 / fh, 0); return g; })());
 const BLOB_G = new THREE.CircleGeometry(.3, 16), BLOB_M = new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: .28, depthWrite: false });
-const _v = new THREE.Vector3(), _p = new THREE.Vector3(), _q = new THREE.Quaternion();
+const _v = new THREE.Vector3(), _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _c = new THREE.Vector3();
 
 export class SChara {
   constructor(look, name = '') {
@@ -78,7 +78,8 @@ export class SChara {
   }
   setLook(lk) {
     lk = Object.assign({ k: 0, p: 0, o: 0, h: 0 }, lk || {}); this.look = lk;
-    const A = ATLAS[archOf(lk)] || ATLAS.f1; if (A) this._mesh(A);
+    const A = (this.gm && ATLAS.oi) || ATLAS[archOf(lk)] || ATLAS.f1; if (A) this._mesh(A);
+    if (this.mesh) this.mesh.scale.setScalar(A === ATLAS.oi ? 1.4 : 1); this._aura(A === ATLAS.oi);
     const kc = (KIMONO[lk.k % KIMONO.length] || KIMONO[0])[1];
     this.u.uKim.value.set(lk.kc || kc); this.u.uObi.value.set(lk.oc || OBI[lk.o % OBI.length]);
     if (lk.p) { this.u.uPat.value = TX.pattern(lk.p, kc, lk.k === 9 ? '#5a5a66' : '#f4efe2'); this.u.uPatOn.value = 1; } else { this.u.uPat.value = null; this.u.uPatOn.value = 0; }
@@ -98,6 +99,18 @@ export class SChara {
     if (lk.hat === 1) icon('👒', this.accG, 0, .2, .5); if (lk.hat === 4 || lk.m === 1) icon('🦊', this.accG, .14, .02); if (lk.hat === 2) icon('🌸', this.accG, .12, .14, .22); if (lk.hat === 3) icon('🎗️', this.accG, -.1, .14, .22);
     if (lk.w === 1) icon('🧧', this.waistG, .16, 0, .2); if (lk.w === 2) icon('👛', this.waistG, -.16, 0, .2);
   }
+  // 花魁：背後金色光暈＋緩緩飄升的金色光點
+  _aura(on) {
+    if (!on) { if (this.aura) { this.root.remove(this.aura); this.aura = null; } return; }
+    if (this.aura) return;
+    const g = new THREE.Group(); this.aura = g; this.root.add(g);
+    const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); const gr = x.createRadialGradient(64, 64, 4, 64, 64, 64); gr.addColorStop(0, 'rgba(255,226,140,.9)'); gr.addColorStop(.45, 'rgba(255,190,90,.35)'); gr.addColorStop(1, 'rgba(255,170,60,0)'); x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    const halo = new THREE.Mesh(new THREE.CircleGeometry(1.15, 32), new THREE.MeshBasicMaterial({ map: t, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: .7, fog: false, toneMapped: false })); halo.rotation.x = -Math.PI / 2; halo.position.y = .03; g.add(halo); this.halo = halo; // 腳下金色光環
+    const N = 18, pos = new Float32Array(N * 3); this.spk = Array.from({ length: N }, (_, i) => ({ a: Math.random() * 6.28, r: .45 + Math.random() * .5, y: Math.random() * 2.2, v: .25 + Math.random() * .35 }));
+    const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(pg, new THREE.PointsMaterial({ map: t, size: .14, color: '#ffe08a', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false, toneMapped: false })); g.add(pts); this.spkP = pts;
+  }
   play(a) { if (this.anim !== a) { this.anim = a; this.t = 0; } }
   expr() {}
   lod(d) { const far = d > 70; if (this.mesh) this.mesh.visible = !far; this.blob.visible = !far; }
@@ -105,11 +118,13 @@ export class SChara {
     this.t += dt;
     if (this.bub) { this.bubT -= dt; if (this.bubT < 0) { this.root.remove(this.bub); this.bub.material.map.dispose(); this.bub = null; } }
     if (this.emo) { this.emoT += dt; const f = this.emoT / 2.6; this.emo.position.set(.6, 1.9 + f * .6, 0); this.emo.material.opacity = f < .15 ? f / .15 : 1 - Math.max(0, (f - .7) / .3); const sc = .75 + Math.sin(Math.min(f * 8, Math.PI)) * .25; this.emo.scale.set(sc, sc, 1); if (f >= 1) { this.root.remove(this.emo); this.emo = null; } }
+    if (this.aura) { this.halo.material.opacity = .55 + Math.sin(this.t * 1.8) * .15; const P = this.spkP.geometry.attributes.position;
+      this.spk.forEach((s, i) => { s.y += s.v * dt; s.a += dt * .6; if (s.y > 2.4) s.y = 0; P.setXYZ(i, Math.cos(s.a) * s.r, s.y, Math.sin(s.a) * s.r); }); P.needsUpdate = true; this.spkP.material.opacity = .6 + Math.sin(this.t * 3) * .3; }
     if (!this.mesh || !CAM || !this.mesh.visible) return;
     // 世界中的位置與朝向（人物可能掛在人力車底下）
     this.root.getWorldPosition(_p); this.root.getWorldQuaternion(_q); _v.set(0, 0, 1).applyQuaternion(_q);
     const ry = Math.atan2(_v.x, _v.z), dx = _p.x - CAM.position.x, dz = _p.z - CAM.position.z, dl = Math.hypot(dx, dz) || 1, d0 = dx / dl, d1 = dz / dl;
-    this.mesh.rotation.y = Math.atan2(-d0, -d1) - ry; // 平面面向鏡頭
+    CAM.getWorldDirection(_c); this.mesh.rotation.y = Math.atan2(-_c.x, -_c.z) - ry; // 所有立繪都與鏡頭平面平行（彼此不會交叉切開）
     const f0 = Math.sin(ry), f1 = Math.cos(ry), th = Math.atan2(f0 * -d1 + f1 * d0, -(f0 * d0 + f1 * d1));
     let k = Math.round(th / (Math.PI / 4)); const flip = k < 0 && k > -4; k = Math.min(4, Math.abs(k));
     const F = this.A.meta.frames, a = this.anim, actN = ACT[a], act = actN && F.act && F.act[actN];
@@ -126,4 +141,8 @@ export class SChara {
   }
 }
 // 名牌、說話泡泡、表情符號、人力車：直接沿用 3D 人物的做法
-for (const k of ['setName', 'say', 'emoji', 'setRide', 'updRide']) SChara.prototype[k] = Chara.prototype[k];
+for (const k of ['setRide', 'updRide']) SChara.prototype[k] = Chara.prototype[k];
+// 花魁比較高：名牌、說話泡泡往上移
+SChara.prototype.setName = function (n, npc) { Chara.prototype.setName.call(this, n, npc); if (this.tag && this.A === ATLAS.oi) this.tag.position.y = 2.75; };
+SChara.prototype.say = function (t, dur) { Chara.prototype.say.call(this, t, dur); if (this.bub && this.A === ATLAS.oi) this.bub.position.y = 3.25; };
+SChara.prototype.emoji = function (e) { Chara.prototype.emoji.call(this, e); };
