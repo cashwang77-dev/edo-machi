@@ -1,6 +1,6 @@
 // 町人帳：個人進度（等級／稱號、每日簽到、町人委託、圖鑑、存檔備份）
 // 存在瀏覽器 localStorage（edo_save_<暱稱>），另可匯出／匯入備份碼
-import { SHOPS, ACC } from './shops.js?v=202611231843';
+import { SHOPS, ACC } from './shops.js?v=202611231912';
 
 let A = null; // game.js 傳進來的介面
 let S = null; // 目前存檔
@@ -37,12 +37,15 @@ const QPOOL = [
   { id: 'fish', ev: 'fish', n: [2, 3], t: n => `在隅田川棧橋釣到 ${n} 條魚`, rew: [45, 30] },
   { id: 'sell', ev: 'sell', n: [1], t: () => `到魚河岸賣一次魚`, rew: [30, 20] },
   { id: 'job', ev: 'job', n: [1, 2], t: n => `打工 ${n} 次（魚河岸搬貨等）`, rew: [40, 25] },
+  { id: 'mat', ev: 'mat', n: [2, 3], t: n => `到新開地的建材店買 ${n} 件建材`, rew: [30, 20], cond: S => S.home && S.home.stage < 6 },
+  { id: 'build', ev: 'build', n: [1], t: () => `完成一道蓋房子的工序`, rew: [60, 35], cond: S => S.home && S.home.stage < 6 },
+  { id: 'deco', ev: 'furn', n: [1], t: () => `到萬屋買一件家具`, rew: [40, 25], cond: S => S.home && S.home.stage >= 6 },
   { id: 'order', ev: 'get', n: [1], pick: 'shop', t: (n, x, nm) => `到「${nm}」點一份餐`, rew: [35, 20] },
 ];
 const QEXTRA = []; export function addQuest(q) { QEXTRA.push(q); }
 function rng(seed) { let h = 2166136261; for (const c of seed) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function makeQuests() {
-  const r = rng(today() + '|' + A.G.name), pool = [...QPOOL, ...QEXTRA].filter(q => !(q.pick === 'spot' && !DEX_SPOT.length) && (!q.minLv || S.lv >= q.minLv)), out = [];
+  const r = rng(today() + '|' + A.G.name), pool = [...QPOOL, ...QEXTRA].filter(q => !(q.pick === 'spot' && !DEX_SPOT.length) && (!q.minLv || S.lv >= q.minLv) && (!q.cond || q.cond(S))), out = [];
   while (out.length < 3 && pool.length) {
     const q = pool.splice(Math.floor(r() * pool.length), 1)[0]; const n = q.n[Math.floor(r() * q.n.length)];
     let x = '', nm = '';
@@ -79,13 +82,13 @@ export function addXp(n, why) {
 
 // ---- 事件 ----
 // cook{item,q,shop} eat{id} get{item,shop} buy{} spot{k} play{k} deer pray ride acc{id} fish{k} crop{k} gather{k}
-const XP = { sell: 4, job: 10, cook: 10, eat: 5, get: 3, buy: 6, spot: 4, play: 8, deer: 3, pray: 5, ride: 6, fish: 8, crop: 10, gather: 6, night: 6, home: 2 };
+const XP = { build: 5, mat: 1, furn: 3, deco: 2, sell: 4, job: 10, cook: 10, eat: 5, get: 3, buy: 6, spot: 4, play: 8, deer: 3, pray: 5, ride: 6, fish: 8, crop: 10, gather: 6, night: 6, home: 2 };
 export function ev(type, d = {}) {
   if (!S) return;
   S.stats[type] = (S.stats[type] || 0) + 1;
   let xp = XP[type] || 0; if (type === 'cook' && d.q >= 85) xp += 6; else if (type === 'cook' && d.q >= 60) xp += 3;
   // 圖鑑
-  const dexKey = { get: 'dish', eat: 'dish', spot: 'spot', acc: 'acc', fish: 'fish', crop: 'crop', gather: 'gather', dish: 'dish' }[type];
+  const dexKey = d.dex || { get: 'dish', eat: 'dish', spot: 'spot', acc: 'acc', fish: 'fish', crop: 'crop', gather: 'gather', dish: 'dish' }[type];
   let k = d.k; if (type === 'get' && d.item && d.item.dish) k = d.shop + ':' + d.item.id; if (type === 'eat') k = d.id; if (type === 'acc') k = d.id;
   if (dexKey && DEX[dexKey]) S.dex[dexKey] = S.dex[dexKey] || {};
   if (dexKey && k && S.dex[dexKey] && !S.dex[dexKey][k] && DEX[dexKey][1]().some(e => e.k === k)) {
@@ -173,7 +176,7 @@ export function open(t) {
     const t = titleOf(S.lv);
     h += `<div class="psec"><h4>Lv.${S.lv}「${t[1]}」</h4><p class="sub">${t[2]}</p><div class="xpbar"><i style="width:${Math.round(S.xp / need(S.lv) * 100)}%"></i><span>${S.xp} / ${need(S.lv)} 經驗</span></div></div>
       <div class="psec"><h4>稱號</h4><div class="titles">${TITLES.map(x => `<span class="${S.lv >= x[0] ? 'got' : ''}"><b>${x[1]}</b><small>Lv.${x[0]}</small></span>`).join('')}</div></div>
-      <div class="psec"><h4>紀錄</h4><div class="stats">${[['cook', '做菜'], ['eat', '吃東西'], ['job', '打工'], ['sell', '賣魚'], ['buy', '買衣飾'], ['play', '玩攤位'], ['pray', '參拜'], ['ride', '搭人力車'], ['deer', '摸小鹿'], ['fish', '釣魚'], ['crop', '收成'], ['gather', '採集']].filter(([k]) => S.stats[k] || ['cook', 'eat'].includes(k)).map(([k, n]) => `<span>${n}<b>${S.stats[k] || 0}</b></span>`).join('')}</div></div>
+      <div class="psec"><h4>紀錄</h4><div class="stats">${[['cook', '做菜'], ['eat', '吃東西'], ['job', '打工'], ['sell', '賣魚'], ['build', '施工'], ['furn', '買家具'], ['buy', '買衣飾'], ['play', '玩攤位'], ['pray', '參拜'], ['ride', '搭人力車'], ['deer', '摸小鹿'], ['fish', '釣魚'], ['crop', '收成'], ['gather', '採集']].filter(([k]) => S.stats[k] || ['cook', 'eat'].includes(k)).map(([k, n]) => `<span>${n}<b>${S.stats[k] || 0}</b></span>`).join('')}</div></div>
       <p class="sub">做任何事都有經驗：做菜、吃東西、逛名所、完成委託…升級會發獎勵金。</p>`;
   } else if (tab === 'save') {
     h += `<div class="psec"><h4>💾 存檔</h4><p class="sub">進度自動存在這台裝置的瀏覽器（以暱稱「${esc(A.G.name)}」區分）。<b>清除瀏覽器資料、換手機或換瀏覽器</b>會讀不到，請先複製備份碼存起來（例如傳給自己的 LINE）。</p>

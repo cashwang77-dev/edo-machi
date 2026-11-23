@@ -191,6 +191,8 @@ body.touch #seatBar{bottom:auto;top:calc(58px + var(--st,0px))}
 @keyframes pop{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}30%{opacity:1;transform:translate(-50%,0) scale(1.15)}100%{opacity:0;transform:translate(-50%,-14px)}}
 /* 彈窗 */
 .mlist{margin:8px 0}.mrow{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px dashed #d8c9a8}.mrow small{color:#7a6a55}.mrow button{padding:3px 8px}
+.steps{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}.steps span{font-size:12px;padding:3px 7px;border-radius:6px;border:1px dashed #b9a582;color:#8a7658}.steps span.got{background:#5a7a4a;color:#fff;border-style:solid}.steps span.now{border-color:#c8322a;color:#c8322a;border-style:solid;font-weight:700}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0 10px}.slots label{font-size:12.5px;display:flex;flex-direction:column;gap:2px}.slots select{padding:4px}
 #prog .card{max-width:min(520px,calc(100vw - 24px));border-top:5px solid var(--red)}
 #prog h3 small{font-size:13px;color:#7a6a55;margin-left:6px}
 .ptabs{display:flex;gap:6px;margin:6px 0 10px}.ptabs button{flex:1;padding:6px 0}.ptabs button.on{background:var(--red);color:#fff;border-color:var(--red)}
@@ -376,6 +378,6 @@ body.touch #held{left:calc(12px + var(--sl));bottom:auto;top:calc(100px + var(--
 </div></div>
 <div id="toast"></div>
 <script>addEventListener("error",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+e.message+" @"+(e.filename||"").split("/").pop()+":"+e.lineno});addEventListener("unhandledrejection",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+(e.reason&&e.reason.stack||e.reason)})</script>
-<script type="module" src="js/game.js?v=202611231843"></script>
+<script type="module" src="js/game.js?v=202611231912"></script>
 </body>
 </html>

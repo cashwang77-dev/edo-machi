@@ -1,12 +1,13 @@
 // 江戶町 3D 世界
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import * as TX from './tex.js?v=202611231843';
-import { SHOPS, STREET } from './shops.js?v=202611231843';
-import { buildTemple } from './temple.js?v=202611231843';
-import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611231843';
-import { buildMeisho2, walkSouth } from './meisho2.js?v=202611231843';
-import { buildKashi, walkKashi } from './kashi.js?v=202611231843';
+import * as TX from './tex.js?v=202611231912';
+import { SHOPS, STREET } from './shops.js?v=202611231912';
+import { buildTemple } from './temple.js?v=202611231912';
+import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611231912';
+import { buildMeisho2, walkSouth } from './meisho2.js?v=202611231912';
+import { buildKashi, walkKashi } from './kashi.js?v=202611231912';
+import { buildHomeArea, walkHome } from './home.js?v=202611231912';
 
 const PI = Math.PI;
 export const ARCH = x => (x > 110 && x < 140) ? 1.7 * Math.sin(PI * (x - 110) / 30) : 0;
@@ -629,7 +630,7 @@ export function buildWorld(scene) {
     for (let gx = -260; gx < 260 && k < n; gx += 11) for (let gz = -170; gz < 170 && k < n; gz += 10) {
       if (Math.abs(gz) < 19) continue; if (gx > 102 && gx < 148) continue; if (gx < -96 && gx > -152 && Math.abs(gz) < 30) continue;
       if (gx > 140 && gx < 190 && Math.abs(gz) < 34) continue; if (gx > 132 && gx < 228 && gz > 28 && gz < 120) continue; if (gx > -142 && gx < -108 && gz < -20 && gz > -90) continue; // 名所區
-      if (gx > 132 && gx < 224 && gz < -30 && gz > -114) continue; if (Math.abs(gx - 8) < 6 && Math.abs(gz + 26) < 6) continue; if (gx > 74 && gx < 104 && gz < -28 && gz > -146) continue; // 隅田川河岸
+      if (gx > 132 && gx < 224 && gz < -30 && gz > -114) continue; if (Math.abs(gx - 8) < 6 && Math.abs(gz + 26) < 6) continue; if (gx > 74 && gx < 104 && gz < -28 && gz > -146) continue; if (gx > 10 && gx < 104 && gz < -50 && gz > -146) continue; // 隅田川河岸・新開地
       if (gx > -212 && gx < -94 && gz > 22 && gz < 148) continue; if (gx > -296 && gx < -206 && gz > 46 && gz < 138) continue; // 名所南區・江戶城
       if (rand() < .1) continue;
       const w = 6 + rand() * 4, d = 6 + rand() * 3, h = 2.8 + (rand() < .4 ? 2.4 : 0);
@@ -642,7 +643,7 @@ export function buildWorld(scene) {
       for (let i = 0; i < k; i++) { walls.setColorAt(i, col.set(wc[Math.floor(r2() * wc.length)])); roofs.setColorAt(i, col.set(rc[Math.floor(r2() * rc.length)])); } walls.material.color.set('#ffffff'); roofs.material.color.set('#ffffff'); }
     walls.count = roofs.count = k; walls.castShadow = roofs.castShadow = true; walls.receiveShadow = roofs.receiveShadow = true;
     scene.add(walls, roofs);
-    for (let i = 0; i < 70; i++) { const x = -250 + rand() * 500, z = (rand() < .5 ? -1 : 1) * (25 + rand() * 140); if (x > 100 && x < 150) continue; if (x > 74 && x < 112 && z < -28 && z > -146) continue; if (x > -300 && x < -94 && z > 22 && z < 148) continue; (rand() < .5 ? pine : sakura)(B, x, z, 1 + rand() * .6, rand); }
+    for (let i = 0; i < 70; i++) { const x = -250 + rand() * 500, z = (rand() < .5 ? -1 : 1) * (25 + rand() * 140); if (x > 100 && x < 150) continue; if (x > 74 && x < 112 && z < -28 && z > -146) continue; if (x > 12 && x < 90 && z < -50 && z > -144) continue; if (x > -300 && x < -94 && z > 22 && z < 148) continue; (rand() < .5 ? pine : sakura)(B, x, z, 1 + rand() * .6, rand); }
   }
 
   // 遠景：富士山、江戶城、群山
@@ -669,6 +670,7 @@ export function buildWorld(scene) {
   buildMeisho({ M, boxG, C, std, glow, toro, pine, B, W, col, box, rand, TX, lanternMat, LANTERN_G, scene });
   buildMeisho2({ M, boxG, std, toro, pine, sakura, B, W, col, box, rand, TX, scene });
   buildKashi({ M, boxG, std, willow, toro, B, W, col, TX, scene });
+  buildHomeArea({ M, boxG, std, B, W, col, TX, scene });
   wblk(157, 199, 0, 27, -104.5, -77.6); wblk(167.4, 175.3, 0, 21, -50.6, -43.4); wblk(180.7, 188.6, 0, 21, -50.6, -43.4); wblk(165, 191, 9.6, 21, -54, -40);
   wblk(198, 208, 6.4, 10.5, -71, -61); wblk(-142.5, -129.6, 0, 9, -7, 7); wblk(154.6, 159.2, 1.8, 3.3, 7.6, 11.6);
   wblk(168, 175.5, 0, 7, -16.5, -7.5);
@@ -752,6 +754,7 @@ export function walkable(x, z) {
   if (x >= -126.1 && x <= -123.9 && z <= -23 && z >= -76) return true; // 千本鳥居
   if (walkSouth(x, z)) return true; // 名所南區・江戶城
   if (walkKashi(x, z)) return true; // 隅田川河岸
+  if (walkHome(x, z)) return true; // 新開地（建地）
   if (x >= 140 && x <= 216 && z >= 38 && z <= 112) { const P = KINKAKU_POND; return ((x - P.x) / (P.rx + 1)) ** 2 + ((z - P.z) / (P.rz + 1)) ** 2 > 1; } // 金閣寺庭園（池子不能走）
   return false;
 }
