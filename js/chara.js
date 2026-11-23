@@ -1,6 +1,6 @@
 // 江戶人物（程式建模 v2）：有膝蓋的雙腿、上身＋下襬、細緻臉部、和服袖、足袋木屐、髮型、配件、花魁
 import * as THREE from 'three';
-import * as TX from './tex.js?v=202611240018';
+import * as TX from './tex.js?v=202611240236';
 import { mergeGeometries } from '../vendor/addons/utils/BufferGeometryUtils.js';
 
 export const KIMONO = [
