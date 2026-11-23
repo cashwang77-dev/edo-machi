@@ -190,6 +190,20 @@ body.touch #seatBar{bottom:auto;top:calc(58px + var(--st,0px))}
 #mgFlash.pop{animation:pop .7s}
 @keyframes pop{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}30%{opacity:1;transform:translate(-50%,0) scale(1.15)}100%{opacity:0;transform:translate(-50%,-14px)}}
 /* 彈窗 */
+#prog .card{max-width:min(520px,calc(100vw - 24px));border-top:5px solid var(--red)}
+#prog h3 small{font-size:13px;color:#7a6a55;margin-left:6px}
+.ptabs{display:flex;gap:6px;margin:6px 0 10px}.ptabs button{flex:1;padding:6px 0}.ptabs button.on{background:var(--red);color:#fff;border-color:var(--red)}
+.psec{margin:10px 0 14px}.psec h4{margin:0 0 6px;font-size:15px}.psec h4 small{font-weight:400;color:#7a6a55;font-size:12px;margin-left:6px}
+.stamps{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px}.stamps span{text-align:center;border:1.5px dashed #b9a582;border-radius:8px;padding:4px 0;font-weight:700;color:#8a7658}
+.stamps span.got{background:#c8322a;color:#fff;border-style:solid;border-color:#c8322a}.stamps span.now{border-color:#c8322a;color:#c8322a;border-style:solid}.stamps small{font-weight:400;font-size:11px}
+.quest{display:flex;align-items:center;gap:8px;justify-content:space-between;border:1px solid #d8c9a8;border-radius:8px;padding:7px 9px;margin:5px 0;background:rgba(255,255,255,.35)}
+.quest small{display:block;color:#7a6a55;font-size:11.5px;margin-top:2px}.quest.done{border-color:#c8322a;background:#fff3e8}.quest.got{opacity:.55}.quest span{white-space:nowrap;font-weight:700}
+.dex{display:flex;flex-wrap:wrap;gap:4px}.dex span{font-size:12.5px;padding:3px 7px;border-radius:6px;background:#efe3c8;border:1px solid #d8c9a8}.dex span.no{color:#b5a68a;background:transparent;border-style:dashed}
+.xpbar{position:relative;height:18px;border-radius:9px;background:#e6d8b8;overflow:hidden;margin-top:6px}.xpbar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#e0a046,#c8322a)}.xpbar span{position:relative;display:block;text-align:center;font-size:12px;line-height:18px;font-weight:700}
+.titles{display:flex;flex-wrap:wrap;gap:5px}.titles span{border:1px solid #d8c9a8;border-radius:6px;padding:3px 8px;color:#b5a68a}.titles span.got{color:var(--ink);background:#efe3c8}.titles small{margin-left:4px;font-size:11px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.stats span{text-align:center;font-size:12px;border:1px solid #d8c9a8;border-radius:6px;padding:4px 0}.stats b{display:block;font-size:16px}
+.lvchip{position:relative;overflow:hidden;cursor:pointer}.lvchip i{position:absolute;left:0;bottom:0;height:3px;background:#e0a046}.lvchip .dot{position:absolute;right:3px;top:3px;width:8px;height:8px;border-radius:50%;background:#e33}
+.coin.xp{color:#ffe08a;margin-top:26px}
 .modal{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:rgba(10,6,4,.45);padding:16px}
 .pgc{text-align:center;max-width:420px!important}
 #pgc{width:100%;max-width:360px;border-radius:10px;border:2px solid var(--ink);touch-action:none;cursor:crosshair}
@@ -298,14 +312,14 @@ body.touch #held{left:calc(12px + var(--sl));bottom:auto;top:calc(100px + var(--
   </div>
 </div>
 <div id="hud" class="hide">
-  <div id="topbar"><span class="chip" id="clock"></span><span class="chip">💰 <b id="mon">0</b> 文</span><span class="chip" id="online"></span><button class="chip kchip" id="bKofi" data-donate>☕<span class="lb2"> 支持作者</span><span class="lb3"> 支持</span></button></div>
+  <div id="topbar"><span class="chip" id="clock"></span><span class="chip">💰 <b id="mon">0</b> 文</span><span class="chip" id="online"></span><button class="chip lvchip" id="lvchip">📜</button><button class="chip kchip" id="bKofi" data-donate>☕<span class="lb2"> 支持作者</span><span class="lb3"> 支持</span></button></div>
   <canvas id="mini" width="240" height="120"></canvas>
   <div id="log"></div>
   <button id="act" class="hide"></button>
   <div id="held" class="hide"></div>
   <div id="banner" class="hide"></div>
   <div id="chatBox" class="hide"><div id="phr"></div><input id="chatIn" maxlength="80" placeholder="說點什麼…（Enter 送出）" autocomplete="off"><button id="chatSend">送出</button></div>
-  <div id="tools"><button id="bChat" title="聊天">💬<span class="lb"> 聊天</span></button><button id="bAct" title="動作">🎭<span class="lb"> 動作</span></button><button id="bEmo" title="表情">😊<span class="lb"> 表情</span></button><button id="bInv" title="持ち物">🎒<span class="lb"> 持ち物</span></button><button id="bRide" title="人力車">🛺<span class="lb"> 人力車</span></button><button id="bView" title="看風景">🌅<span class="lb"> 看風景</span></button><button id="bGM" class="hide" title="GM">👑</button><button id="bFS" title="全螢幕">⛶</button><button id="bHelp" title="說明">❔</button><button id="bSet" title="設定">⚙</button></div>
+  <div id="tools"><button id="bChat" title="聊天">💬<span class="lb"> 聊天</span></button><button id="bAct" title="動作">🎭<span class="lb"> 動作</span></button><button id="bEmo" title="表情">😊<span class="lb"> 表情</span></button><button id="bProg" title="町人帳">📜<span class="lb"> 町人帳</span></button><button id="bInv" title="持ち物">🎒<span class="lb"> 持ち物</span></button><button id="bRide" title="人力車">🛺<span class="lb"> 人力車</span></button><button id="bView" title="看風景">🌅<span class="lb"> 看風景</span></button><button id="bGM" class="hide" title="GM">👑</button><button id="bFS" title="全螢幕">⛶</button><button id="bHelp" title="說明">❔</button><button id="bSet" title="設定">⚙</button></div>
   <div id="actMenu" class="pop hide"></div><div id="emoMenu" class="pop hide"></div>
   <div id="joy"><div id="joyK"></div></div>
   <div id="owner" class="hide"></div>
@@ -316,6 +330,7 @@ body.touch #held{left:calc(12px + var(--sl));bottom:auto;top:calc(100px + var(--
 <div id="pcard" class="card hide"></div>
 <div id="gmPanel" class="modal hide"><div class="card"></div></div>
 <div id="mg" class="card hide"><div id="mgFlash"></div><div id="mgItem"></div><div id="mgStep"></div><div class="mgbar"><div id="mgFill"></div><div id="mgZone"></div><div id="mgNeedle"></div></div><div id="mgHint"></div><button id="mgBtn">！</button></div>
+<div id="prog" class="modal hide"><div class="card"></div></div>
 <div id="help" class="modal hide"><div class="card">
   <button class="close" data-close>✕</button>
   <h3>江戸町 御触書（遊戲說明）</h3>
@@ -360,6 +375,6 @@ body.touch #held{left:calc(12px + var(--sl));bottom:auto;top:calc(100px + var(--
 </div></div>
 <div id="toast"></div>
 <script>addEventListener("error",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+e.message+" @"+(e.filename||"").split("/").pop()+":"+e.lineno});addEventListener("unhandledrejection",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+(e.reason&&e.reason.stack||e.reason)})</script>
-<script type="module" src="js/game.js?v=202611231115"></script>
+<script type="module" src="js/game.js?v=202611231715"></script>
 </body>
 </html>

@@ -5,16 +5,17 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611231115';
-import { RIDE_Y } from './chara.js?v=202611231115';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611231115';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611231115';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611231115';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611231115';
-import { Net } from './net.js?v=202611231115';
-import { cleanText } from './filter.js?v=202611231115';
-import { SND } from './audio.js?v=202611231115';
-import * as TX from './tex.js?v=202611231115';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611231715';
+import { RIDE_Y } from './chara.js?v=202611231715';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611231715';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611231715';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611231715';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611231715';
+import { Net } from './net.js?v=202611231715';
+import { cleanText } from './filter.js?v=202611231715';
+import { SND } from './audio.js?v=202611231715';
+import * as TX from './tex.js?v=202611231715';
+import * as P from './prog.js?v=202611231715';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -324,11 +325,11 @@ function act() {
   else if (near.type === 'kane') ringKane();
   else if (near.type === 'deer') petDeer(near.deer);
   else if (near.type === 'donate') { show('#donate'); G.me.emoji('🙇'); }
-  else if (near.type === 'meisho') { const sp = near.spot; G.me.say(sp.say || '好壯觀！', 3); G.me.emoji('📸'); toast(sp.info, 6500); sfx(660, .2); closeup(5, { dist: 3.6, h: 1.7, ang: 2.6, look: 1.6, spin: .25 }); }
+  else if (near.type === 'meisho') { const sp = near.spot; P.ev('spot', { k: P.spotKey(sp.label) }); G.me.say(sp.say || '好壯觀！', 3); G.me.emoji('📸'); toast(sp.info, 6500); sfx(660, .2); closeup(5, { dist: 3.6, h: 1.7, ang: 2.6, look: 1.6, spin: .25 }); }
   else if (near.type === 'well') { G.me.say('井水好冰涼～'); emote(6); sfx(300, .3, 'sine', .05); }
   else if (near.type === 'pray') {
     if (!afford(1)) return toast('身上沒有錢可以投香油錢……');
-    addMoney(-1, '香油錢'); sfx(880, .6, 'sine', .06); setTimeout(() => sfx(1320, .8, 'sine', .04), 200);
+    addMoney(-1, '香油錢'); P.ev('pray'); sfx(880, .6, 'sine', .06); setTimeout(() => sfx(1320, .8, 'sine', .04), 200);
     G.ry = Math.atan2(-131 - G.pos.x, 0 - G.pos.z);
     wishPrompt('神社參拜', '二拜二拍手一拜，寫下你的心願吧', 6);
   }
@@ -361,7 +362,7 @@ function openShop(s) {
     <p class="sub">${({ kingyo: '用紙網撈金魚，紙網濕了會破！撈到的金魚會裝袋給你。', shateki: '用軟木塞槍打下架上的獎品，打中就送你！', wanage: '把竹圈套在獎品上，套中就送你！一回 5 個圈。', yoyo: '用紙繩鉤子釣水球，紙繩濕了會斷！', kuji: '從箱子裡抽一張籤，看看今天手氣如何！' })[d.play]}　一回 <b>${d.price}</b> 文</p>
     <div class="btns"><button id="bPlay" class="big alt">🎮 玩一回</button><button id="bX2">算了</button></div>`;
     show('#panel'); $('#bX2').onclick = closePanels;
-    $('#bPlay').onclick = () => { if (!afford(d.price)) return toast('錢不夠喔'); addMoney(-d.price); closePanels(); ({ kingyo: playKingyo, shateki: playShateki, wanage: playWanage, yoyo: playYoyo, kuji: playKuji })[d.play](s); };
+    $('#bPlay').onclick = () => { if (!afford(d.price)) return toast('錢不夠喔'); addMoney(-d.price); closePanels(); P.ev('play', { k: d.play }); ({ kingyo: playKingyo, shateki: playShateki, wanage: playWanage, yoyo: playYoyo, kuji: playKuji })[d.play](s); };
     return;
   }
   const p = $('#panel'); p.innerHTML = `<h2>${d.name}<small>${d.kind}</small></h2>
@@ -424,6 +425,7 @@ function cancelOrder(msg) {
 function grade(q) { return q >= 85 ? ['極上', '#c8322a'] : q >= 60 ? ['上', '#b07a1a'] : ['並', '#5a5a5a']; }
 function served(s, item, q, from) {
   G.order = null; const [gname] = grade(q);
+  P.ev(item.look ? 'buy' : 'get', { item, shop: s.def.id });
   const lines = ['好好吃！', '好吃！', '真是極品～', '這味道太棒了', '吃飽了，謝謝招待！'];
   if (item.dish) {
     setHeld(s.def.id + ':' + item.id);
@@ -535,7 +537,7 @@ function finishMG() {
   const q = MG.scores.reduce((a, b) => a + b, 0) / MG.scores.length; const o = MG.o; MG.on = false; show('#mg', false); if (G.cu) G.cu.t = Math.max(G.cu.t, G.cu.dur - .7);
   G.me.play(0); G.queue = G.queue.filter(x => x !== o);
   const [g] = grade(q); const bonus = Math.round(o.item.p * (q >= 85 ? .5 : q >= 60 ? .2 : 0));
-  addMoney(o.item.p + bonus, `${g}${bonus ? '（含獎金 ' + bonus + '）' : ''}`);
+  addMoney(o.item.p + bonus, `${g}${bonus ? '（含獎金 ' + bonus + '）' : ''}`); P.ev('cook', { item: o.item, q, shop: G.shop.def.id });
   toast(`完成「${o.item.n}」品質：${g}，送給 ${o.n}！`);
   if (o.npc) {
     const c = o.npc; if (o.item.dish) placeDish(o.item, c.seat.dish, c.seat.r, 6); c.ch.play(o.item.dish ? 5 : 3);
@@ -560,7 +562,7 @@ mgB.addEventListener('pointerleave', () => { if (MG.st && MG.st.g === 'hold' && 
 // ---------- 持ち物：買過的飾品可隨時穿戴 ----------
 const SLOTS = ['hat', 'hs', 'm', 'w', 'c', 'b'];
 function invGet() { return store.get('inv_' + (G.name || ''), []); }
-function invAdd(id) { const v = invGet(); if (!v.includes(id)) { v.push(id); store.set('inv_' + G.name, v); } }
+function invAdd(id) { const v = invGet(); if (!v.includes(id)) { v.push(id); store.set('inv_' + G.name, v); } P.ev('acc', { id }); }
 function invMigrate() { for (const a of ACC) if (G.look[a.slot] === a.v) invAdd(a.id); if (G.look.hat === 4) invAdd('kitsune'); if (G.look.hat === 2) invAdd('tamakan'); }
 function equip(a, on) {
   const lk = { ...G.look };
@@ -636,7 +638,7 @@ function eatHeld() {
   closeup(4.4, G.mode === 'seat' ? { dist: 1.6, h: 1.05, ang: .55, look: .95, keep: 1 } : G.mode === 'bath' ? { dist: 1.8, h: .5, ang: .5, look: .4, keep: 1 } : { dist: 1.7, h: 1.4, ang: .5, look: 1.2 });
 }
 function finishEat() {
-  const it = G.eatItem; setHeld(''); const lines = ['好好吃！', '好吃！', '真是極品～', '這味道太棒了', '吃飽了，謝謝招待！'];
+  const it = G.eatItem; if (it) P.ev('eat', { id: it }); setHeld(''); const lines = ['好好吃！', '好吃！', '真是極品～', '這味道太棒了', '吃飽了，謝謝招待！'];
   G.me.say(lines[Math.floor(Math.random() * lines.length)]); G.me.emoji('😋'); net.send({ t: 'emote', e: '😋' });
   if (G.shop && G.mode === 'seat') openMenu(G.shop);
 }
@@ -867,7 +869,7 @@ function updHail(dt, moveLen) {
 }
 function updLeave(dt) { const L = RIDE.leave; if (!L) return; L.t += dt; const c = L.cart, ry = c.root.rotation.y; c.root.position.x += Math.sin(ry) * 5 * dt; c.root.position.z += Math.cos(ry) * 5 * dt; Chara.prototype.updRide.call(c, dt, 5); if (L.t > 5) { dropCart(c); RIDE.leave = null; } }
 function startRide(q, paid, fee) {
-  const same = q.room === 'edo' + G.room;
+  const same = q.room === 'edo' + G.room; if (!q.gmFast) P.ev('ride');
   if (!paid) { fee = same ? fareOf(routeTo(G.pos, q).len) : RIDE.fare2; if (!afford(fee)) return toast('錢不夠喔'); addMoney(-fee, '人力車'); }
   closePanels(); G.follow = null;
   G.mode = 'ride'; G.me.setRide(true, NPCChara); net.send({ t: 'ride', on: 1 });
@@ -978,7 +980,7 @@ function templeCoin(v) {
   const c = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .015, 14), new THREE.MeshStandardMaterial({ color: '#d9b44a', metalness: .9, roughness: .25 }));
   const a = G.pos.clone().add(new THREE.Vector3(.15, 1.3, -.2)), b = new THREE.Vector3(W.temple.gong.x, 1.15, -74.3);
   scene.add(c); let t = 0; const fly = () => { t += .03; const k = Math.min(1, t / .6); c.position.lerpVectors(a, b, k); c.position.y += Math.sin(k * PI) * 1.2; c.rotation.x += .5; c.rotation.z += .3; if (k < 1) requestAnimationFrame(fly); else setTimeout(() => scene.remove(c), 200); }; fly();
-  emote(16, .8); SND.coin(1); net.send({ t: 'emote', e: '🪙' }); closeup(1.9, { dist: 2.3, h: 1.5, ang: 1.1, look: 1.2 });
+  emote(16, .8); SND.coin(1); P.ev('pray'); net.send({ t: 'emote', e: '🪙' }); closeup(1.9, { dist: 2.3, h: 1.5, ang: 1.1, look: 1.2 });
 }
 function templeGong() {
   W.ringRope(); emote(16, 1.2); setTimeout(() => SND.gong(1), 250); net.send({ t: 'emote', e: '🔔' }); closeup(2.4, { dist: 2.6, h: 1.9, ang: 1.0, look: 1.9 });
@@ -1013,7 +1015,7 @@ function doWish(raw, anim) {
 let kaneCD = 0;
 function ringKane() {
   if (performance.now() < kaneCD) return toast('鐘聲還在迴盪，稍等一下再撞');
-  kaneCD = performance.now() + 9000; W.strike(); emote(16, 1.2); closeup(3.4, { dist: 3.4, h: 1.8, ang: 1.25, look: 1.6 }); setTimeout(() => { SND.bigBell(1); }, 500); net.send({ t: 'emote', e: '🏯' });
+  kaneCD = performance.now() + 9000; P.ev('pray'); W.strike(); emote(16, 1.2); closeup(3.4, { dist: 3.4, h: 1.8, ang: 1.25, look: 1.6 }); setTimeout(() => { SND.bigBell(1); }, 500); net.send({ t: 'emote', e: '🏯' });
 }
 function templeFx(e, from) { // 其他玩家的寺院動作：在附近才聽得到
   if (!W.temple) return; const d = from.distanceTo(G.pos);
@@ -1047,7 +1049,7 @@ function spawnDeer() {
   }
 }
 function deerTarget(d) { d.tx = 146 + Math.random() * 64; d.tz = -103 + Math.random() * 52; if (d.tx > 156 && d.tx < 200 && d.tz < -76) d.tz = -60; }
-function petDeer(d) { d.bowT = 2.4; d.wait = 4; closeup(3, { dist: 2.6, h: 1.1, ang: 1.35, look: .8 }); d.g.rotation.y = Math.atan2(G.pos.x - d.g.position.x, G.pos.z - d.g.position.z); setTimeout(() => G.me.emoji('🦌'), 300); setTimeout(() => d.g.position && G.me.say(['小鹿向你鞠躬了！', '好可愛～', '牠好像想吃鹿仙貝'][Math.floor(Math.random() * 3)], 3), 900); }
+function petDeer(d) { P.ev('deer'); d.bowT = 2.4; d.wait = 4; closeup(3, { dist: 2.6, h: 1.1, ang: 1.35, look: .8 }); d.g.rotation.y = Math.atan2(G.pos.x - d.g.position.x, G.pos.z - d.g.position.z); setTimeout(() => G.me.emoji('🦌'), 300); setTimeout(() => d.g.position && G.me.say(['小鹿向你鞠躬了！', '好可愛～', '牠好像想吃鹿仙貝'][Math.floor(Math.random() * 3)], 3), 900); }
 function updDeer(dt) {
   for (const d of DEER) {
     const p = d.g.position; let moving = false;
@@ -1410,6 +1412,7 @@ async function start() {
   G.mode = 'walk'; cam.yaw = PI / 2 - .25; cam.pitch = .3; cam.dist = 6.5;
   updCount(); toast(G.online ? `歡迎來到江戶町${['一', '二', '三', '四', '五'][G.room - 1]}丁目！` : '目前為單人模式（伺服器未連線），NPC 會陪你玩', 3500);
   updHeld(); invMigrate();
+  P.initProg({ G, store, toast, addMoney, setMoney, invGet, invAdd, prizeAcc, sfx, W, announceSelf: (s, n) => announce(s, n) });
   if (!store.get('helped', false) && !G.shot && !QS.has('nohelp')) { show('#help'); store.set('helped', true); }
   sfx(660, .3); setTimeout(() => sfx(990, .4), 180);
 }
@@ -1626,6 +1629,7 @@ document.querySelectorAll('#phr button').forEach(b => b.onclick = () => { $('#ch
 $('#bAct').onclick = () => pop('#actMenu'); $('#bEmo').onclick = () => pop('#emoMenu');
 $('#bView').onclick = toggleView;
 $('#bInv').onclick = () => { pop(null); openInv(); };
+$('#lvchip').onclick = () => { pop(null); P.open(); }; $('#bProg').onclick = () => { pop(null); P.open(); };
 $('#bRide').onclick = () => { pop(null); openRide(); };
 $('#online').onclick = () => { pop(null); if (!G.online) return toast('目前是單人模式，沒有其他玩家'); G.gm ? openGM() : openRide(); };
 $('#bGM').onclick = openGM;
