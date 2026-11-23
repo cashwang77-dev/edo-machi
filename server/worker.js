@@ -24,6 +24,13 @@ function safeEq(a, b) { // 固定時間比較，避免時間差攻擊
   let d = a.length ^ b.length; for (let i = 0; i < Math.max(a.length, b.length); i++) d |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0); return d === 0;
 }
 
+// 房子資料只留需要的欄位，防止塞大量資料
+function cleanHome(h) {
+  if (!h || typeof h !== 'object') return null;
+  const plot = h.plot | 0, stage = h.stage | 0; if (plot < 0 || plot > 11 || stage < 0 || stage > 6) return null;
+  const deco = {}; if (h.deco && typeof h.deco === 'object') for (const k of ['i0', 'i1', 'i2', 'i3', 'o0', 'o1', 'o2', 'o3', 'o4', 'o5']) if (typeof h.deco[k] === 'string' && /^[a-z]{2,10}$/.test(h.deco[k])) deco[k] = h.deco[k];
+  return { plot, stage, deco };
+}
 export class Town {
   constructor(state, env) {
     this.state = state; this.env = env;
@@ -122,7 +129,7 @@ export class Town {
         const p = { ws, n, lk: m.lk || {}, x: +m.x || 0, z: +m.z || 0, y: 0, r: 0, a: 0, dirty: true, gm, strikes: 0, muteUntil: 0, seen: Date.now(), t0: Date.now(), bye: () => bye() };
         this.players.set(id, p);
         const list = [];
-        for (const [pid, q] of this.players) if (pid !== id) list.push({ id: pid, n: q.n, lk: q.lk, x: q.x, z: q.z, y: q.y, r: q.r, a: q.a, gm: q.gm });
+        for (const [pid, q] of this.players) if (pid !== id) list.push({ id: pid, n: q.n, lk: q.lk, x: q.x, z: q.z, y: q.y, r: q.r, a: q.a, gm: q.gm, home: q.home || null });
         this.send(ws, { t: 'welcome', id, n, gm, players: list, shops: this.shops, max: MAX, timeOff: this.timeOff });
         this.bcast({ t: 'join', id, n: p.n, lk: p.lk, x: p.x, z: p.z, gm }, id);
         this.startTick(); return;
@@ -188,6 +195,7 @@ export class Town {
       case 'gma': if (p.gm) this.gmAct(p, m); break;
       case 'emote': this.bcast({ t: 'emote', id, e: String(m.e || '').slice(0, 10) }, id); break;
       case 'look': p.lk = m.lk || {}; this.bcast({ t: 'look', id, lk: p.lk }, id); break;
+      case 'home': p.home = cleanHome(m.h); this.bcast({ t: 'home', id, h: p.home }, id); break; // 玩家自己蓋的房子（讓同一條街的人都看得到）
       case 'act': { // 玩家對玩家：打招呼、擊掌、送禮、送食物
         const q = this.players.get(m.to); if (!q) break;
         const k = String(m.k || '').slice(0, 10), v = m.k === 'gift' ? Math.max(1, Math.min(p.gm ? 99999 : 500, m.v | 0)) : String(m.v || '').slice(0, 30);

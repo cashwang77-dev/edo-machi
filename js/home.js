@@ -83,9 +83,8 @@ function furnMesh(id) {
   }
   return g;
 }
-function rebuild() {
-  if (grp) { A.scene.remove(grp); grp = null; } for (const c of cols) { const i = A.W.colliders.indexOf(c); if (i >= 0) A.W.colliders.splice(i, 1); } cols = [];
-  const h = home(); if (!h) return; const p = PLOTS[h.plot], s = h.stage; grp = new THREE.Group(); grp.position.set(p.x, 0, p.z - 2);
+function buildHouse(h, owner) { // 依存檔（plot/stage/deco）蓋出一棟房子，回傳 { grp, cols }
+  const cols = [], p = PLOTS[h.plot], s = h.stage, grp = new THREE.Group(); grp.position.set(p.x, 0, p.z - 2);
   const wood = m('hwood', { color: '#a87a4a' }), dark = m('hdark', { color: '#5a3e28' }), stone = m('hstone', { color: '#9a958a' }), wall = m('hwall', { color: '#efe6d0' });
   const colAt = (x, z, r) => { const c = { x: p.x + x, z: p.z - 2 + z, r }; A.W.colliders.push(c); cols.push(c); };
   // 0：地基土台
@@ -102,8 +101,28 @@ function rebuild() {
   if (s >= 6) { const d = h.deco || {}; // 家具
     SLOTS_IN.forEach(([x, z], i) => { const id = d['i' + i]; if (!id) return; const f = furnMesh(id); f.position.set(x, id === 'kakejiku' ? .62 : .62, z - (id === 'kakejiku' ? .95 : 0)); grp.add(f); });
     SLOTS_OUT.forEach(([x, z], i) => { const id = d['o' + i]; if (!id) return; const f = furnMesh(id); f.position.set(x, 0, z); f.rotation.y = x < 0 ? .3 : -.3; grp.add(f); colAt(x, z, ['sakura', 'matsu', 'ido', 'ike', 'toro'].includes(id) ? .9 : .5); }); }
-  A.scene.add(grp);
+  if (owner) { // 屋主名牌
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64; const c = cv.getContext('2d'); c.fillStyle = 'rgba(40,28,18,.85)'; c.fillRect(0, 0, 256, 64); c.fillStyle = '#f4e8d0'; c.font = '700 30px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(owner).slice(0, 8) + ' の家', 128, 34);
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false })); sp.scale.set(2.6, .65, 1); sp.position.set(4.5, 2.2, 8.6); grp.add(sp); }
+  A.scene.add(grp); return { grp, cols };
 }
+const REM = new Map(); let remObjs = []; // 其他線上玩家的房子
+function clearCols(list) { for (const c of list) { const i = A.W.colliders.indexOf(c); if (i >= 0) A.W.colliders.splice(i, 1); } }
+function rebuild() {
+  if (!A) return;
+  if (grp) { A.scene.remove(grp); grp = null; } clearCols(cols); cols = [];
+  const h = home(); if (h) { const r = buildHouse(h, A.G.name); grp = r.grp; cols = r.cols; }
+  renderRemotes(); sendMine();
+}
+function renderRemotes() {
+  if (!A) return; for (const o of remObjs) { A.scene.remove(o.grp); clearCols(o.cols); } remObjs = [];
+  const mine = home(), used = new Set(mine ? [mine.plot] : []);
+  for (const [, r] of REM) { if (!r.h || used.has(r.h.plot)) continue; used.add(r.h.plot); const o = buildHouse(r.h, r.n); o.plot = r.h.plot; o.n = r.n; remObjs.push(o); }
+}
+export function sendMine() { if (A && A.sendHome) A.sendHome(home()); }
+export function setRemoteHome(id, n, h) { REM.set(id, { n, h }); renderRemotes(); }
+export function delRemoteHome(id) { if (REM.delete(id)) renderRemotes(); }
+const plotOwner = i => { const o = remObjs.find(o => o.plot === i); return o ? o.n : null; };
 
 // ---------------- 小遊戲（施工）----------------
 // tap：指針左右擺，進綠區點；mash：限時連打把條灌滿；hold：按住蓄力、在綠區放開
@@ -148,7 +167,8 @@ function buildGame(stepName, kind, rounds, onDone) {
 // ---------------- 面板 ----------------
 function panel(html) { const p = $('#panel'); p.innerHTML = html + '<button class="close" id="hX">✕</button>'; A.show('#panel'); $('#hX').onclick = A.closePanels; return p; }
 export function openPlot(i) {
-  const h = home(), p = PLOTS[i];
+  const h = home(), p = PLOTS[i], who = plotOwner(i);
+  if (who && (!h || h.plot !== i)) return panel(`<h2>建地 ${i + 1} 號</h2><p class="sub">這裡是「${who}」的家。${h ? '' : '找一塊空地蓋自己的家吧！'}</p>`);
   if (!h) {
     const pp = panel(`<h2>建地 ${i + 1} 號<small>新開地</small></h2><p class="sub">一塊 12 × 12 的空地。買下後就能在這裡蓋自己的家，之後到北邊的建材店買材料，一步一步動工！</p>
       <p class="sub">地價：<b>${LAND}</b> 文　身上：${A.G.money} 文</p><div class="btns"><button class="big" id="hBuy">🏡 買下這塊地</button></div>`);
@@ -209,3 +229,4 @@ export function initHome(api) {
   rebuild();
 }
 export const homeState = () => home();
+export const remoteList = () => remObjs.map(o => ({ plot: o.plot, n: o.n }));

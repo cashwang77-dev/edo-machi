@@ -6,7 +6,7 @@ export const KASHI = { x0: 86, x1: 111.6, z0: -134, z1: -38 }; // 河岸廣場�
 export const PIERS = [-60, -82, -104, -124];                    // 棧橋中心 z
 export const PIER_X = 118.2;                                    // 棧橋前端
 export function walkKashi(x, z) {
-  if (x >= KASHI.x0 && x <= KASHI.x1 && z >= KASHI.z0 && z <= KASHI.z1) return !(x < 92.5 && x > 86 && z < -52 && z > -120 && !nearGap(z)); // 魚市攤位那一排擋住（留通道）
+  if (x >= KASHI.x0 && x <= KASHI.x1 && z >= KASHI.z0 && z <= KASHI.z1) return true; // 魚市攤位用碰撞圈擋（不再整條封住）
   if (x > 111 && x <= PIER_X && PIERS.some(p => Math.abs(z - p) < 1.15)) return true;     // 棧橋
   return false;
 }

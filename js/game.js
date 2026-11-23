@@ -5,24 +5,24 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611232205';
-import { RIDE_Y } from './chara.js?v=202611232205';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611232205';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611232205';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611232205';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611232205';
-import { Net } from './net.js?v=202611232205';
-import { cleanText } from './filter.js?v=202611232205';
-import { SND } from './audio.js?v=202611232205';
-import * as TX from './tex.js?v=202611232205';
-import * as P from './prog.js?v=202611232205';
-import * as F from './fishing.js?v=202611232205';
-import * as HM from './home.js?v=202611232205';
-import * as HN from './hanamachi.js?v=202611232205';
-import * as JB from './jobs.js?v=202611232205';
-import * as FM from './farm.js?v=202611232205';
-import * as ON from './onsen.js?v=202611232205';
-import { updBoats } from './kashi.js?v=202611232205';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611232221';
+import { RIDE_Y } from './chara.js?v=202611232221';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611232221';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611232221';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611232221';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611232221';
+import { Net } from './net.js?v=202611232221';
+import { cleanText } from './filter.js?v=202611232221';
+import { SND } from './audio.js?v=202611232221';
+import * as TX from './tex.js?v=202611232221';
+import * as P from './prog.js?v=202611232221';
+import * as F from './fishing.js?v=202611232221';
+import * as HM from './home.js?v=202611232221';
+import * as HN from './hanamachi.js?v=202611232221';
+import * as JB from './jobs.js?v=202611232221';
+import * as FM from './farm.js?v=202611232221';
+import * as ON from './onsen.js?v=202611232221';
+import { updBoats } from './kashi.js?v=202611232221';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -167,9 +167,10 @@ function addRemote(p) {
   if (G.remotes.has(p.id)) return;
   const ch = new NPCChara(p.lk, ''); if (p.gm) { ch.gm = true; ch.setLook(p.lk); } ch.setName(p.gm ? '👑 ' + p.n : p.n); ch.root.position.set(p.x, p.y || 0, p.z); scene.add(ch.root);
   G.remotes.set(p.id, { ch, n: p.n, tx: p.x, ty: p.y || 0, tz: p.z, tr: p.r || 0, a: p.a || 0, lastX: p.x, lastZ: p.z });
+  if (p.home) HM.setRemoteHome(p.id, p.n, p.home);
   updCount();
 }
-function delRemote(id) { const r = G.remotes.get(id); if (!r) return; scene.remove(r.ch.root); G.remotes.delete(id); updCount(); }
+function delRemote(id) { const r = G.remotes.get(id); if (!r) return; scene.remove(r.ch.root); G.remotes.delete(id); HM.delRemoteHome(id); updCount(); }
 function updSta() { const b = $('#sta'); if (!b) return; const show = G.sta < 99.5 && G.mode === 'walk'; b.classList.toggle('hide', !show); if (show) { b.firstElementChild.style.width = G.sta + '%'; b.classList.toggle('tired', !!G.tired); } }
 function updCount() { $('#online').textContent = G.online ? `👥 ${G.remotes.size + 1} / 80 人在線 ▾` : '🏮 單人模式（離線）'; }
 
@@ -1453,7 +1454,7 @@ async function start() {
   FM.initFarm({ G, P, W, scene, toast, addMoney, afford, show, closePanels, SND, randomLook, makeNPC });
   JB.initJobs({ G, P, W, scene, gameModal, toast, addMoney, show, closePanels, SND, DEST });
   HN.initHana({ G, P, W, scene, gameModal, toast, addMoney, afford, show, closePanels, SND, randomLook, makeNPC });
-  HM.initHome({ G, P, W, scene, gameModal, toast, addMoney, afford, show, closePanels, SND, announceSelf: (s, n) => announce(s, n) });
+  HM.initHome({ sendHome: h => { if (G.online) net.send({ t: 'home', h }); }, G, P, W, scene, gameModal, toast, addMoney, afford, show, closePanels, SND, announceSelf: (s, n) => announce(s, n) });
   F.initFishing({ G, P, gameModal, toast, addMoney, show, closePanels, SND, isNight, announceSelf: (s, n) => announce(s, n) });
   if (!store.get('helped', false) && !G.shot && !QS.has('nohelp')) { show('#help'); store.set('helped', true); }
   sfx(660, .3); setTimeout(() => sfx(990, .4), 180);
@@ -1470,8 +1471,9 @@ net.on('welcome', m => {
     toast('👑 GM 模式：花魁造型、錢用不完、可使用管理面板', 3800);
   }
   else if (m.n !== G.name) { G.name = m.n; G.me.setName(m.n); }
-  m.players.forEach(addRemote); updCount();
+  m.players.forEach(addRemote); updCount(); HM.sendMine();
 });
+net.on('home', m => { const R = G.remotes.get(m.id); HM.setRemoteHome(m.id, R ? R.n : '某人', m.h); });
 net.on('act', m => {
   const R = G.remotes.get(m.from); if (R && G.mode === 'walk') faceTo(R.ch.root.position);
   if (m.k === 'hi') { toast(`👋 ${m.n} 向你打招呼`); if (R) R.ch.emoji('👋'); }

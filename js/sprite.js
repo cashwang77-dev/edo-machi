@@ -1,9 +1,9 @@
 // 2D 手繪立繪人物（RO 式紙娃娃）：一個面向鏡頭的平面＋換色著色器；每人 1 次繪製
 // SChara 與 3D 的 Chara 介面相同（root、setLook、play、update、say、emoji、setName、lod、setRide、updRide、headG、foodG、accG、waistG），遊戲端直接替換
 import * as THREE from 'three';
-import { Chara, KIMONO, OBI } from './chara.js?v=202611232205';
-import * as TX from './tex.js?v=202611232205';
-import { ACC } from './shops.js?v=202611232205';
+import { Chara, KIMONO, OBI } from './chara.js?v=202611232221';
+import * as TX from './tex.js?v=202611232221';
+import { ACC } from './shops.js?v=202611232221';
 
 const ATLAS = {}; // 原型名 → { tex, mask, meta }
 export const ARCH_LIST = ['f1', 'f2', 'f3', 'f4', 'm1', 'm2', 'm3', 'm4', 'f5', 'f6', 'f7', 'f8', 'f9', 'm5', 'oi']; // 新的只能接在後面（玩家存的是編號）

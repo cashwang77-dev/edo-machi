@@ -29,7 +29,7 @@ export function buildOnsen(ctx) {
   const rock = std('onRock', { color: '#7a746a', roughness: .95 }), wd = std('onWood', { color: '#6a4a30' }), roof = std('onRoof', { color: '#3a3430' });
   // 山（背景）＋紅葉
   const hill = std('onHill', { color: '#3a5a3a', roughness: 1 });
-  for (let i = 0; i < 7; i++) { const h = M(new THREE.ConeGeometry(16 + (i % 3) * 5, 22 + (i % 2) * 10, 7), hill, 200 + i * 12, 10, (i % 2 ? 52 : -52)); B.bake(h); }
+  for (let i = 0; i < 7; i++) { const h = M(new THREE.ConeGeometry(16 + (i % 3) * 5, 22 + (i % 2) * 10, 7), hill, 200 + i * 12, 10, (i % 2 ? 66 : -66)); /* 山腳不伸進可走範圍 */ B.bake(h); }
   const mo = std('onMomiji', { color: '#d8502a' }), mo2 = std('onMomiji2', { color: '#e8a030' }), bark = std('onBark', { color: '#5a3e2e' });
   for (let i = 0; i < 12; i++) { const x = 190 + i * 6.3, z = (i % 2 ? 33.5 : -33.5); const t = new THREE.Group(); t.position.set(x, 0, z); t.add(M(new THREE.CylinderGeometry(.14, .22, 2.2, 6), bark, 0, 1.1, 0)); for (let k = 0; k < 4; k++) t.add(M(new THREE.IcosahedronGeometry(.9, 0), k % 2 ? mo : mo2, Math.cos(k * 1.7) * .7, 2.4 + (k % 2) * .5, Math.sin(k * 1.7) * .7)); B.bake(t); col(x, z, .6); }
   // 入口門

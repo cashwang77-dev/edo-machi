@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 const PI = Math.PI;
 export const FARM = { x0: -100.5, x1: -22, z0: 46, z1: 136 };
-export function walkFarm(x, z) { return x >= FARM.x0 && x <= FARM.x1 && z >= FARM.z0 && z <= FARM.z1 && !(x > -36 && x < -26 && z > 104 && z < 116); } // 農家擋住
+export function walkFarm(x, z) { return x >= FARM.x0 && x <= FARM.x1 && z >= FARM.z0 && z <= FARM.z1 && !(x > -36 && x < -26 && z > 106.5 && z < 113.5); } // 農家擋住
 // 作物：[id, 名, 中文, 種子價, 賣價, 成長小時, 需要等級, 顏色]
 export const CROPS = [['kabu', '蕪', '蕪菁', 5, 16, .5, 1, '#f4f0e8'], ['daikon', '大根', '白蘿蔔', 6, 22, 1, 1, '#f8f6ee'], ['negi', '葱', '青蔥', 6, 20, 1.5, 1, '#5a9a3a'],
   ['nasu', '茄子', '茄子', 8, 30, 2, 1, '#5a2a6a'], ['kyuri', '胡瓜', '小黃瓜', 8, 28, 2, 1, '#3a7a2a'], ['satsuma', '薩摩芋', '番薯', 12, 48, 4, 2, '#b04a5a'],

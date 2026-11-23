@@ -39,7 +39,7 @@ export function buildHana(ctx) {
     for (let k = -4; k <= 4; k += .3) g.add(M(boxG(.06, 2.2, .06, 1), bengara, k, 1.3, 1.55)); // 紅殼格子
     g.add(M(boxG(9.4, .1, .1, 1), bengara, 0, 2.4, 1.55)); g.add(M(boxG(2, 1.5, .04, 1), std('hnNoren' + (i % 3), { color: ['#2f3f6a', '#6a2a3a', '#2a4a3a'][i % 3] }), 0, 2.2, 1.6));
     lantern(g, -3.6, 2.05, 2.25); lantern(g, 3.6, 2.05, 2.25); g.add(M(boxG(9.4, .5, .4, 1), std('hnInu', { color: '#5a4030' }), 0, .25, 1.75));
-    B.bake(g); for (let k = -4; k <= 4; k += 2) col(x + k, z - sd * .5, 1.6); col(x, z - sd * 2.5, 2.5);
+    B.bake(g); for (let k = -3.6; k <= 3.6; k += 1.8) col(x + k, z + sd * 1.2, 2.3); // 碰撞圈放在房子本體（之前算反，門前多了一道隱形牆）
   }
   // 金波楼（三層、金箔屋簷、金鯱）
   { const g = new THREE.Group(); g.position.set(ROU.x, 0, ROU.z); g.rotation.y = PI / 2; // 正面朝東（+x）
