@@ -33,7 +33,7 @@ export function buildHomeArea(ctx) {
     for (const [dx, dz] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) B.bake(M(boxG(.14, .7, .14, 1), stake, p.x + dx, .35, p.z + dz));
     for (const [x, z, w, d] of [[p.x, p.z - 6, 12, .04], [p.x, p.z + 6, 12, .04], [p.x - 6, p.z, .04, 12], [p.x + 6, p.z, .04, 12]]) B.bake(M(boxG(w, .03, d, 1), rope, x, .6, z));
     B.bake(M(boxG(.1, 1.1, .1, 1), stake, p.x + 4.5, .55, p.z + 6.6)); B.bake(M(boxG(1, .6, .06, 1), sign, p.x + 4.5, 1.2, p.z + 6.6));
-    W.spots.push({ type: 'plot', i, x: p.x + 4.5, z: p.z + 7.3, label: `🪧 建地 ${i + 1} 號` });
+    W.spots.push({ type: 'plot', i, x: p.x + 4.5, z: p.z + 7.3, label: `📋 建地 ${i + 1} 號` });
   });
   // 建材店：一排小屋台（北側）
   const keys = Object.keys(STORES);
@@ -198,7 +198,7 @@ export function openStore(k) {
   const pp = panel(`<h2>${name.split(' ')[1]}<small>${name.split(' ')[0]}</small></h2><p class="sub">${line}　身上：<b>${A.G.money}</b> 文</p>
     ${st ? `<p class="sub">🏗 你的下一步「${st[0]}」需要：${Object.entries(st[2]).map(([kk, n]) => `${matN(kk)} ${A.P.bag('mat')[kk] || 0}/${n}`).join('、')}</p>` : ''}
     <div class="mlist">${items.map(it => `<div class="mrow"><span>${it.n}${it.note ? ` <small>${it.note}</small>` : ''}</span><span>持有 ${A.P.bag(it.cat)[it.id] || 0}</span><span>${it.p} 文</span><button data-b="${it.id}" data-c="${it.cat}" data-p="${it.p}">買 1</button></div>`).join('')}</div>
-    ${k === 'zai' ? '<div class="btns"><button id="hJob" class="big alt">🪚 大工助手打工（幫忙刨木頭）</button></div>' : ''}`);
+    ${k === 'zai' ? '<div class="btns"><button id="hJob" class="big alt">🔨 大工助手打工（幫忙刨木頭）</button></div>' : ''}`);
   pp.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { const p = +b.dataset.p; if (!A.afford(p)) return A.toast('錢不夠喔'); A.addMoney(-p, ''); A.P.bagAdd(b.dataset.c, b.dataset.b, 1); A.P.ev(b.dataset.c === 'furn' ? 'furn' : 'mat', { k: b.dataset.b, dex: b.dataset.c === 'furn' ? 'furn' : null }); openStore(k); });
   const j = pp.querySelector('#hJob'); if (j) j.onclick = () => { A.closePanels(); buildGame('大工助手：刨木頭', 'tap', 5, q => { const pay = Math.round(q * 40); A.addMoney(pay, '大工工錢'); A.P.ev('job', { k: 'daiku', q }); A.toast(`工頭：「${q >= .8 ? '手藝不錯嘛！' : q >= .4 ? '還行，明天再來。' : '……木頭都刨壞了。'}」`, 3000); }); };
 }

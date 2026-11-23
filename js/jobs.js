@@ -30,7 +30,7 @@ export function openKuchi() {
       <div class="mrow"><span>🍵 茶屋端茶 <small>40 秒內把茶點端給客人</small></span><span></span><span>〜50 文</span><button id="jb2">接</button></div>
       <div class="mrow"><span>🧹 町內打掃 <small>20 秒內把落葉掃乾淨</small></span><span></span><span>〜35 文</span><button id="jb3">接</button></div>
     </div>
-    <p class="sub">其他地方也在徵人：<br>・📦 隅田川「魚河岸」搬貨　・🪚 新開地「材木屋」大工助手　・🎎 花街「置屋」舞妓練舞</p>
+    <p class="sub">其他地方也在徵人：<br>・📦 隅田川「魚河岸」搬貨　・🔨 新開地「材木屋」大工助手　・🎎 花街「置屋」舞妓練舞</p>
     ${run ? `<p class="sub">⚠ 你身上還有一封要送到「${run.to}」的信</p><div class="btns"><button id="jbQ">放棄送信</button></div>` : ''}<button class="close" id="jbX">✕</button>`;
   A.show('#panel'); $('#jbX').onclick = A.closePanels;
   $('#jb1').onclick = () => { A.closePanels(); startCourier(); };

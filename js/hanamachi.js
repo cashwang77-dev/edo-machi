@@ -73,7 +73,7 @@ export function buildHana(ctx) {
     for (let k = -4.5; k <= 4.5; k += 1.5) lantern(g, k, 4.9, 3.3, .7);
     B.bake(g); for (let k = -4.5; k <= 4.5; k += 1.8) { col(STAGE.x + k, STAGE.z - 1.5, 1.4); col(STAGE.x + k, STAGE.z + 1.5, 1.4); }
     for (const s of [-1, 1]) { const b = new THREE.Group(); b.position.set(STAGE.x + s * 3.2, 0, STAGE.z + 7); b.add(M(boxG(3.4, .1, 1, 1), std('hnEndai', { color: '#c8322a' }), 0, .48, 0)); for (const x of [-1.5, 1.5]) b.add(M(boxG(.08, .44, .8, 1), black, x, .22, 0)); B.bake(b); }
-    W.spots.push({ type: 'stage', x: STAGE.x, z: STAGE.z + 5.2, label: '🪭 觀賞藝妓舞蹈（花代 20 文）' });
+    W.spots.push({ type: 'stage', x: STAGE.x, z: STAGE.z + 5.2, label: '🎐 觀賞藝妓舞蹈（花代 20 文）' });
     W.geishaPos = [{ x: STAGE.x, y: 1.05, z: STAGE.z, r: 0, stage: true }, { x: -2, y: 0, z: LANE_Z + 4.2, r: PI / 2 }, { x: -18, y: 0, z: LANE_Z - 4.2, r: -PI / 2 }, { x: ROU.x + 9.4, y: 0, z: ROU.z + 2.6, r: PI / 2 }];
     spot(STAGE.x + 4, STAGE.z + 8, '📸 名所：花見小路', '花見小路：鋪著石板的花街小路，兩旁是紅殼格子的茶屋。入夜後提燈一盞盞亮起，是江戶最華麗的街道。', '燈籠好美～'); }
   // 置屋（舞妓打工）
@@ -93,14 +93,14 @@ export function watchShow() {
   if (!A.afford(20)) return A.toast('花代不夠喔');
   A.addMoney(-20, '花代'); const g = geisha.find(x => x.stage); if (!g) return;
   show = { t: 0 }; A.G.shot = [STAGE.x + 3.2, 2.6, STAGE.z + 8.5, STAGE.x, 2, STAGE.z]; A.G.me.say('好期待～', 2);
-  const seq = [10, 14, 6, 10, 9, 17, 10, 6]; seq.forEach((a, i) => setTimeout(() => { g.ch.play(a); if (i % 2) g.ch.emoji(['🪭', '🌸', '✨'][i % 3]); }, i * 1100));
+  const seq = [10, 14, 6, 10, 9, 17, 10, 6]; seq.forEach((a, i) => setTimeout(() => { g.ch.play(a); if (i % 2) g.ch.emoji(['🎐', '🌸', '✨'][i % 3]); }, i * 1100));
   shamisen(34, 260);
   setTimeout(() => { g.ch.play(17); g.ch.say('おおきに～', 3); }, seq.length * 1100);
   setTimeout(() => { A.G.shot = null; show = null; g.ch.play(0); A.G.me.emoji('👏'); A.P.ev('show'); A.P.addXp(15, '欣賞舞蹈'); A.toast('好精彩的舞蹈！', 2500); }, seq.length * 1100 + 2200);
 }
 export function openOzashiki() {
   const p = $('#panel'); p.innerHTML = `<h2>金波楼<small>お座敷遊び</small></h2><p class="sub">女將：「歡迎光臨～今晚想玩什麼遊戲呢？」　お座敷代 30 文</p>
-    <div class="btns"><button class="big" id="oz1">⛵ 金毘羅船々（反應遊戲）</button><button class="big alt" id="oz2">🪭 投扇興（丟扇子）</button></div><button class="close" id="ozX">✕</button>`;
+    <div class="btns"><button class="big" id="oz1">⛵ 金毘羅船々（反應遊戲）</button><button class="big alt" id="oz2">🎐 投扇興（丟扇子）</button></div><button class="close" id="ozX">✕</button>`;
   A.show('#panel'); $('#ozX').onclick = A.closePanels;
   const pay = () => { if (!A.afford(30)) { A.toast('お座敷代不夠喔'); return false; } A.addMoney(-30, 'お座敷代'); A.closePanels(); return true; };
   $('#oz1').onclick = () => pay() && playKonpira(); $('#oz2').onclick = () => pay() && playTosenkyo();
@@ -130,7 +130,7 @@ function playKonpira() {
 }
 // 投扇興：先點一下定方向（左右擺），再點一下定力道，扇子打中台上的「蝶」得分。丟 3 次。
 function playTosenkyo() {
-  const M = A.gameModal('🪭 投扇興', '第一下決定方向、第二下決定力道，把扇子丟中枕台上的「蝶」！一共丟 3 次。');
+  const M = A.gameModal('🎐 投扇興', '第一下決定方向、第二下決定力道，把扇子丟中枕台上的「蝶」！一共丟 3 次。');
   const g = M.g, my = ++GEN; let n = 0, st = 0, t0 = performance.now(), ang = 0, pow = 0, pts = 0, fly = null, msg = '';
   const tri = u => { const k = u % 2; return k < 1 ? k : 2 - k; };
   M.cv.onpointerdown = e => { e.preventDefault(); if (fly) return; const u = (performance.now() - t0) / 1000;
@@ -170,7 +170,7 @@ export function playMaiko() {
     g.fillStyle = '#e8c050'; g.fillRect(0, LINE - 2, 360, 4);
     for (const n of notes) { if (!n.done && now - n.t > .22) { n.done = true; miss++; } if (n.done) continue; const y = LINE - (n.t - now) * SPD; if (y < -20) continue;
       g.fillStyle = ['#e85a7a', '#e8c050', '#7ab8e8'][n.lane]; g.beginPath(); g.arc(n.lane * 120 + 60, y, 14, 0, 7); g.fill(); g.fillStyle = '#3a0e0a'; g.font = '700 13px sans-serif'; g.textAlign = 'center'; g.fillText(['扇', '礼', '袖'][n.lane], n.lane * 120 + 60, y + 5); }
-    g.fillStyle = '#f4e8d0'; g.font = '700 14px sans-serif'; g.textAlign = 'center'; ['🪭 扇', '🙇 礼', '👘 袖'].forEach((s, i) => g.fillText(s, i * 120 + 60, 228));
+    g.fillStyle = '#f4e8d0'; g.font = '700 14px sans-serif'; g.textAlign = 'center'; ['🎐 扇', '🙇 礼', '👘 袖'].forEach((s, i) => g.fillText(s, i * 120 + 60, 228));
     fbT -= 1 / 60; if (fbT > 0) { g.fillStyle = '#ffd86a'; g.font = '900 22px sans-serif'; g.fillText(fb, 180, 60); }
     if (!ended && notes.every(n => n.done)) { ended = true; fin(); }
     M.stat(`命中 <b>${hit}</b>　失誤 ${miss}　（一拍 3 文，14 拍以上女將加賞 25 文）`);

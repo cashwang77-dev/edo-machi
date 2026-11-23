@@ -5,24 +5,24 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611232143';
-import { RIDE_Y } from './chara.js?v=202611232143';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611232143';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611232143';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611232143';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611232143';
-import { Net } from './net.js?v=202611232143';
-import { cleanText } from './filter.js?v=202611232143';
-import { SND } from './audio.js?v=202611232143';
-import * as TX from './tex.js?v=202611232143';
-import * as P from './prog.js?v=202611232143';
-import * as F from './fishing.js?v=202611232143';
-import * as HM from './home.js?v=202611232143';
-import * as HN from './hanamachi.js?v=202611232143';
-import * as JB from './jobs.js?v=202611232143';
-import * as FM from './farm.js?v=202611232143';
-import * as ON from './onsen.js?v=202611232143';
-import { updBoats } from './kashi.js?v=202611232143';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611232205';
+import { RIDE_Y } from './chara.js?v=202611232205';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611232205';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611232205';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611232205';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611232205';
+import { Net } from './net.js?v=202611232205';
+import { cleanText } from './filter.js?v=202611232205';
+import { SND } from './audio.js?v=202611232205';
+import * as TX from './tex.js?v=202611232205';
+import * as P from './prog.js?v=202611232205';
+import * as F from './fishing.js?v=202611232205';
+import * as HM from './home.js?v=202611232205';
+import * as HN from './hanamachi.js?v=202611232205';
+import * as JB from './jobs.js?v=202611232205';
+import * as FM from './farm.js?v=202611232205';
+import * as ON from './onsen.js?v=202611232205';
+import { updBoats } from './kashi.js?v=202611232205';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -1243,8 +1243,10 @@ function playKuji(shop) {
 
 // ---------- 祭典遊戲：撈金魚、射的 ----------
 function gameModal(title, hint) {
-  const el = $('#pg'); el.innerHTML = `<div class="card pgc"><h3>${title}</h3><p class="sub" id="pgHint">${hint}</p><canvas id="pgc" width="360" height="240"></canvas><p class="sub" id="pgStat"></p></div>`;
-  show('#pg'); const cv = $('#pgc'); return { cv, g: cv.getContext('2d'), stat: t => $('#pgStat').innerHTML = t, close: () => show('#pg', false) };
+  const el = $('#pg'); el.innerHTML = `<div class="card pgc"><button class="close" id="pgX" title="離開">✕</button><h3>${title}</h3><p class="sub" id="pgHint">${hint}</p><canvas id="pgc" width="360" height="240"></canvas><p class="sub" id="pgStat"></p></div>`;
+  show('#pg'); const cv = $('#pgc'); const M = { cv, g: cv.getContext('2d'), stat: t => $('#pgStat').innerHTML = t, close: () => show('#pg', false) };
+  $('#pgX').onclick = () => { show('#pg', false); el.innerHTML = ''; }; // 中途離開：清掉畫布讓小遊戲迴圈停止
+  return M;
 }
 function cvPos(cv, e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height]; }
 function playKingyo(shop) {
@@ -1662,7 +1664,7 @@ addEventListener('pointerdown', () => { if (SND.ac && SND.ac.state !== 'running'
 $('#act').onclick = act;
 $('#bChat').onclick = openChat;
 $('#chatSend').onclick = sendChat;
-const pop = (id, on) => { ['#actMenu', '#emoMenu'].forEach(x => show(x, x === id ? (on ?? $(x).classList.contains('hide')) : false)); };
+const pop = (id, on) => { ['#actMenu', '#emoMenu', '#moreMenu'].forEach(x => show(x, x === id ? (on ?? $(x).classList.contains('hide')) : false)); };
 $('#actMenu').innerHTML = ACTIONS.map(([a, ic, nm, d], i) => `<button data-a="${i}"><span>${ic}</span>${nm}${isTouch ? '' : `<kbd>${i + 1}</kbd>`}</button>`).join('');
 $('#emoMenu').innerHTML = EMOJIS.map(e => `<button data-e="${e}">${e}</button>`).join('');
 $('#phr').innerHTML = PHRASES.map(t => `<button>${t}</button>`).join('');
@@ -1676,6 +1678,9 @@ $('#lvchip').onclick = () => { pop(null); P.open(); }; $('#bProg').onclick = () 
 $('#bRide').onclick = () => { pop(null); openRide(); };
 $('#online').onclick = () => { pop(null); if (!G.online) return toast('目前是單人模式，沒有其他玩家'); G.gm ? openGM() : openRide(); };
 $('#bGM').onclick = openGM;
+$('#bMore').onclick = () => { const m = $('#moreMenu'), gm = !$('#bGM').classList.contains('hide');
+  m.innerHTML = (gm ? '<button class="gm" data-m="bGM">👑 GM 管理面板</button>' : '') + [['bView', '🌅 看風景'], ['bFS', '⛶ 全螢幕'], ['bHelp', '❔ 遊戲說明'], ['bSet', '⚙ 設定']].map(([id, n]) => `<button data-m="${id}">${n}</button>`).join('');
+  m.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { pop(null); $('#' + b.dataset.m).click(); }); pop('#moreMenu'); };
 $('#bHelp').onclick = () => show('#help');
 $('#bFS').onclick = toggleFS;
 document.querySelectorAll('[data-donate]').forEach(b => b.onclick = () => { show('#settings', false); show('#donate'); SND.pluck(660, .06); });
