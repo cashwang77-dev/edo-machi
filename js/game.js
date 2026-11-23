@@ -5,22 +5,23 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611232042';
-import { RIDE_Y } from './chara.js?v=202611232042';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611232042';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611232042';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611232042';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611232042';
-import { Net } from './net.js?v=202611232042';
-import { cleanText } from './filter.js?v=202611232042';
-import { SND } from './audio.js?v=202611232042';
-import * as TX from './tex.js?v=202611232042';
-import * as P from './prog.js?v=202611232042';
-import * as F from './fishing.js?v=202611232042';
-import * as HM from './home.js?v=202611232042';
-import * as HN from './hanamachi.js?v=202611232042';
-import * as JB from './jobs.js?v=202611232042';
-import { updBoats } from './kashi.js?v=202611232042';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611232102';
+import { RIDE_Y } from './chara.js?v=202611232102';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611232102';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611232102';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611232102';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611232102';
+import { Net } from './net.js?v=202611232102';
+import { cleanText } from './filter.js?v=202611232102';
+import { SND } from './audio.js?v=202611232102';
+import * as TX from './tex.js?v=202611232102';
+import * as P from './prog.js?v=202611232102';
+import * as F from './fishing.js?v=202611232102';
+import * as HM from './home.js?v=202611232102';
+import * as HN from './hanamachi.js?v=202611232102';
+import * as JB from './jobs.js?v=202611232102';
+import * as FM from './farm.js?v=202611232102';
+import { updBoats } from './kashi.js?v=202611232102';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -86,6 +87,7 @@ function edoTime(t) {
 }
 // 遊戲時間＝台灣時間（UTC+8）；GM 調時間時加上偏移
 const twDay = () => ((Date.now() / 1000 + 8 * 3600) % 86400) / 86400;
+function makeNPC(lk, gm) { const ch = new NPCChara(lk, ''); if (gm) { ch.gm = true; ch.setLook(lk); } EXTRA.push(ch); return ch; }
 function isNight() { const h = tday() * 24; return h < 5.5 || h > 18.5; }
 function tday() { if (QS.has('t')) return +QS.get('t'); return (twDay() + G.timeOff + 1) % 1; }
 const sfx = (() => { let ac; return (f = 660, d = .12, type = 'sine', v = .08) => { try { ac = ac || new AudioContext(); const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = f; g.gain.value = v; g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + d); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + d); } catch (e) {} }; })();
@@ -171,6 +173,7 @@ function updSta() { const b = $('#sta'); if (!b) return; const show = G.sta < 99
 function updCount() { $('#online').textContent = G.online ? `👥 ${G.remotes.size + 1} / 80 人在線 ▾` : '🏮 單人模式（離線）'; }
 
 // NPC 町人（人少時代替玩家逛街、吃東西、聊天）、掌櫃
+const EXTRA = []; // 新區域的掌櫃、藝妓等固定 NPC（每格 update）
 const NPCS = []; let NPCChara = Chara; /* 路人等 NPC 用的人物類別（啟動後換成 2D 立繪） */ const keepers = {};
 const NPC_NAMES = ['八五郎', '熊吉', '阿花', '老隱居', '與太郎', '阿菊', '源三', '阿松', '辰五郎', '阿光', '金太', '阿竹', '新吉', '阿梅', '平助', '阿雪'];
 const NPC_PAIRS = [['今天的蕎麥麵真好吃', '對吧！信濃屋是老字號'], ['要不要一起去泡湯？', '好啊，過了日本橋就到了'], ['聽說最近有人開了糰子店', '真的嗎？等等去看看'], ['夕陽真美呢', '富士山也看得好清楚'], ['你的和服好好看', '謝謝，是在丸屋買的'], ['最近生意如何？', '託您的福，還不錯'], ['浮世繪店可以畫肖像喔', '我也想畫一張！'], ['晚上河邊有螢火蟲', '那晚點一起去吧'], ['神社的櫻花開了', '去參拜順便賞花吧'], ['肚子餓了～', '去吃鰻魚飯吧！']];
@@ -186,8 +189,8 @@ function spawnNPCs() {
     const lk = randomLook(); lk.hat = 0; lk.c = 0; if (!s.def.service) { lk.k = 9; lk.p = 0; }
     const ch = new NPCChara(lk, ''); ch.root.position.set(s.owner.x, s.owner.y, s.owner.z); ch.root.rotation.y = s.owner.r; scene.add(ch.root); keepers[s.def.id] = ch;
   }
-  for (const k of W.homeKeepers || []) { const lk = randomLook(); lk.hat = 0; lk.c = 0; const ch = new NPCChara(lk, ''); ch.root.position.set(k.x, 0, k.z); ch.root.rotation.y = k.r; scene.add(ch.root); }
-  if (W.fishKeeper) { const lk = randomLook(); lk.hat = 0; lk.c = 0; const ch = new NPCChara(lk, ''); ch.root.position.set(W.fishKeeper.x, 0, W.fishKeeper.z); ch.root.rotation.y = W.fishKeeper.r; scene.add(ch.root); }
+  for (const k of W.homeKeepers || []) { const lk = randomLook(); lk.hat = 0; lk.c = 0; const ch = makeNPC(lk); ch.root.position.set(k.x, 0, k.z); ch.root.rotation.y = k.r; scene.add(ch.root); }
+  if (W.fishKeeper) { const lk = randomLook(); lk.hat = 0; lk.c = 0; const ch = makeNPC(lk); ch.root.position.set(W.fishKeeper.x, 0, W.fishKeeper.z); ch.root.rotation.y = W.fishKeeper.r; scene.add(ch.root); }
 }
 function npcQuota() { const real = G.online ? G.remotes.size + 1 : 1; return Math.max(4, Math.min(16, 18 - real)); }
 function npcSetFood(n, f) { n.ch.setLook({ ...n.ch.look, f: f || '' }); }
@@ -279,6 +282,7 @@ function updNPCs(dt) {
     else { n.wait -= dt; if (n.wait <= 0) { npcPlan(n); n.t = 0; } if (!anim && n.idleA) { anim = n.idleA; } if (!anim && FEST.on && n.i % 3 !== 1) { anim = 10; n.wait = Math.max(n.wait, 3); } } // 祭典時跳盆踊
     n.ch.play(anim); n.ch.update(dt, sp);
   }
+  for (const ch of EXTRA) ch.update(dt, 0);
   for (const id in keepers) {
     const k = keepers[id]; k.root.visible = !G.owners[id];
     if (k.root.visible) { k.play(k.cookT > 0 ? 4 : 0); if (k.cookT > 0) k.cookT -= dt; k.update(dt, 0); }
@@ -339,6 +343,9 @@ function act() {
   else if (near.type === 'plot') HM.openPlot(near.spot.i);
   else if (near.type === 'stage') HN.watchShow();
   else if (near.type === 'kuchi') JB.openKuchi();
+  else if (near.type === 'bed') FM.openBed(near.spot.i);
+  else if (near.type === 'seed') FM.openSeed();
+  else if (near.type === 'veg') FM.openVeg();
   else if (near.type === 'ozashiki') HN.openOzashiki();
   else if (near.type === 'maiko') HN.playMaiko();
   else if (near.type === 'mat') HM.openStore(near.spot.k);
@@ -713,6 +720,7 @@ function placeName(x, z) {
   if (x > 84 && x < 119 && z < -36) return '隅田川河岸';
   if (x >= 20 && x <= 86 && z < -56) return '新開地';
   if (x >= -48 && x < 20 && z < -56) return '花街';
+  if (x > -101 && x < -22 && z > 45) return '郊外農村';
   if (x > 140 && z < -38) return '東光寺'; if (x > 138 && z > 38) return '金閣寺'; if (x < -110 && z < -23) return '千本鳥居'; if (x > 145 && x < 160 && Math.abs(z) < 6) return '雷門'; if (x > 100 && x < 118) return '日本橋'; if (z < -20) return '神社一帶'; if (x < -90) return '町西';
   let best = '大街', bd = 9e9; for (const sh of SHOPS) { const d = Math.abs(sh.x - x) + Math.abs((sh.side || 1) * 11 - z); if (d < bd) { bd = d; best = sh.name || best; } } return bd < 14 ? best + '前' : '大街';
 }
@@ -777,7 +785,7 @@ async function switchRoom(i, x, z) {
 
 // ---------- 人力車：點路上的空車或按🛺叫車 → 選名所／點地圖／找玩家，車資依距離 ----------
 const RIDE = { fare2: 40 }; const RIDE_SPD = 4.8; // 乘車速度＝走路(3.2)的 1.5 倍，慢慢欣賞風景
-const DEST = [['大街中央', 0, 3], ['花街・金波楼', 0, -98], ['隅田川河岸', 104, -62], ['新開地（建地）', 52, -66], ['神社', -116, 4], ['千本鳥居', -125, -30], ['名所南區', -125, 50], ['江戶城', -212, 92], ['不忍池', -122, 86], ['中村座', -166, 66], ['回向院相撲', -170, 104], ['日本橋', 106, 0], ['雷門', 158, 4], ['露天風呂', 153, 8], ['東光寺', 178, -42], ['五重塔', 155, -90], ['金閣寺', 180, 97]];
+const DEST = [['大街中央', 0, 3], ['花街・金波楼', 0, -98], ['郊外農村', -60, 84], ['隅田川河岸', 104, -62], ['新開地（建地）', 52, -66], ['神社', -116, 4], ['千本鳥居', -125, -30], ['名所南區', -125, 50], ['江戶城', -212, 92], ['不忍池', -122, 86], ['中村座', -166, 66], ['回向院相撲', -170, 104], ['日本橋', 106, 0], ['雷門', 158, 4], ['露天風呂', 153, 8], ['東光寺', 178, -42], ['五重塔', 155, -90], ['金閣寺', 180, 97]];
 const GM_DEST = DEST;
 // 路線規劃：地圖切 1 公尺格子（可走＝walkable 且不碰障礙物），從起點做一次最短路，就能得到到每個地方的距離與路線
 const GR = { x0: -300, z0: -115, w: 535, h: 260 }; let GRID = null;
@@ -1432,8 +1440,9 @@ async function start() {
   updCount(); toast(G.online ? `歡迎來到江戶町${['一', '二', '三', '四', '五'][G.room - 1]}丁目！` : '目前為單人模式（伺服器未連線），NPC 會陪你玩', 3500);
   updHeld(); invMigrate();
   P.initProg({ G, store, toast, addMoney, setMoney, invGet, invAdd, prizeAcc, sfx, W, announceSelf: (s, n) => announce(s, n) });
+  FM.initFarm({ G, P, W, scene, toast, addMoney, afford, show, closePanels, SND, randomLook, makeNPC });
   JB.initJobs({ G, P, W, scene, gameModal, toast, addMoney, show, closePanels, SND, DEST });
-  HN.initHana({ G, P, W, scene, gameModal, toast, addMoney, afford, show, closePanels, SND, randomLook, makeNPC: (lk, gm) => { const ch = new NPCChara(lk, ''); if (gm) { ch.gm = true; ch.setLook(lk); } return ch; } });
+  HN.initHana({ G, P, W, scene, gameModal, toast, addMoney, afford, show, closePanels, SND, randomLook, makeNPC });
   HM.initHome({ G, P, W, scene, gameModal, toast, addMoney, afford, show, closePanels, SND, announceSelf: (s, n) => announce(s, n) });
   F.initFishing({ G, P, gameModal, toast, addMoney, show, closePanels, SND, isNight, announceSelf: (s, n) => announce(s, n) });
   if (!store.get('helped', false) && !G.shot && !QS.has('nohelp')) { show('#help'); store.set('helped', true); }
@@ -1574,13 +1583,13 @@ function update(dt) {
   }
   for (const c of G.npcCust) c.ch.update(dt, 0);
   updNPCs(dt); updDeer(dt); updRetinue(dt); updKids(dt);
-  if ((lodT = (lodT || 0) - dt) < 0) { lodT = .3; const cp = camera.position; const all = [G.me, ...[...G.remotes.values()].map(r => r.ch), ...NPCS.map(n => n.ch), ...Object.values(keepers), ...G.npcCust.map(c => c.ch), ...[...RETINUE.values()].flatMap(r => r.mem.map(m => m.ch)), ...KIDS.map(k => k.ch)]; for (const ch of all) if (ch && ch.lod) ch.lod(ch.root.position.distanceTo(cp)); }
+  if ((lodT = (lodT || 0) - dt) < 0) { lodT = .3; const cp = camera.position; const all = [G.me, ...[...G.remotes.values()].map(r => r.ch), ...NPCS.map(n => n.ch), ...Object.values(keepers), ...EXTRA, ...G.npcCust.map(c => c.ch), ...[...RETINUE.values()].flatMap(r => r.mem.map(m => m.ch)), ...KIDS.map(k => k.ch)]; for (const ch of all) if (ch && ch.lod) ch.lod(ch.root.position.distanceTo(cp)); }
   if (G.mode !== 'title' && W) {
     const near = [...G.remotes.values()].filter(r => r.ch.root.position.distanceTo(G.pos) < 15).length + NPCS.filter(n => n.ch.root.visible && n.ch.root.position.distanceTo(G.pos) < 15).length;
     SND.update(dt, tday(), W.night || 0, Math.max(0, Math.abs(G.pos.x - 125) - 13), near, Math.abs(G.pos.z) < 12 && G.pos.x > -100 && G.pos.x < 104);
     callTick(dt); peddlerTick(dt); updMatsuri(dt); festNotice();
   }
-  updBoats(W, dt); HN.hanaUpdate(dt); if (G.mode !== 'title') JB.jobUpdate(dt); W.update(dt, time, tday(), G.me ? G.me.root.position : new THREE.Vector3(), camera.position, quality);
+  updBoats(W, dt); FM.farmUpdate(dt); if (G.mode !== 'title') JB.jobUpdate(dt); W.update(dt, time, tday(), G.me ? G.me.root.position : new THREE.Vector3(), camera.position, quality);
   { const n = W.night || 0; SPR_LIGHT.value.setRGB(1.02 - .5 * n, 1 - .52 * n, .97 - .42 * n); } // 立繪亮度跟晝夜
   if (bloom) bloom.strength = .18 + W.night * .55;
 }
@@ -1631,7 +1640,7 @@ function drawMini(cv) {
   mg.fillStyle = '#a8a294'; mg.fillRect(X(-276), Z(68), 48 * sx, 48 * sx); mg.fillStyle = '#8a6440'; mg.fillRect(X(-228), Z(90), 24 * sx, 4 * sx);
   mg.fillStyle = '#4a3a2e'; mg.fillRect(X(-186.5), Z(57), 13 * sx, 18 * sx); mg.fillRect(X(-174), Z(110), 8 * sx, 8 * sx); mg.fillStyle = '#c8382a'; mg.fillRect(X(-125.6), Z(-76), 1.2 * sx, 53 * sx);
   mg.fillStyle = '#d9d2c2'; mg.fillRect(X(141), Z(-106), 74 * sx, 59 * sx); mg.fillStyle = '#4a3a2e'; mg.fillRect(X(158), Z(-104), 40 * sx, 26 * sx); mg.fillRect(X(167), Z(-50), 22 * sx, 6 * sx); mg.fillStyle = '#8a6440'; mg.fillRect(X(175.5), Z(-78), 5 * sx, 38 * sx);
-  mg.fillStyle = '#d6dcb8'; mg.fillRect(X(20), Z(-136), 66 * sx, 78 * sx); mg.fillStyle = '#e0c8b0'; mg.fillRect(X(-48), Z(-138), 68 * sx, 80 * sx); mg.fillStyle = '#c8322a'; mg.fillRect(X(-44), Z(-104), 16 * sx, 12 * sx);
+  mg.fillStyle = '#d6dcb8'; mg.fillRect(X(20), Z(-136), 66 * sx, 78 * sx); mg.fillStyle = '#e0c8b0'; mg.fillRect(X(-48), Z(-138), 68 * sx, 80 * sx); mg.fillStyle = '#c8d8a0'; mg.fillRect(X(-100), Z(46), 78 * sx, 90 * sx); mg.fillStyle = '#7a5636'; for (let r = 0; r < 2; r++) mg.fillRect(X(-91.5), Z(61 + r * 9), 34 * sx, 6 * sx); mg.fillStyle = '#c8322a'; mg.fillRect(X(-44), Z(-104), 16 * sx, 12 * sx);
   mg.fillStyle = '#d9d2c2'; mg.fillRect(X(86), Z(-134), 25.6 * sx, 96 * sx); mg.fillStyle = '#8a6440'; for (const p of [-60, -82, -104, -124]) mg.fillRect(X(111.6), Z(p - 1.2), 6.6 * sx, 2.4 * sx);
   mg.fillStyle = '#2a4b7c'; for (const [, R] of G.remotes) { mg.beginPath(); mg.arc(X(R.tx), Z(R.tz), 2.2, 0, 7); mg.fill(); }
   { const jm = JB.jobMark(); if (jm) { mg.fillStyle = '#e8a020'; mg.font = '700 16px sans-serif'; mg.textAlign = 'center'; mg.fillText('★', X(jm.x), Z(jm.z) + 5); mg.textAlign = 'start'; } }
@@ -1722,6 +1731,7 @@ async function runTest() {
   const until = async (f, ms = 45000) => { const t0 = performance.now(); while (!f() && performance.now() - t0 < ms) await sleep(50); return f(); };
   const near_ = () => near;
   const kashiTest = async () => {
+    const BEDS0 = { x: -88, z: 64 };
     // 隅田川河岸：釣魚、賣魚、町人帳
     ok(okAt(104, -62) && okAt(117, -82) && !okAt(89, -70) && !okAt(116, -70), '河岸可走、棧橋可走、攤位與河擋住');
     G.pos.set(117.4, 0, -82); ok(await until(() => near && near.type === 'fish'), '棧橋釣魚點');
@@ -1759,6 +1769,13 @@ async function runTest() {
     j0 = J0(); await sleep(1000); G.pos.set(98, 0, 4.4); await sleep(400); act(); if (!$('#jb3')) ok(false, '口入屋第三次 ' + (near && near.type)); else $('#jb3').click(); await sleep(300); { const cv = $('#pgc'), r = cv.getBoundingClientRect(), ev = (t, x, y) => cv.dispatchEvent(new PointerEvent(t, { clientX: r.left + x / 360 * r.width, clientY: r.top + y / 240 * r.height }));
       const t0 = performance.now(); while (!$('#pg').classList.contains('hide') && performance.now() - t0 < 40000) { ev('pointerdown', 10, 10); for (let y = 10; y < 240; y += 30) for (let x = 10; x < 360; x += 25) ev('pointermove', x, y); ev('pointerup', 0, 0); await sleep(200); }
       ok(J0() === j0 + 1, '町內打掃完成'); }
+    // 郊外農村
+    ok(okAt(-101, 90) && okAt(-99, 90) && okAt(-60, 84) && okAt(-30, 60), '農村可走、與名所南區相連');
+    G.pos.set(-38.2, 0, 58); ok(await until(() => near && near.type === 'seed'), '種屋'); act(); ok(!!$('[data-b="daikon"]'), '種屋面板'); $('[data-b="daikon"]').click(); ok((P.bag('seed').daikon || 0) >= 1, '買到大根種子'); closePanels();
+    G.pos.set(BEDS0.x, 0, BEDS0.z + 3.6); ok(await until(() => near && near.type === 'bed' && near.spot.i === 0), '我的田 1 號'); act(); ok(!!$('[data-p="daikon"]'), '播種選單'); $('[data-p="daikon"]').click(); ok(FM.farmState()[0] && FM.farmState()[0].c === 'daikon', '播下大根');
+    ok(!!$('#fmW'), '澆水按鈕'); $('#fmW').click(); ok(FM.farmState()[0].w, '澆了水'); closePanels();
+    FM.farmState()[0].t -= 2 * 3600e3; act(); ok(!!$('#fmH'), '成熟可收成'); $('#fmH').click(); ok(!FM.farmState()[0] && (P.bag('crop').daikon || 0) >= 3, '收成大根 ' + (P.bag('crop').daikon || 0));
+    G.pos.set(-38.2, 0, 74); ok(await until(() => near && near.type === 'veg'), '八百屋'); act(); { const m0 = G.money; $('#fmAll').click(); ok(G.money > m0 && !P.bag('crop').daikon, '賣菜拿到錢'); } closePanels();
     // 花街・金波楼
     ok(okAt(0, -98) && okAt(19, -98) && okAt(21, -98) && !okAt(-36, -98), '花街可走、與新開地相連、金波楼擋住');
     G.pos.set(-8, 0, -115.8); ok(await until(() => near && near.type === 'stage'), '舞台觀賞點'); { const m0 = G.money; act(); ok(G.money === m0 - 20 && !!G.shot, '付花代開始表演'); await until(() => !G.shot, 20000); ok(!G.shot && (P.prog().stats.show || 0) >= 1, '表演結束'); }
