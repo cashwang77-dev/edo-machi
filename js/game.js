@@ -5,20 +5,21 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611231912';
-import { RIDE_Y } from './chara.js?v=202611231912';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611231912';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611231912';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611231912';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611231912';
-import { Net } from './net.js?v=202611231912';
-import { cleanText } from './filter.js?v=202611231912';
-import { SND } from './audio.js?v=202611231912';
-import * as TX from './tex.js?v=202611231912';
-import * as P from './prog.js?v=202611231912';
-import * as F from './fishing.js?v=202611231912';
-import * as HM from './home.js?v=202611231912';
-import { updBoats } from './kashi.js?v=202611231912';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611231946';
+import { RIDE_Y } from './chara.js?v=202611231946';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611231946';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611231946';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611231946';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611231946';
+import { Net } from './net.js?v=202611231946';
+import { cleanText } from './filter.js?v=202611231946';
+import { SND } from './audio.js?v=202611231946';
+import * as TX from './tex.js?v=202611231946';
+import * as P from './prog.js?v=202611231946';
+import * as F from './fishing.js?v=202611231946';
+import * as HM from './home.js?v=202611231946';
+import * as HN from './hanamachi.js?v=202611231946';
+import { updBoats } from './kashi.js?v=202611231946';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -335,6 +336,9 @@ function act() {
   else if (near.type === 'fish') { G.ry = PI / 2; F.playFish(); }
   else if (near.type === 'fishmkt') F.openMarket();
   else if (near.type === 'plot') HM.openPlot(near.spot.i);
+  else if (near.type === 'stage') HN.watchShow();
+  else if (near.type === 'ozashiki') HN.openOzashiki();
+  else if (near.type === 'maiko') HN.playMaiko();
   else if (near.type === 'mat') HM.openStore(near.spot.k);
   else if (near.type === 'well') { G.me.say('井水好冰涼～'); emote(6); sfx(300, .3, 'sine', .05); }
   else if (near.type === 'pray') {
@@ -706,6 +710,7 @@ function placeName(x, z) {
   if (x < -200) return '江戶城'; if (x < -100 && z > 22) { if (z > 80 && x > -142) return '不忍池'; if (x < -160 && z < 90) return '中村座'; if (x < -150 && z > 95) return '回向院相撲'; return '名所南區'; }
   if (x > 84 && x < 119 && z < -36) return '隅田川河岸';
   if (x >= 20 && x <= 86 && z < -56) return '新開地';
+  if (x >= -48 && x < 20 && z < -56) return '花街';
   if (x > 140 && z < -38) return '東光寺'; if (x > 138 && z > 38) return '金閣寺'; if (x < -110 && z < -23) return '千本鳥居'; if (x > 145 && x < 160 && Math.abs(z) < 6) return '雷門'; if (x > 100 && x < 118) return '日本橋'; if (z < -20) return '神社一帶'; if (x < -90) return '町西';
   let best = '大街', bd = 9e9; for (const sh of SHOPS) { const d = Math.abs(sh.x - x) + Math.abs((sh.side || 1) * 11 - z); if (d < bd) { bd = d; best = sh.name || best; } } return bd < 14 ? best + '前' : '大街';
 }
@@ -770,7 +775,7 @@ async function switchRoom(i, x, z) {
 
 // ---------- 人力車：點路上的空車或按🛺叫車 → 選名所／點地圖／找玩家，車資依距離 ----------
 const RIDE = { fare2: 40 }; const RIDE_SPD = 4.8; // 乘車速度＝走路(3.2)的 1.5 倍，慢慢欣賞風景
-const DEST = [['大街中央', 0, 3], ['隅田川河岸', 104, -62], ['新開地（建地）', 52, -66], ['神社', -116, 4], ['千本鳥居', -125, -30], ['名所南區', -125, 50], ['江戶城', -212, 92], ['不忍池', -122, 86], ['中村座', -166, 66], ['回向院相撲', -170, 104], ['日本橋', 106, 0], ['雷門', 158, 4], ['露天風呂', 153, 8], ['東光寺', 178, -42], ['五重塔', 155, -90], ['金閣寺', 180, 97]];
+const DEST = [['大街中央', 0, 3], ['花街・金波楼', 0, -98], ['隅田川河岸', 104, -62], ['新開地（建地）', 52, -66], ['神社', -116, 4], ['千本鳥居', -125, -30], ['名所南區', -125, 50], ['江戶城', -212, 92], ['不忍池', -122, 86], ['中村座', -166, 66], ['回向院相撲', -170, 104], ['日本橋', 106, 0], ['雷門', 158, 4], ['露天風呂', 153, 8], ['東光寺', 178, -42], ['五重塔', 155, -90], ['金閣寺', 180, 97]];
 const GM_DEST = DEST;
 // 路線規劃：地圖切 1 公尺格子（可走＝walkable 且不碰障礙物），從起點做一次最短路，就能得到到每個地方的距離與路線
 const GR = { x0: -300, z0: -115, w: 535, h: 260 }; let GRID = null;
@@ -1425,6 +1430,7 @@ async function start() {
   updCount(); toast(G.online ? `歡迎來到江戶町${['一', '二', '三', '四', '五'][G.room - 1]}丁目！` : '目前為單人模式（伺服器未連線），NPC 會陪你玩', 3500);
   updHeld(); invMigrate();
   P.initProg({ G, store, toast, addMoney, setMoney, invGet, invAdd, prizeAcc, sfx, W, announceSelf: (s, n) => announce(s, n) });
+  HN.initHana({ G, P, W, scene, gameModal, toast, addMoney, afford, show, closePanels, SND, randomLook, makeNPC: (lk, gm) => { const ch = new NPCChara(lk, ''); if (gm) { ch.gm = true; ch.setLook(lk); } return ch; } });
   HM.initHome({ G, P, W, scene, gameModal, toast, addMoney, afford, show, closePanels, SND, announceSelf: (s, n) => announce(s, n) });
   F.initFishing({ G, P, gameModal, toast, addMoney, show, closePanels, SND, isNight, announceSelf: (s, n) => announce(s, n) });
   if (!store.get('helped', false) && !G.shot && !QS.has('nohelp')) { show('#help'); store.set('helped', true); }
@@ -1571,7 +1577,7 @@ function update(dt) {
     SND.update(dt, tday(), W.night || 0, Math.max(0, Math.abs(G.pos.x - 125) - 13), near, Math.abs(G.pos.z) < 12 && G.pos.x > -100 && G.pos.x < 104);
     callTick(dt); peddlerTick(dt); updMatsuri(dt); festNotice();
   }
-  updBoats(W, dt); W.update(dt, time, tday(), G.me ? G.me.root.position : new THREE.Vector3(), camera.position, quality);
+  updBoats(W, dt); HN.hanaUpdate(dt); W.update(dt, time, tday(), G.me ? G.me.root.position : new THREE.Vector3(), camera.position, quality);
   { const n = W.night || 0; SPR_LIGHT.value.setRGB(1.02 - .5 * n, 1 - .52 * n, .97 - .42 * n); } // 立繪亮度跟晝夜
   if (bloom) bloom.strength = .18 + W.night * .55;
 }
@@ -1622,7 +1628,7 @@ function drawMini(cv) {
   mg.fillStyle = '#a8a294'; mg.fillRect(X(-276), Z(68), 48 * sx, 48 * sx); mg.fillStyle = '#8a6440'; mg.fillRect(X(-228), Z(90), 24 * sx, 4 * sx);
   mg.fillStyle = '#4a3a2e'; mg.fillRect(X(-186.5), Z(57), 13 * sx, 18 * sx); mg.fillRect(X(-174), Z(110), 8 * sx, 8 * sx); mg.fillStyle = '#c8382a'; mg.fillRect(X(-125.6), Z(-76), 1.2 * sx, 53 * sx);
   mg.fillStyle = '#d9d2c2'; mg.fillRect(X(141), Z(-106), 74 * sx, 59 * sx); mg.fillStyle = '#4a3a2e'; mg.fillRect(X(158), Z(-104), 40 * sx, 26 * sx); mg.fillRect(X(167), Z(-50), 22 * sx, 6 * sx); mg.fillStyle = '#8a6440'; mg.fillRect(X(175.5), Z(-78), 5 * sx, 38 * sx);
-  mg.fillStyle = '#d6dcb8'; mg.fillRect(X(20), Z(-136), 66 * sx, 78 * sx);
+  mg.fillStyle = '#d6dcb8'; mg.fillRect(X(20), Z(-136), 66 * sx, 78 * sx); mg.fillStyle = '#e0c8b0'; mg.fillRect(X(-48), Z(-138), 68 * sx, 80 * sx); mg.fillStyle = '#c8322a'; mg.fillRect(X(-44), Z(-104), 16 * sx, 12 * sx);
   mg.fillStyle = '#d9d2c2'; mg.fillRect(X(86), Z(-134), 25.6 * sx, 96 * sx); mg.fillStyle = '#8a6440'; for (const p of [-60, -82, -104, -124]) mg.fillRect(X(111.6), Z(p - 1.2), 6.6 * sx, 2.4 * sx);
   mg.fillStyle = '#2a4b7c'; for (const [, R] of G.remotes) { mg.beginPath(); mg.arc(X(R.tx), Z(R.tz), 2.2, 0, 7); mg.fill(); }
   mg.fillStyle = '#e8322a'; mg.beginPath(); mg.arc(X(G.pos.x), Z(G.pos.z), 3.4, 0, 7); mg.fill(); mg.strokeStyle = '#fff'; mg.lineWidth = 1.5; mg.stroke();
@@ -1740,6 +1746,17 @@ async function runTest() {
       if (si) { si.value = 'andon'; si.dispatchEvent(new Event('change')); } const so2 = $('select[data-slot="o0"]'); if (so2) { so2.value = 'sakura'; so2.dispatchEvent(new Event('change')); }
       ok(HM.homeState().deco.i0 === 'andon' && HM.homeState().deco.o0 === 'sakura', '擺上行灯與櫻花樹'); } closePanels();
     G.pos.set(28, 0, -59.4); ok(await until(() => near && near.type === 'mat' && near.spot.k === 'zai'), '材木屋'); act(); ok(!!$('#hJob') && !!$('[data-b="hashira"]'), '材木屋面板與大工打工'); { const m0 = G.money; $('[data-b="hashira"]').click(); ok(G.money === m0 - 15 && (P.bag('mat').hashira || 0) >= 1, '買柱子'); } closePanels();
+    // 花街・金波楼
+    ok(okAt(0, -98) && okAt(19, -98) && okAt(21, -98) && !okAt(-36, -98), '花街可走、與新開地相連、金波楼擋住');
+    G.pos.set(-8, 0, -115.8); ok(await until(() => near && near.type === 'stage'), '舞台觀賞點'); { const m0 = G.money; act(); ok(G.money === m0 - 20 && !!G.shot, '付花代開始表演'); await until(() => !G.shot, 20000); ok(!G.shot && (P.prog().stats.show || 0) >= 1, '表演結束'); }
+    G.pos.set(-27.4, 0, -98); ok(await until(() => near && near.type === 'ozashiki'), 'お座敷入口'); act(); ok(!!$('#oz1'), 'お座敷選單');
+    $('#oz1').click(); await sleep(300); { let lastB = -1; const t0 = performance.now(); while (!$('#pg').classList.contains('hide') && performance.now() - t0 < 60000) { const k = window.__konpira; if (k && k.alive && !k.answered && k.beat > 0) { if (k.beat >= 16) { k.judge(k.has ? 1 : 0); } else k.judge(k.has ? 0 : 1); } await sleep(30); } ok((window.__konpira || {}).beat >= 16, '金毘羅船々 撐到 16 拍 ' + (window.__konpira || {}).beat); }
+    await sleep(1200); act(); $('#oz2').click(); await sleep(300); { const cv = $('#pgc'), dn = () => cv.dispatchEvent(new PointerEvent('pointerdown')); const t0 = performance.now();
+      while (!$('#pg').classList.contains('hide') && performance.now() - t0 < 60000) { const q = window.__tosen; if (q && !q.flyNow()) { if (q.stNow() === 0 && Math.abs(q.angNow()) < .02) dn(); else if (q.stNow() === 1 && Math.abs(q.powNow() - .76) < .015) dn(); } await sleep(4); }
+      ok((window.__tosen || {}).pts >= 9, '投扇興得分 ' + (window.__tosen || {}).pts); }
+    await sleep(1200); G.pos.set(6, 0, -80.6); ok(await until(() => near && near.type === 'maiko'), '置屋'); act(); await sleep(300);
+    { const cv = $('#pgc'); const t0 = performance.now(); while (!$('#pg').classList.contains('hide') && performance.now() - t0 < 60000) { const m = window.__maiko; if (m) for (const n of m.notes) if (!n.done && Math.abs((performance.now() - m.start) / 1000 - n.t) < .05) { const r = cv.getBoundingClientRect(); cv.dispatchEvent(new PointerEvent('pointerdown', { clientX: r.left + (n.lane + .5) / 3 * r.width, clientY: r.top + 10 })); } await sleep(8); }
+      ok((window.__maiko || {}).hit >= 12, '舞妓打工命中 ' + (window.__maiko || {}).hit); }
   };
   try {
     await sleep(600); setMoney(2000);
