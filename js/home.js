@@ -4,15 +4,15 @@ const PI = Math.PI;
 export const AREA = { x0: 20, x1: 86, z0: -136, z1: -58 };
 export const PLOTS = []; for (const z of [-74, -96, -118]) for (const x of [32, 46, 60, 74]) PLOTS.push({ x, z });
 export function walkHome(x, z) { return x >= AREA.x0 && x <= AREA.x1 && z >= AREA.z0 && z <= AREA.z1; }
-const LAND = 200; // 地價
+export const LAND = 1500; /* 地價（11/23 調高：整棟約 3200 文，要存一陣子才買得起） */
 
 // 材料：[id, 名, 店, 價]
-export const MAT = [['ishi', '礎石', 'zai', 8], ['hashira', '柱', 'zai', 15], ['hari', '梁', 'zai', 25], ['ita', '板材', 'zai', 10],
-  ['kawara', '瓦（10 片一束）', 'kawa', 20], ['shoji', '障子', 'tate', 18], ['tatami', '畳', 'tata', 20]];
+export const MAT = [['ishi', '礎石', 'zai', 30], ['hashira', '柱', 'zai', 60], ['hari', '梁', 'zai', 120], ['ita', '板材', 'zai', 35],
+  ['kawara', '瓦（10 片一束）', 'kawa', 90], ['shoji', '障子', 'tate', 70], ['tatami', '畳', 'tata', 80]];
 // 家具：[id, 名, 價, 放哪 in|out|both]
-export const FURN = [['andon', '行灯', 30, 'in'], ['hibachi', '火鉢', 40, 'in'], ['byobu', '金屏風', 60, 'in'], ['kakejiku', '掛軸', 50, 'in'], ['tansu', '箪笥', 80, 'in'],
-  ['bonsai', '盆栽', 35, 'both'], ['maneki', '招き猫', 45, 'both'], ['chochin', '赤提灯', 20, 'out'], ['endai', '縁台', 40, 'out'], ['toro', '石燈籠', 90, 'out'],
-  ['koinobori', '鯉のぼり', 70, 'out'], ['ido', '井戸', 120, 'out'], ['sakura', '桜の木', 100, 'out'], ['matsu', '松の木', 100, 'out'], ['ike', '小池', 150, 'out']];
+export const FURN = [['andon', '行灯', 80, 'in'], ['hibachi', '火鉢', 100, 'in'], ['byobu', '金屏風', 180, 'in'], ['kakejiku', '掛軸', 140, 'in'], ['tansu', '箪笥', 220, 'in'],
+  ['bonsai', '盆栽', 90, 'both'], ['maneki', '招き猫', 120, 'both'], ['chochin', '赤提灯', 50, 'out'], ['endai', '縁台', 100, 'out'], ['toro', '石燈籠', 240, 'out'],
+  ['koinobori', '鯉のぼり', 180, 'out'], ['ido', '井戸', 320, 'out'], ['sakura', '桜の木', 260, 'out'], ['matsu', '松の木', 260, 'out'], ['ike', '小池', 400, 'out']];
 export const STORES = { zai: ['材木屋 木曽屋', '「上等的檜木，蓋房子就靠它！」'], kawa: ['瓦屋 瓦善', '「屋頂沒瓦，下雨可就慘囉。」'], tate: ['建具屋 戸田屋', '「障子紙是今早剛糊的。」'], tata: ['畳屋 畳清', '「藺草香，聞了就想躺。」'], yoro: ['萬屋 よろづ屋', '「家具擺飾，應有盡有！」'] };
 // 工序：[名, 說明, 需要材料, 小遊戲]
 export const STEPS = [['整地・礎石', '把地面夯平，放上礎石', { ishi: 4 }, 'mash'], ['柱立て', '一根一根立起柱子', { hashira: 4 }, 'tap'], ['上棟', '架上大樑，辦上棟式！', { hari: 2 }, 'hold'],
@@ -173,7 +173,7 @@ export function openPlot(i) {
   if (who && (!h || h.plot !== i)) return panel(`<h2>建地 ${i + 1} 號</h2><p class="sub">這裡是「${who}」的家。${h ? '' : '找一塊空地蓋自己的家吧！'}</p>`);
   if (!h) {
     const pp = panel(`<h2>建地 ${i + 1} 號<small>新開地</small></h2><p class="sub">一塊 12 × 12 的空地。買下後就能在這裡蓋自己的家，之後到北邊的建材店買材料，一步一步動工！</p>
-      <p class="sub">地價：<b>${LAND}</b> 文　身上：${A.G.money} 文</p><div class="btns"><button class="big" id="hBuy">🏡 買下這塊地</button></div>`);
+      <p class="sub">地價：<b>${LAND}</b> 文　身上：${A.G.money} 文<br>蓋好一整棟，材料大約還要 <b>${STEPS.reduce((t, st) => t + Object.entries(st[2]).reduce((a, [k, n]) => a + MAT.find(m => m[0] === k)[3] * n, 0), 0)}</b> 文。打工、釣魚、種田、完成委託都能存錢！</p><div class="btns"><button class="big" id="hBuy">🏡 買下這塊地</button></div>`);
     pp.querySelector('#hBuy').onclick = () => { if (!A.afford(LAND)) return A.toast('錢不夠喔，先去打工或賣魚吧'); A.addMoney(-LAND, '買地'); setHome({ plot: i, stage: 0, deco: {} }); A.P.ev('build', { k: 'land' }); rebuild(); A.toast('買下建地了！到北邊的「材木屋」買礎石開始施工吧', 4000); openPlot(i); };
     return;
   }
@@ -197,7 +197,7 @@ function doStep() {
     for (const [k, n] of Object.entries(st[2])) A.P.bagAdd('mat', k, -n);
     h.stage++; setHome(h); rebuild(); A.P.ev('build', { k: 'step' + h.stage }); A.P.addXp(30 + h.stage * 5);
     A.G.me.emoji('🔨'); A.toast(`完成工序「${st[0]}」！${h.stage < STEPS.length ? '下一步：' + STEPS[h.stage][0] : ''}`, 3500);
-    if (h.stage === 3) { A.announceSelf('上棟式！撒餅慶祝 🎉（獲得 60 文賀禮）', '我的家'); A.addMoney(60, '上棟式賀禮'); A.G.me.emoji('🎊'); }
+    if (h.stage === 3) { A.announceSelf('上棟式！撒餅慶祝 🎉（獲得 150 文賀禮）', '我的家'); A.addMoney(150, '上棟式賀禮'); A.G.me.emoji('🎊'); }
     if (h.stage === STEPS.length) { A.announceSelf('房子蓋好了！到萬屋買家具來裝飾吧', '我的家'); A.P.addXp(120); A.G.me.emoji('🏡'); }
   });
 }

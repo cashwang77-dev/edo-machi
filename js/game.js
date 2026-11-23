@@ -5,25 +5,25 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611232252';
-import { RIDE_Y } from './chara.js?v=202611232252';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611232252';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611232252';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611232252';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611232252';
-import { Net } from './net.js?v=202611232252';
-import { cleanText } from './filter.js?v=202611232252';
-import { SND } from './audio.js?v=202611232252';
-import * as TX from './tex.js?v=202611232252';
-import * as P from './prog.js?v=202611232252';
-import * as F from './fishing.js?v=202611232252';
-import * as HM from './home.js?v=202611232252';
-import * as HN from './hanamachi.js?v=202611232252';
-import * as JB from './jobs.js?v=202611232252';
-import * as FM from './farm.js?v=202611232252';
-import * as ON from './onsen.js?v=202611232252';
-import * as SO from './social.js?v=202611232252';
-import { updBoats } from './kashi.js?v=202611232252';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611232331';
+import { RIDE_Y } from './chara.js?v=202611232331';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611232331';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611232331';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611232331';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611232331';
+import { Net } from './net.js?v=202611232331';
+import { cleanText } from './filter.js?v=202611232331';
+import { SND } from './audio.js?v=202611232331';
+import * as TX from './tex.js?v=202611232331';
+import * as P from './prog.js?v=202611232331';
+import * as F from './fishing.js?v=202611232331';
+import * as HM from './home.js?v=202611232331';
+import * as HN from './hanamachi.js?v=202611232331';
+import * as JB from './jobs.js?v=202611232331';
+import * as FM from './farm.js?v=202611232331';
+import * as ON from './onsen.js?v=202611232331';
+import * as SO from './social.js?v=202611232331';
+import { updBoats } from './kashi.js?v=202611232331';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -1772,7 +1772,7 @@ async function runTest() {
     // 新開地：買地、6 道工序、裝飾、建材店
     ok(okAt(52, -80) && okAt(30, -100) && okAt(86, -100), '新開地可走、與河岸相連');
     G.pos.set(36.5, 0, -66.7); ok(await until(() => near && near.type === 'plot' && near.spot.i === 0), '建地告示牌');
-    setMoney(3000); act(); ok(!!$('#hBuy'), '買地面板'); $('#hBuy').click(); ok(HM.homeState() && HM.homeState().stage === 0 && G.money === 2800, '買下建地');
+    setMoney(3000); act(); ok(!!$('#hBuy'), '買地面板'); $('#hBuy').click(); ok(HM.homeState() && HM.homeState().stage === 0 && G.money === 3000 - HM.LAND, '買下建地');
     const playB = async () => { const cv = $('#pgc'), dn = () => cv.dispatchEvent(new PointerEvent('pointerdown')), up = () => cv.dispatchEvent(new PointerEvent('pointerup')); const t0 = performance.now(); window.__build = null;
       while (!$('#pg').classList.contains('hide') && performance.now() - t0 < 60000) { const b = window.__build; if (!b || b.fin) { await sleep(30); continue; }
         if (b.kind === 'tap') { if (Math.abs(b.xNow() - b.zc) < b.zw / 2 - .01) { dn(); up(); await sleep(150); } else await sleep(5); }
@@ -1783,7 +1783,7 @@ async function runTest() {
     P.bagAdd('furn', 'andon', 1); P.bagAdd('furn', 'sakura', 1); act(); { const si = $('select[data-slot="i0"]'), so = $('select[data-slot="o0"]'); ok(!!si && !!so, '裝飾面板');
       if (si) { si.value = 'andon'; si.dispatchEvent(new Event('change')); } const so2 = $('select[data-slot="o0"]'); if (so2) { so2.value = 'sakura'; so2.dispatchEvent(new Event('change')); }
       ok(HM.homeState().deco.i0 === 'andon' && HM.homeState().deco.o0 === 'sakura', '擺上行灯與櫻花樹'); } closePanels();
-    G.pos.set(28, 0, -59.4); ok(await until(() => near && near.type === 'mat' && near.spot.k === 'zai'), '材木屋'); act(); ok(!!$('#hJob') && !!$('[data-b="hashira"]'), '材木屋面板與大工打工'); { const m0 = G.money; $('[data-b="hashira"]').click(); ok(G.money === m0 - 15 && (P.bag('mat').hashira || 0) >= 1, '買柱子'); } closePanels();
+    G.pos.set(28, 0, -59.4); ok(await until(() => near && near.type === 'mat' && near.spot.k === 'zai'), '材木屋'); act(); ok(!!$('#hJob') && !!$('[data-b="hashira"]'), '材木屋面板與大工打工'); { const m0 = G.money; $('[data-b="hashira"]').click(); ok(G.money === m0 - HM.MAT.find(m => m[0] === 'hashira')[3] && (P.bag('mat').hashira || 0) >= 1, '買柱子'); } closePanels();
     // 口入屋打工
     G.pos.set(98, 0, 4.4); ok(await until(() => near && near.type === 'kuchi'), '口入屋告示牌'); act(); ok(!!$('#jb1'), '口入屋面板');
     $('#jb1').click(); { const mk = JB.jobMark(); ok(!!mk, '接到送信任務'); const m0 = G.money; G.pos.set(mk.x, 0, mk.z); await until(() => !JB.jobMark(), 8000); ok(!JB.jobMark() && G.money > m0, '送信完成領工錢'); }
