@@ -5,24 +5,25 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611232221';
-import { RIDE_Y } from './chara.js?v=202611232221';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611232221';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611232221';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611232221';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611232221';
-import { Net } from './net.js?v=202611232221';
-import { cleanText } from './filter.js?v=202611232221';
-import { SND } from './audio.js?v=202611232221';
-import * as TX from './tex.js?v=202611232221';
-import * as P from './prog.js?v=202611232221';
-import * as F from './fishing.js?v=202611232221';
-import * as HM from './home.js?v=202611232221';
-import * as HN from './hanamachi.js?v=202611232221';
-import * as JB from './jobs.js?v=202611232221';
-import * as FM from './farm.js?v=202611232221';
-import * as ON from './onsen.js?v=202611232221';
-import { updBoats } from './kashi.js?v=202611232221';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611232252';
+import { RIDE_Y } from './chara.js?v=202611232252';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611232252';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611232252';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611232252';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611232252';
+import { Net } from './net.js?v=202611232252';
+import { cleanText } from './filter.js?v=202611232252';
+import { SND } from './audio.js?v=202611232252';
+import * as TX from './tex.js?v=202611232252';
+import * as P from './prog.js?v=202611232252';
+import * as F from './fishing.js?v=202611232252';
+import * as HM from './home.js?v=202611232252';
+import * as HN from './hanamachi.js?v=202611232252';
+import * as JB from './jobs.js?v=202611232252';
+import * as FM from './farm.js?v=202611232252';
+import * as ON from './onsen.js?v=202611232252';
+import * as SO from './social.js?v=202611232252';
+import { updBoats } from './kashi.js?v=202611232252';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -89,6 +90,7 @@ function edoTime(t) {
 // 遊戲時間＝台灣時間（UTC+8）；GM 調時間時加上偏移
 const twDay = () => ((Date.now() / 1000 + 8 * 3600) % 86400) / 86400;
 function makeNPC(lk, gm) { const ch = new NPCChara(lk, ''); if (gm) { ch.gm = true; ch.setLook(lk); } EXTRA.push(ch); return ch; }
+function snapshot() { render(); const c = document.createElement('canvas'), s = renderer.domElement; c.width = s.width; c.height = s.height; c.getContext('2d').drawImage(s, 0, 0); return c; }
 function isNight() { const h = tday() * 24; return h < 5.5 || h > 18.5; }
 function tday() { if (QS.has('t')) return +QS.get('t'); return (twDay() + G.timeOff + 1) % 1; }
 const sfx = (() => { let ac; return (f = 660, d = .12, type = 'sine', v = .08) => { try { ac = ac || new AudioContext(); const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = f; g.gain.value = v; g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + d); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + d); } catch (e) {} }; })();
@@ -694,10 +696,12 @@ function openCard(c) {
   h += `<button data-k="hi">👋 打招呼</button><button data-k="five">🤝 擊掌</button>`;
   if (isN) h += `<button data-k="talk">💬 聊天</button>${has ? '<button data-k="food">🍡 請他吃</button>' : ''}`;
   else h += `<button data-k="g10">🎁 送 10 文</button><button data-k="g50">🎁 送 50 文</button>${has ? '<button data-k="food">🍡 送手上的食物</button>' : ''}<button data-k="w">🤫 悄悄話</button><button data-k="follow">🧭 跟著走</button>`;
+  if (!isN) h += `<div class="pc">${SO.cardButtons(R)}</div>`;
   h += '</div>';
   if (G.gm && !isN) h += `<div class="pc gmrow"><button data-g="傳送">傳送過去</button><button data-g="召喚">召喚過來</button><button data-g="給">給 100 文</button><button data-g="禁言">禁言 10 分</button><button data-g="解禁">解禁</button><button data-g="踢">踢出</button></div>`;
   el.innerHTML = h; el.classList.remove('hide');
   el.querySelector('[data-x]').onclick = () => el.classList.add('hide');
+  el.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { el.classList.add('hide'); SO.cardAction(b.dataset.s, c.id, R); });
   const tp = () => isN ? c.npc.ch.root.position : R.ch.root.position;
   el.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
     const k = b.dataset.k, p = tp(), dist = Math.hypot(p.x - G.pos.x, p.z - G.pos.z); el.classList.add('hide');
@@ -856,7 +860,7 @@ function drawRide() {
   <canvas id="gmMap" width="520" height="260" style="width:100%;border-radius:10px;border:1.5px solid var(--line);cursor:crosshair;margin:6px 0"></canvas>
   <p class="sub" style="margin:0">↑ 也可以直接點地圖上想去的地方</p>
   ${G.online ? `<p class="sub" style="margin:8px 0 0">去找玩家：</p><div class="rlist">${!all ? '<p class="sub">車夫正在打聽大家在哪裡…</p>' : all.length ? all.map(q => { const fee = pFee(q);
-    return `<button class="rp" data-id="${q.id}" data-room="${q.room}" ${gm || afford(fee) ? '' : 'disabled'}><b>${q.gm ? '👑 ' : ''}${esc(q.n)}</b><small>${ROOM_ZH[q.room] || q.room}・${placeName(q.x, q.z)}</small><span>${gm ? '' : fee + ' 文'}</span></button>`; }).join('') : '<p class="sub">現在沒有其他真人玩家在線</p>'}</div>` : ''}
+    return `<button class="rp" data-id="${q.id}" data-room="${q.room}" ${gm || afford(fee) ? '' : 'disabled'}><b>${SO.isFriend(q.n) ? '⭐ ' : ''}${q.gm ? '👑 ' : ''}${esc(q.n)}</b><small>${ROOM_ZH[q.room] || q.room}・${placeName(q.x, q.z)}</small><span>${gm ? '' : fee + ' 文'}</span></button>`; }).join('') : '<p class="sub">現在沒有其他真人玩家在線</p>'}</div>` : ''}
   <div class="btns"><button id="rX">算了</button></div>`;
   show('#panel'); $('#rX').onclick = () => { RIDE.from = null; closePanels(); };
   const go = (q, fee) => { if (gm && q.room === myRoom) return gmRide(q.x, q.z, q.n); bookRide(q, gm ? 0 : fee); };
@@ -1440,7 +1444,8 @@ async function start() {
   let r = 'offline';
   for (let tries = 0; SERVER && tries < 2; tries++) {
     if (tries) { $('#go').textContent = '連線較慢，重試中…'; }
-    for (let i = 1; i <= 5; i++) { r = await net.connect({ n, lk: G.look, x: G.pos.x, z: G.pos.z, k: store.get('gmk', '') }, 'edo' + i); if (r !== 'full') { G.room = i; break; } }
+    const st = +QS.get('st'), order = [1, 2, 3, 4, 5].sort((a, b) => (b === st) - (a === st)); // 邀請連結指定的街優先
+    for (const i of order) { r = await net.connect({ n, lk: G.look, x: G.pos.x, z: G.pos.z, k: store.get('gmk', '') }, 'edo' + i); if (r !== 'full') { G.room = i; break; } }
     if (r !== 'offline') break;
   }
   G.online = r === 'ok';
@@ -1449,12 +1454,14 @@ async function start() {
   G.mode = 'walk'; cam.yaw = PI / 2 - .25; cam.pitch = .3; cam.dist = 6.5;
   updCount(); toast(G.online ? `歡迎來到江戶町${['一', '二', '三', '四', '五'][G.room - 1]}丁目！` : '目前為單人模式（伺服器未連線），NPC 會陪你玩', 3500);
   updHeld(); invMigrate();
-  P.initProg({ G, store, toast, addMoney, setMoney, invGet, invAdd, prizeAcc, sfx, W, announceSelf: (s, n) => announce(s, n) });
+  P.initProg({ together: () => SO.together(), friendsHtml: () => SO.friendsHtml(), bindFriends: c => SO.bindFriends(c), G, store, toast, addMoney, setMoney, invGet, invAdd, prizeAcc, sfx, W, announceSelf: (s, n) => announce(s, n) });
   ON.initOnsen({ G, P, W, scene, gameModal, toast, addMoney, afford, show, closePanels, SND, randomLook, makeNPC, isNight, sitAt, prizeAcc });
   FM.initFarm({ G, P, W, scene, toast, addMoney, afford, show, closePanels, SND, randomLook, makeNPC });
   JB.initJobs({ G, P, W, scene, gameModal, toast, addMoney, show, closePanels, SND, DEST });
   HN.initHana({ G, P, W, scene, gameModal, toast, addMoney, afford, show, closePanels, SND, randomLook, makeNPC });
-  HM.initHome({ sendHome: h => { if (G.online) net.send({ t: 'home', h }); }, G, P, W, scene, gameModal, toast, addMoney, afford, show, closePanels, SND, announceSelf: (s, n) => announce(s, n) });
+  HM.initHome({ visit: (id, n, i) => SO.visitPanel(id, n, i), sendHome: h => { if (G.online) net.send({ t: 'home', h }); }, G, P, W, scene, gameModal, toast, addMoney, afford, show, closePanels, SND, announceSelf: (s, n) => announce(s, n) });
+  SO.initSocial({ G, P, net, toast, addMoney, afford, show, closePanels, SND, QS, HN, announce, openRide, whoRooms: () => RIDE.rooms, roomName: r => ROOM_ZH[r] || r, closeProg: () => show('#prog', false), snapshot });
+  SO.inviteCheck();
   F.initFishing({ G, P, gameModal, toast, addMoney, show, closePanels, SND, isNight, announceSelf: (s, n) => announce(s, n) });
   if (!store.get('helped', false) && !G.shot && !QS.has('nohelp')) { show('#help'); store.set('helped', true); }
   sfx(660, .3); setTimeout(() => sfx(990, .4), 180);
@@ -1480,6 +1487,7 @@ net.on('act', m => {
   if (m.k === 'five') toast(`🤝 ${m.n} 跟你擊掌！`);
   if (m.k === 'gift') { addMoney(+m.v, `${m.n} 送的`); toast(`🎁 ${m.n} 送你 ${m.v} 文`); sfx(1046, .2); }
   if (m.k === 'food') { const it = itemById(m.v); if (it) { setHeld(m.v); toast(`🍡 ${m.n} 送你「${it.n}」`); } }
+  SO.onAct(m);
 });
 net.on('actfx', m => { if (m.k === 'five') { fxFor(m.a, 16, 1.6); fxFor(m.b, 16, 1.6); } if (m.k === 'hi') fxFor(m.a, 7, 2); });
 net.on('w', m => { logLine(`🤫 <b>${m.self ? '你→' + esc(G.remotes.get(m.to)?.n || '') : esc(m.n)}</b>：${esc(m.s)}`, 'whisper'); if (!m.self) sfx(880, .1); });
@@ -1489,7 +1497,7 @@ net.on('time', m => { G.timeOff = m.off; });
 net.on('muted', m => { const t = new Date(m.until); toast(`${m.auto ? '因多次不雅用語，' : ''}你被禁言到 ${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`, 4000); });
 net.on('kicked', () => toast('你已被管理員請出江戶町', 6000));
 net.on('tp', m => { if (G.mode === 'owner') leaveOwner(); if (G.mode === 'seat' || G.mode === 'bath') standUp(); G.pos.set(m.x, heightAt(m.x, m.z), m.z); if (!okAt(m.x, m.z)) G.pos.set(m.x - 1, 0, m.z); toast('✨ 瞬間移動！'); });
-net.on('join', m => { addRemote(m); if (m.gm) { announce(`花魁「${m.n}」駕到`, '花魁道中'); const R = G.remotes.get(m.id); if (R) R.ch.emoji('🌸'); } else toast(`「${m.n}」來到了江戶町`); });
+net.on('join', m => { addRemote(m); SO.onJoin(m); if (m.gm) { announce(`花魁「${m.n}」駕到`, '花魁道中'); const R = G.remotes.get(m.id); if (R) R.ch.emoji('🌸'); } else toast(`「${m.n}」來到了江戶町`); });
 net.on('leave', m => delRemote(m.id));
 net.on('s', m => { for (const [id, x, z, y, r, a] of m.p) { const R = G.remotes.get(id); if (R) { R.tx = x; R.tz = z; R.ty = y; R.tr = r; R.a = a; } } });
 net.on('chat', m => onChat(m.id, m.s));
@@ -1680,8 +1688,9 @@ $('#lvchip').onclick = () => { pop(null); P.open(); }; $('#bProg').onclick = () 
 $('#bRide').onclick = () => { pop(null); openRide(); };
 $('#online').onclick = () => { pop(null); if (!G.online) return toast('目前是單人模式，沒有其他玩家'); G.gm ? openGM() : openRide(); };
 $('#bGM').onclick = openGM;
+$('#bPhoto').onclick = () => { pop(null); SO.photo(); };
 $('#bMore').onclick = () => { const m = $('#moreMenu'), gm = !$('#bGM').classList.contains('hide');
-  m.innerHTML = (gm ? '<button class="gm" data-m="bGM">👑 GM 管理面板</button>' : '') + [['bView', '🌅 看風景'], ['bFS', '⛶ 全螢幕'], ['bHelp', '❔ 遊戲說明'], ['bSet', '⚙ 設定']].map(([id, n]) => `<button data-m="${id}">${n}</button>`).join('');
+  m.innerHTML = (gm ? '<button class="gm" data-m="bGM">👑 GM 管理面板</button>' : '') + [['bPhoto', '📷 拍紀念照'], ['bView', '🌅 看風景'], ['bFS', '⛶ 全螢幕'], ['bHelp', '❔ 遊戲說明'], ['bSet', '⚙ 設定']].map(([id, n]) => `<button data-m="${id}">${n}</button>`).join('');
   m.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { pop(null); $('#' + b.dataset.m).click(); }); pop('#moreMenu'); };
 $('#bHelp').onclick = () => show('#help');
 $('#bFS').onclick = toggleFS;
@@ -1798,6 +1807,15 @@ async function runTest() {
     G.pos.set(240, 0, 21.8); ok(await until(() => near && near.type === 'ryokan'), '湯けむり荘'); act(); ok(!!$('#ryS') && !!$('#ryT'), '旅館面板'); $('#ryS').click(); ok(P.prog().ryokan, '住一晚');
     act(); $('#ryT').click(); await sleep(300); { const t0 = performance.now(); while (!$('#pg').classList.contains('hide') && performance.now() - t0 < 90000) { const q = window.__pp; if (q && !q.done) q.setPx(q.b.x + (q.b.x < 180 ? 22 : -22)); await sleep(10); } ok((window.__pp || {}).me >= 5 || (window.__pp || {}).ai >= 5, '溫泉卓球打完一局 ' + (window.__pp || {}).me + ':' + (window.__pp || {}).ai); }
     G.pos.set(102.8, 0, -100); await sleep(600); ok(!(near && near.type === 'yoichi'), '白天沒有夜市'); ON.openYoichi(0); { $('#yoB').click(); ok(P.prog().dex.night && P.prog().dex.night.soba && (P.prog().stats.night || 0) >= 1, '夜市買夜鳴きそば、登錄圖鑑'); }
+    // 玩家互動（離線用假訊息模擬對手）
+    SO.onAct({ from: 'pX', n: '假朋友', k: 'friend' }); ok(!!$('#soY'), '收到好友邀請面板'); $('#soY').click(); ok(SO.isFriend('假朋友'), '成為好友');
+    P.open('fr'); ok(!!$('#soInv') && $('#prog .card').innerText.includes('假朋友'), '友帳分頁（好友名單＋邀請連結）'); show('#prog', false);
+    { const m0 = G.money; SO.onAct({ from: 'pX', n: '假朋友', k: 'duel', v: 20 }); ok(!!$('#soY'), '收到戰帖'); $('#soY').click(); await sleep(300); ok(G.money === m0 - 20 && !$('#pg').classList.contains('hide'), '接受對決、押金 20 文');
+      const cv = $('#pgc'), dn = () => cv.dispatchEvent(new PointerEvent('pointerdown')); const t0 = performance.now();
+      while (!$('#pg').classList.contains('hide') && performance.now() - t0 < 60000) { const q = window.__tosen; if (q && !q.flyNow()) { if (q.stNow() === 0 && Math.abs(q.angNow()) < .02) dn(); else if (q.stNow() === 1 && Math.abs(q.powNow() - .76) < .015) dn(); } await sleep(4); }
+      await sleep(300); const m1 = G.money; SO.onAct({ from: 'pX', n: '假朋友', k: 'duelres', v: '0' }); ok(G.money >= m1 + 40, '對決勝利拿走 40 文 ' + (G.money - m1)); }
+    { SO.onAct({ from: 'pX', n: '假朋友', k: 'note', v: '你家真漂亮' }); ok((P.prog().notes || [])[0]?.s === '你家真漂亮', '收到家門口留言'); }
+    SO.photo(); await sleep(500); ok(!!$('#panel img') && $('#panel img').naturalWidth > 100, '紀念照'); closePanels();
     // 花街・金波楼
     ok(okAt(0, -98) && okAt(19, -98) && okAt(21, -98) && !okAt(-36, -98), '花街可走、與新開地相連、金波楼擋住');
     G.pos.set(-8, 0, -115.8); ok(await until(() => near && near.type === 'stage'), '舞台觀賞點'); { const m0 = G.money; act(); ok(G.money === m0 - 20 && !!G.shot, '付花代開始表演'); await until(() => !G.shot, 20000); ok(!G.shot && (P.prog().stats.show || 0) >= 1, '表演結束'); }

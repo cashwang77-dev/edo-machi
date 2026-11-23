@@ -1,6 +1,6 @@
 // 町人帳：個人進度（等級／稱號、每日簽到、町人委託、圖鑑、存檔備份）
 // 存在瀏覽器 localStorage（edo_save_<暱稱>），另可匯出／匯入備份碼
-import { SHOPS, ACC } from './shops.js?v=202611232221';
+import { SHOPS, ACC } from './shops.js?v=202611232252';
 
 let A = null; // game.js 傳進來的介面
 let S = null; // 目前存檔
@@ -48,6 +48,7 @@ const QPOOL = [
   { id: 'bath', ev: 'bath', n: [1, 2], t: n => `到湯の郷泡 ${n} 次溫泉`, rew: [40, 25] },
   { id: 'gather', ev: 'gather', n: [2, 3], t: n => `在湯の郷山邊採集 ${n} 次山貨`, rew: [45, 30] },
   { id: 'night', ev: 'night', n: [1], t: () => `晚上到隅田川河岸的夜市買一樣東西`, rew: [40, 25] },
+  { id: 'photo', ev: 'photo', n: [1], t: () => `拍一張紀念照（玩家卡片或 📷）`, rew: [30, 20] },
   { id: 'order', ev: 'get', n: [1], pick: 'shop', t: (n, x, nm) => `到「${nm}」點一份餐`, rew: [35, 20] },
 ];
 const QEXTRA = []; export function addQuest(q) { QEXTRA.push(q); }
@@ -90,7 +91,7 @@ export function addXp(n, why) {
 
 // ---- 事件 ----
 // cook{item,q,shop} eat{id} get{item,shop} buy{} spot{k} play{k} deer pray ride acc{id} fish{k} crop{k} gather{k}
-const XP = { bath: 3, pingpong: 4, plant: 3, water: 1, sellveg: 4, ozashiki: 4, build: 5, mat: 1, furn: 3, deco: 2, sell: 4, job: 10, cook: 10, eat: 5, get: 3, buy: 6, spot: 4, play: 8, deer: 3, pray: 5, ride: 6, fish: 8, crop: 10, gather: 6, night: 6, home: 2 };
+const XP = { friend: 15, visit: 3, duel: 8, photo: 2, bath: 3, pingpong: 4, plant: 3, water: 1, sellveg: 4, ozashiki: 4, build: 5, mat: 1, furn: 3, deco: 2, sell: 4, job: 10, cook: 10, eat: 5, get: 3, buy: 6, spot: 4, play: 8, deer: 3, pray: 5, ride: 6, fish: 8, crop: 10, gather: 6, night: 6, home: 2 };
 export function ev(type, d = {}) {
   if (!S) return;
   S.stats[type] = (S.stats[type] || 0) + 1;
@@ -112,6 +113,7 @@ export function ev(type, d = {}) {
     if (q.x && q.ev !== 'spot' && q.ev !== 'get' && d.k && q.x !== d.k) continue;
     q.have++; if (q.have >= q.need) { q.done = true; A.toast(`📜 委託完成：${q.t}（打開町人帳領獎）`, 3500); A.sfx(880, .2); }
   }
+  if (xp && A.together && !['friend', 'acc'].includes(type)) { const t = A.together(); if (t.length) xp = Math.round(xp * 1.5); } // 同樂加成
   if (xp) addXp(xp); else { save(); hud(); }
 }
 function checkDexDone(cat) {
@@ -168,7 +170,7 @@ export function hud() {
 let tab = 'day';
 export function open(t) {
   if (!S) return; tab = t || tab; dailyCheck(); const m = $('#prog'); const c = m.querySelector('.card');
-  const tabs = [['day', '今日'], ['dex', '圖鑑'], ['rank', '等級'], ['save', '存檔']];
+  const tabs = [['day', '今日'], ['fr', '友帳'], ['dex', '圖鑑'], ['rank', '等級'], ['save', '存檔']];
   let h = `<button class="close" data-close>✕</button><h3>📜 町人帳 <small>${esc(A.G.name)}</small></h3><div class="ptabs">${tabs.map(([k, n]) => `<button data-t="${k}" class="${k === tab ? 'on' : ''}">${n}</button>`).join('')}</div>`;
   if (tab === 'day') {
     const d = S.daily.last === today() ? ((S.daily.streak - 1) % 7) + 1 : (S.daily.last === today(-1) ? (S.daily.streak % 7) + 1 : 1);
@@ -176,6 +178,8 @@ export function open(t) {
       ${S.daily.last === today() ? '<p class="sub">今天已經簽到了，明天再來！</p>' : '<button class="big" id="pLogin">🖌 簽到領獎</button>'}</div>`;
     h += `<div class="psec"><h4>📮 今日町人委託 <small>每天台灣時間 0 點更新</small></h4>${S.q.list.map((q, i) => `<div class="quest ${q.got ? 'got' : q.done ? 'done' : ''}"><div><b>${esc(q.t)}</b><small>委託人：${esc(q.from)}　獎勵 ${q.rew[0]} 文＋${q.rew[1]} 經驗</small></div><span>${q.got ? '✔ 已領' : q.done ? `<button data-q="${i}">領獎</button>` : `${q.have}/${q.need}`}</span></div>`).join('')}
       <p class="sub">${S.q.bonus ? '🎊 今天的委託全部完成了！' : '三個委託全部完成再加 60 文＋40 經驗'}</p></div>`;
+  } else if (tab === 'fr') {
+    h += A.friendsHtml ? A.friendsHtml() : '';
   } else if (tab === 'dex') {
     for (const k in DEX) { const [lb, f] = DEX[k], all = f(); if (!all.length) continue; S.dex[k] = S.dex[k] || {}; const got = all.filter(e => S.dex[k][e.k]).length;
       h += `<div class="psec"><h4>${lb} <small>${got} / ${all.length}（${Math.round(got / all.length * 100)}%）${(S.dexDone || {})[k] ? '　✨全收集' : ''}</small></h4><div class="dex">${all.map(e => S.dex[k][e.k] ? `<span title="${esc(e.zh || '')}${e.from ? '・' + esc(e.from) : ''}">${esc(e.n)}</span>` : `<span class="no">？？？</span>`).join('')}</div></div>`; }
@@ -184,7 +188,7 @@ export function open(t) {
     const t = titleOf(S.lv);
     h += `<div class="psec"><h4>Lv.${S.lv}「${t[1]}」</h4><p class="sub">${t[2]}</p><div class="xpbar"><i style="width:${Math.round(S.xp / need(S.lv) * 100)}%"></i><span>${S.xp} / ${need(S.lv)} 經驗</span></div></div>
       <div class="psec"><h4>稱號</h4><div class="titles">${TITLES.map(x => `<span class="${S.lv >= x[0] ? 'got' : ''}"><b>${x[1]}</b><small>Lv.${x[0]}</small></span>`).join('')}</div></div>
-      <div class="psec"><h4>紀錄</h4><div class="stats">${[['cook', '做菜'], ['eat', '吃東西'], ['job', '打工'], ['sell', '賣魚'], ['build', '施工'], ['furn', '買家具'], ['show', '看舞蹈'], ['ozashiki', 'お座敷遊び'], ['plant', '播種'], ['bath', '泡湯'], ['gather', '採集'], ['night', '逛夜市'], ['buy', '買衣飾'], ['play', '玩攤位'], ['pray', '參拜'], ['ride', '搭人力車'], ['deer', '摸小鹿'], ['fish', '釣魚'], ['crop', '收成'], ['gather', '採集']].filter(([k]) => S.stats[k] || ['cook', 'eat'].includes(k)).map(([k, n]) => `<span>${n}<b>${S.stats[k] || 0}</b></span>`).join('')}</div></div>
+      <div class="psec"><h4>紀錄</h4><div class="stats">${[['cook', '做菜'], ['eat', '吃東西'], ['job', '打工'], ['sell', '賣魚'], ['build', '施工'], ['furn', '買家具'], ['show', '看舞蹈'], ['ozashiki', 'お座敷遊び'], ['plant', '播種'], ['visit', '拜訪'], ['duel', '對決'], ['photo', '拍照'], ['bath', '泡湯'], ['gather', '採集'], ['night', '逛夜市'], ['buy', '買衣飾'], ['play', '玩攤位'], ['pray', '參拜'], ['ride', '搭人力車'], ['deer', '摸小鹿'], ['fish', '釣魚'], ['crop', '收成'], ['gather', '採集']].filter(([k]) => S.stats[k] || ['cook', 'eat'].includes(k)).map(([k, n]) => `<span>${n}<b>${S.stats[k] || 0}</b></span>`).join('')}</div></div>
       <p class="sub">做任何事都有經驗：做菜、吃東西、逛名所、完成委託…升級會發獎勵金。</p>`;
   } else if (tab === 'save') {
     h += `<div class="psec"><h4>💾 存檔</h4><p class="sub">進度自動存在這台裝置的瀏覽器（以暱稱「${esc(A.G.name)}」區分）。<b>清除瀏覽器資料、換手機或換瀏覽器</b>會讀不到，請先複製備份碼存起來（例如傳給自己的 LINE）。</p>
@@ -193,6 +197,7 @@ export function open(t) {
   c.innerHTML = h; m.classList.remove('hide');
   c.querySelectorAll('[data-t]').forEach(b => b.onclick = () => open(b.dataset.t));
   c.querySelector('[data-close]').onclick = () => m.classList.add('hide');
+  if (tab === 'fr' && A.bindFriends) A.bindFriends(c);
   const L = c.querySelector('#pLogin'); if (L) L.onclick = claimLogin;
   c.querySelectorAll('[data-q]').forEach(b => b.onclick = () => claimQuest(+b.dataset.q));
   const E = c.querySelector('#pExp'); if (E) E.onclick = async () => { const code = exportCode(); c.querySelector('#pCode').value = code; try { await navigator.clipboard.writeText(code); c.querySelector('#pMsg').textContent = '✔ 已複製到剪貼簿，請貼到安全的地方保存'; } catch (e) { c.querySelector('#pCode').select(); c.querySelector('#pMsg').textContent = '請長按上面的文字框，全選後複製'; } };

@@ -117,12 +117,13 @@ function rebuild() {
 function renderRemotes() {
   if (!A) return; for (const o of remObjs) { A.scene.remove(o.grp); clearCols(o.cols); } remObjs = [];
   const mine = home(), used = new Set(mine ? [mine.plot] : []);
-  for (const [, r] of REM) { if (!r.h || used.has(r.h.plot)) continue; used.add(r.h.plot); const o = buildHouse(r.h, r.n); o.plot = r.h.plot; o.n = r.n; remObjs.push(o); }
+  for (const [id, r] of REM) { if (!r.h || used.has(r.h.plot)) continue; used.add(r.h.plot); const o = buildHouse(r.h, r.n); o.id = id; o.plot = r.h.plot; o.n = r.n; remObjs.push(o); }
 }
 export function sendMine() { if (A && A.sendHome) A.sendHome(home()); }
 export function setRemoteHome(id, n, h) { REM.set(id, { n, h }); renderRemotes(); }
 export function delRemoteHome(id) { if (REM.delete(id)) renderRemotes(); }
 const plotOwner = i => { const o = remObjs.find(o => o.plot === i); return o ? o.n : null; };
+const plotObj = i => remObjs.find(o => o.plot === i);
 
 // ---------------- 小遊戲（施工）----------------
 // tap：指針左右擺，進綠區點；mash：限時連打把條灌滿；hold：按住蓄力、在綠區放開
@@ -168,6 +169,7 @@ function buildGame(stepName, kind, rounds, onDone) {
 function panel(html) { const p = $('#panel'); p.innerHTML = html + '<button class="close" id="hX">✕</button>'; A.show('#panel'); $('#hX').onclick = A.closePanels; return p; }
 export function openPlot(i) {
   const h = home(), p = PLOTS[i], who = plotOwner(i);
+  if (who && (!h || h.plot !== i) && A.visit) return A.visit(plotObj(i).id, who, i);
   if (who && (!h || h.plot !== i)) return panel(`<h2>建地 ${i + 1} 號</h2><p class="sub">這裡是「${who}」的家。${h ? '' : '找一塊空地蓋自己的家吧！'}</p>`);
   if (!h) {
     const pp = panel(`<h2>建地 ${i + 1} 號<small>新開地</small></h2><p class="sub">一塊 12 × 12 的空地。買下後就能在這裡蓋自己的家，之後到北邊的建材店買材料，一步一步動工！</p>

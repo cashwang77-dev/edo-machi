@@ -198,7 +198,8 @@ export class Town {
       case 'home': p.home = cleanHome(m.h); this.bcast({ t: 'home', id, h: p.home }, id); break; // 玩家自己蓋的房子（讓同一條街的人都看得到）
       case 'act': { // 玩家對玩家：打招呼、擊掌、送禮、送食物
         const q = this.players.get(m.to); if (!q) break;
-        const k = String(m.k || '').slice(0, 10), v = m.k === 'gift' ? Math.max(1, Math.min(p.gm ? 99999 : 500, m.v | 0)) : String(m.v || '').slice(0, 30);
+        const k = String(m.k || '').slice(0, 10); let v = m.k === 'gift' ? Math.max(1, Math.min(p.gm ? 99999 : 500, m.v | 0)) : String(m.v || '').slice(0, 30);
+        if (k === 'note') { const s = this.speak(id, p, v); if (s == null) break; v = s; } // 家門口留言也要過濾、禁言中不能留
         this.send(q.ws, { t: 'act', from: id, n: p.n, k, v });
         if (k === 'five' || k === 'hi') this.bcast({ t: 'actfx', a: id, b: m.to, k });
         break;

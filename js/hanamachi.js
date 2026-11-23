@@ -129,7 +129,7 @@ function playKonpira() {
   loop();
 }
 // 投扇興：先點一下定方向（左右擺），再點一下定力道，扇子打中台上的「蝶」得分。丟 3 次。
-function playTosenkyo() {
+export function playTosenkyo(duel) { // duel：對決模式，丟完把分數交給回呼，不發獎金
   const M = A.gameModal('🎐 投扇興', '第一下決定方向、第二下決定力道，把扇子丟中枕台上的「蝶」！一共丟 3 次。');
   const g = M.g, my = ++GEN; let n = 0, st = 0, t0 = performance.now(), ang = 0, pow = 0, pts = 0, fly = null, msg = '';
   const tri = u => { const k = u % 2; return k < 1 ? k : 2 - k; };
@@ -143,9 +143,9 @@ function playTosenkyo() {
     const a = st === 0 && !fly ? tri(u * 1.3) * 2 - 1 : ang, pw = st === 1 && !fly ? tri(u * 1.1) : pow;
     g.strokeStyle = '#3a2a1a'; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(180, 220); g.lineTo(180 + a * 120, 60); g.stroke(); g.setLineDash([]);
     g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(320, 60, 16, 150); g.fillStyle = st === 1 ? '#c8322a' : '#a08060'; g.fillRect(320, 210 - pw * 150, 16, pw * 150); g.fillStyle = 'rgba(80,200,120,.6)'; g.fillRect(320, 210 - .82 * 150, 16, .12 * 150); // 綠區＝剛好飛到蝶（力道 .76 左右）
-    if (fly) { fly.t += 1 / 40; const k = Math.min(1, fly.t); const fx = 180 + ang * 120 * k * pow / .78, fy = 220 - 160 * k * pow / .78; g.fillStyle = '#e83a5a'; g.beginPath(); g.moveTo(fx, fy); g.arc(fx, fy, 12, PI * 1.1, PI * 1.9); g.fill();
+    if (fly) { const nw = performance.now(); fly.t += Math.min(.1, (nw - (fly.last || nw)) / 1000) * 1.6; fly.last = nw; /* 依真實時間飛 */ const k = Math.min(1, fly.t); const fx = 180 + ang * 120 * k * pow / .78, fy = 220 - 160 * k * pow / .78; g.fillStyle = '#e83a5a'; g.beginPath(); g.moveTo(fx, fy); g.arc(fx, fy, 12, PI * 1.1, PI * 1.9); g.fill();
       if (k >= 1) { const d = Math.hypot(fx - 180, fy - 64); const s = d < 14 ? 5 : d < 30 ? 3 : d < 55 ? 1 : 0; pts += s; msg = ['落空…', '擦到邊（1 分）', '', '打中枕台（3 分）', '', '蝶落！（5 分）'][s]; A.SND.pluck(s ? 990 : 260, .07); fly = null; n++;
-        if (n >= 3) setTimeout(() => { if (my !== GEN || !M.cv.isConnected) return; M.close(); const pay = pts * 8; if (pay) A.addMoney(pay, `投扇興 ${pts} 分`); A.P.ev('ozashiki', { n: pts }); A.P.addXp(5 + pts * 2); A.toast(`投扇興 ${pts} 分！${pts >= 12 ? '藝妓們都拍手叫好～' : ''}`, 3000); }, 900); } }
+        if (n >= 3) setTimeout(() => { if (my !== GEN || !M.cv.isConnected) return; M.close(); if (duel) return duel(pts); const pay = pts * 8; if (pay) A.addMoney(pay, `投扇興 ${pts} 分`); A.P.ev('ozashiki', { n: pts }); A.P.addXp(5 + pts * 2); A.toast(`投扇興 ${pts} 分！${pts >= 12 ? '藝妓們都拍手叫好～' : ''}`, 3000); }, 900); } }
     if (msg) { g.fillStyle = '#8a1a14'; g.font = '700 16px sans-serif'; g.textAlign = 'center'; g.fillText(msg, 180, 30); }
     M.stat(`第 ${Math.min(n + 1, 3)} / 3 扇　得分 <b>${pts}</b>　${st === 0 ? '👉 點一下定方向' : '👉 點一下定力道（綠區剛好）'}`);
     window.__tosen = { n, st, pts, stNow: () => st, flyNow: () => !!fly, angNow: () => tri((performance.now() - t0) / 1000 * 1.3) * 2 - 1, powNow: () => tri((performance.now() - t0) / 1000 * 1.1), fly: !!fly };
