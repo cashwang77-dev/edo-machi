@@ -5,16 +5,16 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611190956';
-import { RIDE_Y } from './chara.js?v=202611190956';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611190956';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611190956';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611190956';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611190956';
-import { Net } from './net.js?v=202611190956';
-import { cleanText } from './filter.js?v=202611190956';
-import { SND } from './audio.js?v=202611190956';
-import * as TX from './tex.js?v=202611190956';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611231115';
+import { RIDE_Y } from './chara.js?v=202611231115';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611231115';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611231115';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611231115';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611231115';
+import { Net } from './net.js?v=202611231115';
+import { cleanText } from './filter.js?v=202611231115';
+import { SND } from './audio.js?v=202611231115';
+import * as TX from './tex.js?v=202611231115';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -448,7 +448,12 @@ function served(s, item, q, from) {
 // 當老闆
 function claim(s) {
   if (G.owners[s.def.id] && G.owners[s.def.id] !== G.myId) return toast('這家店已經有老闆了');
-  if (G.online) { net.send({ t: 'claim', s: s.def.id }); G.pendingClaim = s; }
+  if (G.online) {
+    if (!net.ok || !net.ws || net.ws.readyState !== 1) return toast('與伺服器的連線不穩，請重新整理網頁後再開店', 3500);
+    if (G.pendingClaim) return toast('開店中，請稍候…');
+    net.send({ t: 'claim', s: s.def.id }); G.pendingClaim = s; toast('開店中…', 1500);
+    clearTimeout(G.claimTO); G.claimTO = setTimeout(() => { if (G.pendingClaim === s) { G.pendingClaim = null; toast('開店沒有回應，請再按一次「我來當老闆」', 3500); } }, 5000);
+  }
   else { for (const k in G.owners) if (G.owners[k] === G.myId) delete G.owners[k]; G.owners[s.def.id] = G.myId; enterOwner(s); }
 }
 function enterOwner(s) {
@@ -1394,7 +1399,11 @@ async function start() {
   setMoney(store.get('mon_' + n, 300));
   $('#go').disabled = true; $('#go').textContent = '連線中…';
   let r = 'offline';
-  if (SERVER) for (let i = 1; i <= 5; i++) { r = await net.connect({ n, lk: G.look, x: G.pos.x, z: G.pos.z, k: store.get('gmk', '') }, 'edo' + i); if (r !== 'full') { G.room = i; break; } }
+  for (let tries = 0; SERVER && tries < 2; tries++) {
+    if (tries) { $('#go').textContent = '連線較慢，重試中…'; }
+    for (let i = 1; i <= 5; i++) { r = await net.connect({ n, lk: G.look, x: G.pos.x, z: G.pos.z, k: store.get('gmk', '') }, 'edo' + i); if (r !== 'full') { G.room = i; break; } }
+    if (r !== 'offline') break;
+  }
   G.online = r === 'ok';
   show('#title', false); show('#hud'); document.body.classList.add('playing');
   SND.start();
@@ -1441,10 +1450,11 @@ net.on('emote', m => { const R = G.remotes.get(m.id); if (R) { R.ch.emoji(m.e); 
 net.on('look', m => { const R = G.remotes.get(m.id); if (R) R.ch.setLook(m.lk); });
 net.on('shops', m => {
   const old = G.owners; G.owners = m.shops || {};
-  if (G.pendingClaim && G.owners[G.pendingClaim.def.id] === G.myId) { enterOwner(G.pendingClaim); G.pendingClaim = null; }
+  if (G.pendingClaim && G.owners[G.pendingClaim.def.id] === G.myId) { clearTimeout(G.claimTO); const s = G.pendingClaim; G.pendingClaim = null; if (G.mode === 'walk') enterOwner(s); }
+  for (const k in G.owners) if (G.owners[k] === G.myId && !(G.mode === 'owner' && G.shop && G.shop.def.id === k)) net.send({ t: 'release', s: k }); // 逾時或已離開的開店，避免掛名老闆
   if (G.order && G.order.owner && G.owners[G.order.shop.def.id] !== G.order.owner) { cancelOrder('店主收店了，已退款'); if (G.shop) openMenu(G.shop); }
 });
-net.on('claimfail', () => { G.pendingClaim = null; toast('被別人搶先開店了！'); });
+net.on('claimfail', () => { clearTimeout(G.claimTO); G.pendingClaim = null; toast('被別人搶先開店了！'); });
 net.on('order', m => {
   if (G.mode !== 'owner' || G.shop.def.id !== m.s) return;
   const item = G.shop.def.menu.find(x => x.id === m.item); if (!item) return;

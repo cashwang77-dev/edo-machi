@@ -1,11 +1,11 @@
 // 江戶町 3D 世界
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import * as TX from './tex.js?v=202611190956';
-import { SHOPS, STREET } from './shops.js?v=202611190956';
-import { buildTemple } from './temple.js?v=202611190956';
-import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611190956';
-import { buildMeisho2, walkSouth } from './meisho2.js?v=202611190956';
+import * as TX from './tex.js?v=202611231115';
+import { SHOPS, STREET } from './shops.js?v=202611231115';
+import { buildTemple } from './temple.js?v=202611231115';
+import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611231115';
+import { buildMeisho2, walkSouth } from './meisho2.js?v=202611231115';
 
 const PI = Math.PI;
 export const ARCH = x => (x > 110 && x < 140) ? 1.7 * Math.sin(PI * (x - 110) / 30) : 0;
@@ -504,7 +504,7 @@ export function buildWorld(scene) {
     if (def.pos) { g.position.set(def.pos.x, 0, def.pos.z); g.rotation.y = def.pos.ry; } else { g.position.set(def.x, 0, def.side * STREET.front); g.rotation.y = def.side > 0 ? PI : 0; } g.updateMatrixWorld(true);
     const tw = v => new THREE.Vector3(v.lx ?? v.x, v.ly ?? v.y, v.lz ?? v.z).applyMatrix4(g.matrixWorld);
     const rot = g.rotation.y;
-    const shop = { def, rot, front: tw({ x: 0, y: 0, z: 1.1 }), owner: { ...tw(info.owner), r: rot + info.owner.face }, seats: [], lanterns: info.lanterns.map(tw) };
+    const shop = { def, rot, front: tw({ x: 0, y: 0, z: def.play === 'kingyo' ? 3.7 : 1.1 }), owner: { ...tw(info.owner), r: rot + info.owner.face }, seats: [], lanterns: info.lanterns.map(tw) };
     info.seats.forEach((s, i) => { const p = tw(s), d = tw({ x: s.dlx, y: s.dly, z: s.dlz }); const seat = { x: p.x, y: p.y, z: p.z, r: rot + s.face, shop: def.id, i, dish: d, kind: 'shop' }; shop.seats.push(seat); W.seats.push(seat); });
     if (info.steam) shop.steam = tw(info.steam);
     if (info.chimney) shop.chimney = tw(info.chimney);

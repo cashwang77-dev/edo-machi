@@ -10,7 +10,7 @@ export class Net {
       if (!this.base) return res('offline');
       let done = false; const fin = v => { if (!done) { done = true; res(v); } };
       try { this.ws = new WebSocket(this.base + '?room=' + room); } catch (e) { return fin('offline'); }
-      const to = setTimeout(() => { fin('offline'); try { this.ws.close(); } catch (e) {} }, 7000);
+      const to = setTimeout(() => { fin('offline'); try { this.ws.close(); } catch (e) {} }, 15000);
       this.ws.onopen = () => this.ws.send(JSON.stringify({ t: 'hi', ...hello }));
       this.ws.onmessage = ev => {
         let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
