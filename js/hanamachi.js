@@ -111,9 +111,9 @@ function playKonpira() {
   const g = M.g, my = ++GEN; let beat = 0, has = true, t0 = performance.now(), per = 1.15, answered = false, alive = true, msg = '', next = performance.now() + 1500;
   const judge = side => { if (!alive || answered) return; answered = true; const ok = (side === 0) === has; A.SND.pluck(ok ? 880 : 200, .07); if (!ok) { alive = false; msg = '啊！錯了～'; end(); } else msg = ['よいよい！', 'はい！', 'お見事！'][beat % 3]; };
   M.cv.onpointerdown = e => { e.preventDefault(); const r = M.cv.getBoundingClientRect(); judge(e.clientX - r.left < r.width / 2 ? 0 : 1); };
-  const end = () => setTimeout(() => { if (my !== GEN) return; M.close(); const pay = beat * 5 + (beat >= 15 ? 60 : 0); if (pay) A.addMoney(pay, `金毘羅船々 ${beat} 拍`); A.P.ev('ozashiki', { n: beat }); A.P.addXp(5 + beat); A.toast(beat >= 15 ? '藝妓：「哎呀，您真厲害！」' : `撐了 ${beat} 拍～`, 3000); }, 900);
+  const end = () => setTimeout(() => { if (my !== GEN || !M.cv.isConnected) return; M.close(); const pay = beat * 5 + (beat >= 15 ? 60 : 0); if (pay) A.addMoney(pay, `金毘羅船々 ${beat} 拍`); A.P.ev('ozashiki', { n: beat }); A.P.addXp(5 + beat); A.toast(beat >= 15 ? '藝妓：「哎呀，您真厲害！」' : `撐了 ${beat} 拍～`, 3000); }, 900);
   const loop = () => {
-    if (my !== GEN || !$('#pg') || $('#pg').classList.contains('hide')) return; const now = performance.now();
+    if (my !== GEN || !$('#pg') || $('#pg').classList.contains('hide') || !M.cv.isConnected) return; const now = performance.now();
     if (alive && now >= next) { if (beat > 0 && !answered) { alive = false; msg = '慢了一拍～'; end(); } else { beat++; has = Math.random() < .55; answered = false; per = Math.max(.42, 1.15 - beat * .045); next = now + per * 1000; A.SND.pluck(has ? 523 : 659, .05); } }
     g.fillStyle = '#5a1a14'; g.fillRect(0, 0, 360, 240); g.fillStyle = '#c89a52'; g.fillRect(40, 150, 280, 16); // 膳
     g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(0, 0, 180, 240);
@@ -137,7 +137,7 @@ function playTosenkyo() {
     if (st === 0) { ang = tri(u * 1.3) * 2 - 1; st = 1; t0 = performance.now(); }
     else { pow = tri(u * 1.1); st = 0; t0 = performance.now(); fly = { t: 0 }; } };
   const loop = () => {
-    if (my !== GEN || !$('#pg') || $('#pg').classList.contains('hide')) return; const u = (performance.now() - t0) / 1000;
+    if (my !== GEN || !$('#pg') || $('#pg').classList.contains('hide') || !M.cv.isConnected) return; const u = (performance.now() - t0) / 1000;
     g.fillStyle = '#e8dcb8'; g.fillRect(0, 0, 360, 240); g.fillStyle = '#c8a070'; for (let i = 0; i < 8; i++) g.fillRect(0, i * 30, 360, 1); // 榻榻米線
     g.fillStyle = '#6a2a1a'; g.fillRect(166, 70, 28, 22); g.fillStyle = '#e8c050'; g.beginPath(); g.ellipse(180, 64, 12, 7, 0, 0, 7); g.fill(); // 枕台＋蝶
     const a = st === 0 && !fly ? tri(u * 1.3) * 2 - 1 : ang, pw = st === 1 && !fly ? tri(u * 1.1) : pow;
@@ -145,7 +145,7 @@ function playTosenkyo() {
     g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(320, 60, 16, 150); g.fillStyle = st === 1 ? '#c8322a' : '#a08060'; g.fillRect(320, 210 - pw * 150, 16, pw * 150); g.fillStyle = 'rgba(80,200,120,.6)'; g.fillRect(320, 210 - .82 * 150, 16, .12 * 150); // 綠區＝剛好飛到蝶（力道 .76 左右）
     if (fly) { fly.t += 1 / 40; const k = Math.min(1, fly.t); const fx = 180 + ang * 120 * k * pow / .78, fy = 220 - 160 * k * pow / .78; g.fillStyle = '#e83a5a'; g.beginPath(); g.moveTo(fx, fy); g.arc(fx, fy, 12, PI * 1.1, PI * 1.9); g.fill();
       if (k >= 1) { const d = Math.hypot(fx - 180, fy - 64); const s = d < 14 ? 5 : d < 30 ? 3 : d < 55 ? 1 : 0; pts += s; msg = ['落空…', '擦到邊（1 分）', '', '打中枕台（3 分）', '', '蝶落！（5 分）'][s]; A.SND.pluck(s ? 990 : 260, .07); fly = null; n++;
-        if (n >= 3) setTimeout(() => { if (my !== GEN) return; M.close(); const pay = pts * 8; if (pay) A.addMoney(pay, `投扇興 ${pts} 分`); A.P.ev('ozashiki', { n: pts }); A.P.addXp(5 + pts * 2); A.toast(`投扇興 ${pts} 分！${pts >= 12 ? '藝妓們都拍手叫好～' : ''}`, 3000); }, 900); } }
+        if (n >= 3) setTimeout(() => { if (my !== GEN || !M.cv.isConnected) return; M.close(); const pay = pts * 8; if (pay) A.addMoney(pay, `投扇興 ${pts} 分`); A.P.ev('ozashiki', { n: pts }); A.P.addXp(5 + pts * 2); A.toast(`投扇興 ${pts} 分！${pts >= 12 ? '藝妓們都拍手叫好～' : ''}`, 3000); }, 900); } }
     if (msg) { g.fillStyle = '#8a1a14'; g.font = '700 16px sans-serif'; g.textAlign = 'center'; g.fillText(msg, 180, 30); }
     M.stat(`第 ${Math.min(n + 1, 3)} / 3 扇　得分 <b>${pts}</b>　${st === 0 ? '👉 點一下定方向' : '👉 點一下定力道（綠區剛好）'}`);
     window.__tosen = { n, st, pts, stNow: () => st, flyNow: () => !!fly, angNow: () => tri((performance.now() - t0) / 1000 * 1.3) * 2 - 1, powNow: () => tri((performance.now() - t0) / 1000 * 1.1), fly: !!fly };
@@ -162,10 +162,10 @@ export function playMaiko() {
   M.cv.onpointerdown = e => { e.preventDefault(); const r = M.cv.getBoundingClientRect(), lane = Math.min(2, Math.floor((e.clientX - r.left) / r.width * 3)), now = (performance.now() - start) / 1000;
     const n = notes.find(n => !n.done && n.lane === lane && Math.abs(now - n.t) < .22);
     if (n) { n.done = true; hit++; fb = Math.abs(now - n.t) < .09 ? '完美' : '好'; A.SND.pluck(SCALE[(lane * 2 + hit) % 7], .07); } else { fb = '…'; } fbT = .4; };
-  const fin = () => setTimeout(() => { if (my !== GEN) return; M.close(); const pay = hit * 3 + (hit >= 14 ? 25 : 0); A.addMoney(pay, `舞妓工錢${hit >= 14 ? '（女將加賞）' : ''}`); A.P.ev('job', { k: 'maiko', hit }); A.toast(`跳完一曲！命中 ${hit} / 16　女將：「${hit >= 14 ? '跳得真美！' : hit >= 8 ? '再練練會更好。' : '腳步還不穩呢～'}」`, 3200); }, 800);
+  const fin = () => setTimeout(() => { if (my !== GEN || !M.cv.isConnected) return; M.close(); const pay = hit * 3 + (hit >= 14 ? 25 : 0); A.addMoney(pay, `舞妓工錢${hit >= 14 ? '（女將加賞）' : ''}`); A.P.ev('job', { k: 'maiko', hit }); A.toast(`跳完一曲！命中 ${hit} / 16　女將：「${hit >= 14 ? '跳得真美！' : hit >= 8 ? '再練練會更好。' : '腳步還不穩呢～'}」`, 3200); }, 800);
   let ended = false;
   const loop = () => {
-    if (my !== GEN || !$('#pg') || $('#pg').classList.contains('hide')) return; const now = (performance.now() - start) / 1000;
+    if (my !== GEN || !$('#pg') || $('#pg').classList.contains('hide') || !M.cv.isConnected) return; const now = (performance.now() - start) / 1000;
     g.fillStyle = '#3a0e0a'; g.fillRect(0, 0, 360, 240); for (let i = 1; i < 3; i++) { g.fillStyle = 'rgba(232,192,80,.2)'; g.fillRect(i * 120 - 1, 0, 2, 240); }
     g.fillStyle = '#e8c050'; g.fillRect(0, LINE - 2, 360, 4);
     for (const n of notes) { if (!n.done && now - n.t > .22) { n.done = true; miss++; } if (n.done) continue; const y = LINE - (n.t - now) * SPD; if (y < -20) continue;

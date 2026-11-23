@@ -1,6 +1,6 @@
 // 町人帳：個人進度（等級／稱號、每日簽到、町人委託、圖鑑、存檔備份）
 // 存在瀏覽器 localStorage（edo_save_<暱稱>），另可匯出／匯入備份碼
-import { SHOPS, ACC } from './shops.js?v=202611231946';
+import { SHOPS, ACC } from './shops.js?v=202611232042';
 
 let A = null; // game.js 傳進來的介面
 let S = null; // 目前存檔

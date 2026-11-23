@@ -1,5 +1,5 @@
 // 釣魚（隅田川棧橋）、魚河岸賣魚、搬貨打工
-import { FISH, rollFish } from './kashi.js?v=202611231946';
+import { FISH, rollFish } from './kashi.js?v=202611232042';
 let A, GEN = 0; // GEN：每開一次小遊戲 +1，舊的畫面迴圈自動停止
 const $ = s => document.querySelector(s);
 const stars = r => r ? '★'.repeat(r) : '—';
@@ -24,7 +24,7 @@ export function playFish() {
   M.cv.onpointerup = M.cv.onpointerleave = () => { hold = false; };
   const close = M.close; M.close = () => { run = false; close(); };
   const loop = () => {
-    if (!run || my !== GEN || !$('#pg') || $('#pg').classList.contains('hide')) return;
+    if (!run || my !== GEN || !$('#pg') || $('#pg').classList.contains('hide') || !M.cv.isConnected) return;
     const now = performance.now(), dt = Math.min(.25, (now - last) / 1000); last = now; t += dt;
     // 水面
     const gr = g.createLinearGradient(0, 0, 0, 240); gr.addColorStop(0, night ? '#1a2a44' : '#7ab8d8'); gr.addColorStop(1, night ? '#0c1626' : '#2f6a8a'); g.fillStyle = gr; g.fillRect(0, 0, 360, 240);
@@ -102,9 +102,9 @@ export function playJob() {
   M.cv.onpointerdown = e => { e.preventDefault(); if (!run || done >= 10) return; const b = boxes.find(b => !b.hit && b.x > 40 && b.x < 330); if (!b) return; b.hit = true; done++;
     if (Math.abs(b.x - 250) < 26) { ok++; b.good = true; A.SND.pluck(880, .05); } else { bad++; b.good = false; A.SND.pluck(220, .08); flash = .3; }
     if (done >= 10) finish(); };
-  const finish = () => { setTimeout(() => { if (!run) return; M.close(); const pay = ok * 6 + (ok === 10 ? 20 : 0); if (pay) A.addMoney(pay, `搬貨工錢${ok === 10 ? '（全對加給）' : ''}`); A.P.ev('job', { k: 'kashi', ok }); A.toast(`搬好 ${ok} / 10 箱${ok === 10 ? '，辰五郎：「好樣的！」' : ''}`, 3000); A.G.me.emoji(ok >= 8 ? '💪' : '😓'); }, 700); };
+  const finish = () => { setTimeout(() => { if (!run || !M.cv.isConnected) return; M.close(); const pay = ok * 6 + (ok === 10 ? 20 : 0); if (pay) A.addMoney(pay, `搬貨工錢${ok === 10 ? '（全對加給）' : ''}`); A.P.ev('job', { k: 'kashi', ok }); A.toast(`搬好 ${ok} / 10 箱${ok === 10 ? '，辰五郎：「好樣的！」' : ''}`, 3000); A.G.me.emoji(ok >= 8 ? '💪' : '😓'); }, 700); };
   const loop = () => {
-    if (!run || my !== GEN || !$('#pg') || $('#pg').classList.contains('hide')) return;
+    if (!run || my !== GEN || !$('#pg') || $('#pg').classList.contains('hide') || !M.cv.isConnected) return;
     const now = performance.now(), dt = Math.min(.25, (now - last) / 1000); last = now;
     spawn -= dt; if (spawn <= 0 && boxes.filter(b => !b.hit).length < 3 && done + boxes.filter(b => !b.hit).length < 10) { boxes.push({ x: -30, hit: false, y: 150 }); spawn = .9 + Math.random() * .8; sp = 90 + done * 9; }
     g.fillStyle = '#d8c8a0'; g.fillRect(0, 0, 360, 240); g.fillStyle = '#8a6a44'; g.fillRect(0, 168, 360, 14); // 輸送台

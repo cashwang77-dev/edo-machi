@@ -115,14 +115,14 @@ function buildGame(stepName, kind, rounds, onDone) {
   const xNow = () => tri((performance.now() - t0) / 1000 * v), fillNow = () => held && kind === 'hold' ? (performance.now() - h0) / 1000 * .5 : fill; // 依真實時間計算，畫面卡也不會跳格
   const nextRound = () => { zc = .25 + Math.random() * .5; zw = Math.max(.08, .17 - i * .015); v = .8 + i * .12 + Math.random() * .25; t0 = performance.now(); x = 0; dir = 1; fill = 0; tLeft = kind === 'mash' ? 4.5 : 99; };
   nextRound();
-  const judge = ok => { if (ok) score++; msg = ok ? ['好！', '漂亮！', '完美！'][Math.floor(Math.random() * 3)] : '失手了…'; mT = .7; A.SND.pluck(ok ? 880 : 240, .06); i++; if (i >= rounds) { fin = true; setTimeout(() => { if (my === GEN) { M.close(); onDone(score / rounds); } }, 700); } else nextRound(); };
+  const judge = ok => { if (ok) score++; msg = ok ? ['好！', '漂亮！', '完美！'][Math.floor(Math.random() * 3)] : '失手了…'; mT = .7; A.SND.pluck(ok ? 880 : 240, .06); i++; if (i >= rounds) { fin = true; setTimeout(() => { if (my === GEN && M.cv.isConnected) { M.close(); onDone(score / rounds); } }, 700); } else nextRound(); };
   M.cv.onpointerdown = e => { e.preventDefault(); if (fin) return; held = true;
     if (kind === 'tap') judge(Math.abs(xNow() - zc) < zw / 2);
     if (kind === 'hold') { h0 = performance.now(); fill = 0; }
     if (kind === 'mash') { fill += .075; A.SND.pluck(500 + fill * 600, .03); if (fill >= 1) judge(true); } };
   M.cv.onpointerup = M.cv.onpointerleave = () => { if (!held) return; held = false; if (kind === 'hold' && !fin) { fill = (performance.now() - h0) / 1000 * .5; if (fill > .05) judge(Math.abs(fill - zc) < zw / 2); } };
   const loop = () => {
-    if (my !== GEN || !$('#pg') || $('#pg').classList.contains('hide')) return;
+    if (my !== GEN || !$('#pg') || $('#pg').classList.contains('hide') || !M.cv.isConnected) return;
     const now = performance.now(), dt = Math.min(.25, (now - last) / 1000); last = now; mT -= dt;
     if (!fin) { if (kind === 'tap') x = xNow();
       if (kind === 'mash') { fill = Math.max(0, fill - .12 * dt); tLeft -= dt; if (tLeft <= 0) judge(false); }
