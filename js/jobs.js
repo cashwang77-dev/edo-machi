@@ -54,12 +54,12 @@ function endCourier(ok, msg) {
   else A.toast(msg || '信沒送到……', 2600);
 }
 export function jobUpdate(dt) {
-  if (!run) return; run.t += dt; const left = run.lim - run.t, d = Math.hypot(A.G.pos.x - run.x, A.G.pos.z - run.z);
+  if (!A || !run) return; run.t += dt; const left = run.lim - run.t, d = Math.hypot(A.G.pos.x - run.x, A.G.pos.z - run.z);
   const h = $('#jobHud'); h.classList.remove('hide'); h.innerHTML = `📮 送信到「${run.to}」　剩 <b>${Math.max(0, Math.ceil(left))}</b> 秒　距離 ${Math.round(d)} 步`; h.classList.toggle('late', left < 10);
   if (d < 4) { if (A.G.mode === 'ride') { h.innerHTML += '　（請下車再交信）'; return; } endCourier(true); }
   else if (left <= 0) endCourier(false, '⌛ 太慢了，信沒能準時送到……');
 }
-export function jobMark() { return run ? { x: run.x, z: run.z } : null; }
+export function jobMark() { return A && run ? { x: run.x, z: run.z } : null; }
 
 // ---- 茶屋端茶：點上面的茶點拿起來，再點想要那樣東西的客人 ----
 function playTea() {

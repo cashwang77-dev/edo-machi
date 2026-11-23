@@ -106,7 +106,7 @@ export function openVeg() {
   pp.querySelectorAll('[data-s]').forEach(x => x.onclick = () => { sell({ [x.dataset.s]: 1 }); openVeg(); });
   const al = pp.querySelector('#fmAll'); if (al) al.onclick = () => { sell({ ...bg }); openVeg(); };
 }
-export function farmUpdate(dt) { tick += dt; if (tick > 20) { tick = 0; if (grp) rebuild(); } } // 每 20 秒更新作物外觀
+export function farmUpdate(dt) { if (!A) return; tick += dt; if (tick > 20) { tick = 0; if (grp) rebuild(); } } // 每 20 秒更新作物外觀
 export function initFarm(api) {
   A = api; A.P.addDexCat('crop', '🥬 作物', CROPS.map(c => ({ k: c[0], n: c[1], zh: c[2] })));
   for (const k of A.W.farmKeepers || []) { const ch = A.makeNPC({ ...A.randomLook(), hat: 0, c: 0 }); ch.root.position.set(k.x, 0, k.z); ch.root.rotation.y = k.r; A.scene.add(ch.root); }

@@ -1,6 +1,6 @@
 // 町人帳：個人進度（等級／稱號、每日簽到、町人委託、圖鑑、存檔備份）
 // 存在瀏覽器 localStorage（edo_save_<暱稱>），另可匯出／匯入備份碼
-import { SHOPS, ACC } from './shops.js?v=202611232102';
+import { SHOPS, ACC } from './shops.js?v=202611232143';
 
 let A = null; // game.js 傳進來的介面
 let S = null; // 目前存檔
@@ -45,6 +45,9 @@ const QPOOL = [
   { id: 'plant', ev: 'plant', n: [1, 2], t: n => `在郊外農村的田裡播種 ${n} 次`, rew: [35, 20] },
   { id: 'crop', ev: 'crop', n: [1], t: () => `收成一次作物`, rew: [50, 30], cond: S => (S.stats.plant || 0) > 0 },
   { id: 'sellveg', ev: 'sellveg', n: [1], t: () => `到八百屋賣一次菜`, rew: [30, 20], cond: S => (S.stats.crop || 0) > 0 },
+  { id: 'bath', ev: 'bath', n: [1, 2], t: n => `到湯の郷泡 ${n} 次溫泉`, rew: [40, 25] },
+  { id: 'gather', ev: 'gather', n: [2, 3], t: n => `在湯の郷山邊採集 ${n} 次山貨`, rew: [45, 30] },
+  { id: 'night', ev: 'night', n: [1], t: () => `晚上到隅田川河岸的夜市買一樣東西`, rew: [40, 25] },
   { id: 'order', ev: 'get', n: [1], pick: 'shop', t: (n, x, nm) => `到「${nm}」點一份餐`, rew: [35, 20] },
 ];
 const QEXTRA = []; export function addQuest(q) { QEXTRA.push(q); }
@@ -87,7 +90,7 @@ export function addXp(n, why) {
 
 // ---- 事件 ----
 // cook{item,q,shop} eat{id} get{item,shop} buy{} spot{k} play{k} deer pray ride acc{id} fish{k} crop{k} gather{k}
-const XP = { plant: 3, water: 1, sellveg: 4, ozashiki: 4, build: 5, mat: 1, furn: 3, deco: 2, sell: 4, job: 10, cook: 10, eat: 5, get: 3, buy: 6, spot: 4, play: 8, deer: 3, pray: 5, ride: 6, fish: 8, crop: 10, gather: 6, night: 6, home: 2 };
+const XP = { bath: 3, pingpong: 4, plant: 3, water: 1, sellveg: 4, ozashiki: 4, build: 5, mat: 1, furn: 3, deco: 2, sell: 4, job: 10, cook: 10, eat: 5, get: 3, buy: 6, spot: 4, play: 8, deer: 3, pray: 5, ride: 6, fish: 8, crop: 10, gather: 6, night: 6, home: 2 };
 export function ev(type, d = {}) {
   if (!S) return;
   S.stats[type] = (S.stats[type] || 0) + 1;
@@ -181,7 +184,7 @@ export function open(t) {
     const t = titleOf(S.lv);
     h += `<div class="psec"><h4>Lv.${S.lv}「${t[1]}」</h4><p class="sub">${t[2]}</p><div class="xpbar"><i style="width:${Math.round(S.xp / need(S.lv) * 100)}%"></i><span>${S.xp} / ${need(S.lv)} 經驗</span></div></div>
       <div class="psec"><h4>稱號</h4><div class="titles">${TITLES.map(x => `<span class="${S.lv >= x[0] ? 'got' : ''}"><b>${x[1]}</b><small>Lv.${x[0]}</small></span>`).join('')}</div></div>
-      <div class="psec"><h4>紀錄</h4><div class="stats">${[['cook', '做菜'], ['eat', '吃東西'], ['job', '打工'], ['sell', '賣魚'], ['build', '施工'], ['furn', '買家具'], ['show', '看舞蹈'], ['ozashiki', 'お座敷遊び'], ['plant', '播種'], ['buy', '買衣飾'], ['play', '玩攤位'], ['pray', '參拜'], ['ride', '搭人力車'], ['deer', '摸小鹿'], ['fish', '釣魚'], ['crop', '收成'], ['gather', '採集']].filter(([k]) => S.stats[k] || ['cook', 'eat'].includes(k)).map(([k, n]) => `<span>${n}<b>${S.stats[k] || 0}</b></span>`).join('')}</div></div>
+      <div class="psec"><h4>紀錄</h4><div class="stats">${[['cook', '做菜'], ['eat', '吃東西'], ['job', '打工'], ['sell', '賣魚'], ['build', '施工'], ['furn', '買家具'], ['show', '看舞蹈'], ['ozashiki', 'お座敷遊び'], ['plant', '播種'], ['bath', '泡湯'], ['gather', '採集'], ['night', '逛夜市'], ['buy', '買衣飾'], ['play', '玩攤位'], ['pray', '參拜'], ['ride', '搭人力車'], ['deer', '摸小鹿'], ['fish', '釣魚'], ['crop', '收成'], ['gather', '採集']].filter(([k]) => S.stats[k] || ['cook', 'eat'].includes(k)).map(([k, n]) => `<span>${n}<b>${S.stats[k] || 0}</b></span>`).join('')}</div></div>
       <p class="sub">做任何事都有經驗：做菜、吃東西、逛名所、完成委託…升級會發獎勵金。</p>`;
   } else if (tab === 'save') {
     h += `<div class="psec"><h4>💾 存檔</h4><p class="sub">進度自動存在這台裝置的瀏覽器（以暱稱「${esc(A.G.name)}」區分）。<b>清除瀏覽器資料、換手機或換瀏覽器</b>會讀不到，請先複製備份碼存起來（例如傳給自己的 LINE）。</p>
