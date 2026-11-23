@@ -5,25 +5,25 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611232331';
-import { RIDE_Y } from './chara.js?v=202611232331';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611232331';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611232331';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611232331';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611232331';
-import { Net } from './net.js?v=202611232331';
-import { cleanText } from './filter.js?v=202611232331';
-import { SND } from './audio.js?v=202611232331';
-import * as TX from './tex.js?v=202611232331';
-import * as P from './prog.js?v=202611232331';
-import * as F from './fishing.js?v=202611232331';
-import * as HM from './home.js?v=202611232331';
-import * as HN from './hanamachi.js?v=202611232331';
-import * as JB from './jobs.js?v=202611232331';
-import * as FM from './farm.js?v=202611232331';
-import * as ON from './onsen.js?v=202611232331';
-import * as SO from './social.js?v=202611232331';
-import { updBoats } from './kashi.js?v=202611232331';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611232348';
+import { RIDE_Y } from './chara.js?v=202611232348';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611232348';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611232348';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611232348';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611232348';
+import { Net } from './net.js?v=202611232348';
+import { cleanText } from './filter.js?v=202611232348';
+import { SND } from './audio.js?v=202611232348';
+import * as TX from './tex.js?v=202611232348';
+import * as P from './prog.js?v=202611232348';
+import * as F from './fishing.js?v=202611232348';
+import * as HM from './home.js?v=202611232348';
+import * as HN from './hanamachi.js?v=202611232348';
+import * as JB from './jobs.js?v=202611232348';
+import * as FM from './farm.js?v=202611232348';
+import * as ON from './onsen.js?v=202611232348';
+import * as SO from './social.js?v=202611232348';
+import { updBoats } from './kashi.js?v=202611232348';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -91,6 +91,17 @@ function edoTime(t) {
 const twDay = () => ((Date.now() / 1000 + 8 * 3600) % 86400) / 86400;
 function makeNPC(lk, gm) { const ch = new NPCChara(lk, ''); if (gm) { ch.gm = true; ch.setLook(lk); } EXTRA.push(ch); return ch; }
 function snapshot() { render(); const c = document.createElement('canvas'), s = renderer.domElement; c.width = s.width; c.height = s.height; c.getContext('2d').drawImage(s, 0, 0); return c; }
+function gmKey() { const k = store.get('gmk', ''); return k && store.get('gmMode', true) ? k : ''; } // 有通行證、且選了 GM 身份才送
+function resetGM() { if (!G.gm) return; G.gm = false; G.me.gm = false; G.me.setLook(G.look); G.me.setName(G.name); show('#bGM', false); show('#gmPanel', false); setMoney(store.get('mon_' + G.name, 300)); }
+async function relogin(gm) { // 遊戲中切換 GM／一般玩家：同一條街重新連線
+  store.set('gmMode', gm); if (!G.online) return toast(gm ? '下次連線會用 GM 身份' : '下次連線會用一般玩家身份');
+  G.switching = true; try { net.ws.onclose = null; net.ok = false; net.ws.close(); } catch (e) {}
+  for (const id of [...G.remotes.keys()]) delRemote(id); for (const k in G.owners) if (G.owners[k] !== G.myId) delete G.owners[k];
+  if (!gm) resetGM();
+  const r = await net.connect({ n: G.name, lk: G.look, x: G.pos.x, z: G.pos.z, k: gmKey() }, 'edo' + G.room); G.switching = false;
+  if (r !== 'ok') { G.online = false; updCount(); return toast('重新連線失敗，請重新整理網頁'); }
+  G.online = true; updCount(); toast(gm ? '👑 已切換為 GM 身份' : '🚶 已切換為一般玩家，祝你玩得開心！', 3000);
+}
 function isNight() { const h = tday() * 24; return h < 5.5 || h > 18.5; }
 function tday() { if (QS.has('t')) return +QS.get('t'); return (twDay() + G.timeOff + 1) % 1; }
 const sfx = (() => { let ac; return (f = 660, d = .12, type = 'sine', v = .08) => { try { ac = ac || new AudioContext(); const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = f; g.gain.value = v; g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + d); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + d); } catch (e) {} }; })();
@@ -789,9 +800,9 @@ async function switchRoom(i, x, z) {
   toast(`前往江戶町${ROOM_ZH['edo' + i]}…`);
   G.switching = true; try { net.ws.onclose = null; net.ok = false; net.ws.close(); } catch (e) {}
   for (const id of [...G.remotes.keys()]) delRemote(id); for (const k in G.owners) if (G.owners[k] !== G.myId) delete G.owners[k];
-  const r = await net.connect({ n: G.name, lk: G.look, x: x ?? G.pos.x, z: z ?? G.pos.z, k: store.get('gmk', '') }, 'edo' + i);
+  const r = await net.connect({ n: G.name, lk: G.look, x: x ?? G.pos.x, z: z ?? G.pos.z, k: gmKey() }, 'edo' + i);
   G.switching = false;
-  if (r !== 'ok') { toast(r === 'full' ? '那條街客滿了' : '連線失敗'); G.online = r === 'full' ? G.online : false; if (r === 'full') await net.connect({ n: G.name, lk: G.look, x: G.pos.x, z: G.pos.z, k: store.get('gmk', '') }, 'edo' + G.room); return; }
+  if (r !== 'ok') { toast(r === 'full' ? '那條街客滿了' : '連線失敗'); G.online = r === 'full' ? G.online : false; if (r === 'full') await net.connect({ n: G.name, lk: G.look, x: G.pos.x, z: G.pos.z, k: gmKey() }, 'edo' + G.room); return; }
   G.online = true; G.room = i; if (x != null) { G.pos.set(x, heightAt(x, z), z); } updCount(); toast(`已到江戶町${ROOM_ZH['edo' + i]}`);
 }
 
@@ -1398,7 +1409,8 @@ function toggleView() {
 
 // ---------- 標題畫面（換裝） ----------
 function buildTitle() {
-  $('#nameIn').value = G.name; $('#gmIn').value = store.get('gmk', ''); { let taps = [], lg = document.querySelector('#title .logo h1'); lg.style.pointerEvents = 'auto'; lg.addEventListener('pointerdown', () => { const t = performance.now(); taps = taps.filter(x => t - x < 2500); taps.push(t); if (taps.length >= 5) { taps = []; $('#gmRow').classList.toggle('hide'); } }); }
+  $('#nameIn').value = G.name; $('#gmIn').value = store.get('gmk', ''); if (store.get('gmk', '')) { show('#gmModeRow'); $('#gmMode').checked = store.get('gmMode', true); document.body.classList.add('hasgm'); }
+  $('#gmIn').addEventListener('input', () => { if ($('#gmIn').value.trim()) { show('#gmModeRow'); $('#gmMode').checked = true; } }); { let taps = [], lg = document.querySelector('#title .logo h1'); lg.style.pointerEvents = 'auto'; lg.addEventListener('pointerdown', () => { const t = performance.now(); taps = taps.filter(x => t - x < 2500); taps.push(t); if (taps.length >= 5) { taps = []; $('#gmRow').classList.toggle('hide'); } }); }
   const rows = [['k', '和服', KIMONO.map(k => k[1]), KIMONO.map(k => k[0])], ['p', '花紋', null, PATTERNS], ['o', '腰帶', OBI, null], ['h', '髮型', null, HAIRS], ['s', '膚色', SKINS, null], ['y', '衣裝', null, OUTFITS], ['yc', '外衣色', OUTER, null], ['ey', '眼睛', null, EYES], ['br', '眉毛', null, BROWS], ['mo', '嘴巴', null, MOUTHS], ['ck', '腮紅', null, CHEEKS], ['mk', '痣', null, MOLES], ['ft', '特徵', null, FEATS]];
   if (NPCChara === SChara) { rows.splice(0, rows.length, rows[0], rows[1], rows[2], ['ai', '髮型', null, ARCH_LIST.map(n => ARCH_NAME[n])]); if (G.look.ai == null || G.look.aiH !== G.look.h) { G.look.ai = ARCH_LIST.indexOf(archOf(G.look)); G.look.aiH = G.look.h; } }
   $('#looks').innerHTML = rows.map(([k, t, cols, names]) => `<div class="lr"><span>${t}</span><div>${(cols || names).map((c, i) => cols ? `<button class="sw" data-k="${k}" data-v="${i}" style="background:${c}" title="${names ? names[i] : ''}"></button>` : `<button class="tx" data-k="${k}" data-v="${i}">${c}</button>`).join('')}</div></div>`).join('');
@@ -1437,7 +1449,7 @@ async function start() {
   const n = $('#nameIn').value.trim().slice(0, 12);
   if (!n) { $('#nameIn').focus(); return toast('請先取一個暱稱'); }
   if (cleanText(n).bad) { $('#nameIn').focus(); return toast('暱稱含有不雅字詞，請換一個'); }
-  const gk = ($('#gmIn').value || '').trim(); if (gk) store.set('gmk', gk);
+  const gk = ($('#gmIn').value || '').trim(); if (gk) store.set('gmk', gk); if (store.get('gmk', '')) { store.set('gmMode', $('#gmMode').checked); document.body.classList.add('hasgm'); }
   G.name = n; store.set('name', n); store.set('look', G.look); G.me.setName(n);
   setMoney(store.get('mon_' + n, 300));
   $('#go').disabled = true; $('#go').textContent = '連線中…';
@@ -1445,7 +1457,7 @@ async function start() {
   for (let tries = 0; SERVER && tries < 2; tries++) {
     if (tries) { $('#go').textContent = '連線較慢，重試中…'; }
     const st = +QS.get('st'), order = [1, 2, 3, 4, 5].sort((a, b) => (b === st) - (a === st)); // 邀請連結指定的街優先
-    for (const i of order) { r = await net.connect({ n, lk: G.look, x: G.pos.x, z: G.pos.z, k: store.get('gmk', '') }, 'edo' + i); if (r !== 'full') { G.room = i; break; } }
+    for (const i of order) { r = await net.connect({ n, lk: G.look, x: G.pos.x, z: G.pos.z, k: gmKey() }, 'edo' + i); if (r !== 'full') { G.room = i; break; } }
     if (r !== 'offline') break;
   }
   G.online = r === 'ok';
@@ -1690,8 +1702,9 @@ $('#online').onclick = () => { pop(null); if (!G.online) return toast('目前是
 $('#bGM').onclick = openGM;
 $('#bPhoto').onclick = () => { pop(null); SO.photo(); };
 $('#bMore').onclick = () => { const m = $('#moreMenu'), gm = !$('#bGM').classList.contains('hide');
-  m.innerHTML = (gm ? '<button class="gm" data-m="bGM">👑 GM 管理面板</button>' : '') + [['bPhoto', '📷 拍紀念照'], ['bView', '🌅 看風景'], ['bFS', '⛶ 全螢幕'], ['bHelp', '❔ 遊戲說明'], ['bSet', '⚙ 設定']].map(([id, n]) => `<button data-m="${id}">${n}</button>`).join('');
-  m.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { pop(null); $('#' + b.dataset.m).click(); }); pop('#moreMenu'); };
+  const hasKey = !!store.get('gmk', ''); m.innerHTML = (gm ? '<button class="gm" data-m="bGM">👑 GM 管理面板</button>' : '') + (hasKey ? `<button class="gm" data-sw="${gm ? 0 : 1}">${gm ? '🚶 切換成一般玩家' : '👑 切換成 GM 身份'}</button>` : '') + [['bPhoto', '📷 拍紀念照'], ['bView', '🌅 看風景'], ['bFS', '⛶ 全螢幕'], ['bHelp', '❔ 遊戲說明'], ['bSet', '⚙ 設定']].map(([id, n]) => `<button data-m="${id}">${n}</button>`).join('');
+  m.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { pop(null); $('#' + b.dataset.m).click(); });
+  m.querySelectorAll('[data-sw]').forEach(b => b.onclick = () => { pop(null); relogin(b.dataset.sw === '1'); }); pop('#moreMenu'); };
 $('#bHelp').onclick = () => show('#help');
 $('#bFS').onclick = toggleFS;
 document.querySelectorAll('[data-donate]').forEach(b => b.onclick = () => { show('#settings', false); show('#donate'); SND.pluck(660, .06); });
