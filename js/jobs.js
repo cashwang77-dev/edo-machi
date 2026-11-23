@@ -45,7 +45,7 @@ function startCourier() {
   const here = A.G.pos, cand = A.DEST.filter(d => Math.hypot(d[1] - here.x, d[2] - here.z) > 30);
   const d = cand[Math.floor(Math.random() * cand.length)], dist = Math.hypot(d[1] - here.x, d[2] - here.z);
   const NAMES = ['隠居の宗右衛門', '八百屋のお松', '寺子屋の先生', '大工の熊吉', '番頭の与兵衛', '髪結いのお梅'];
-  run = { to: d[0], x: d[1], z: d[2], t: 0, lim: Math.round(dist / 3.2 + 20), dist, who: NAMES[Math.floor(Math.random() * NAMES.length)] };
+  run = { to: d[0], x: d[1], z: d[2], t: 0, lim: Math.round(dist / 2.4 + 25), dist, who: NAMES[Math.floor(Math.random() * NAMES.length)] };
   A.toast(`📮 把信送到「${d[0]}」交給${run.who}！小地圖上的 ★ 就是目的地（限時 ${run.lim} 秒，坐人力車不算）`, 4500); A.G.me.emoji('📮');
 }
 function endCourier(ok, msg) {

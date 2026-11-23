@@ -5,25 +5,25 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611232348';
-import { RIDE_Y } from './chara.js?v=202611232348';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611232348';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611232348';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611232348';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611232348';
-import { Net } from './net.js?v=202611232348';
-import { cleanText } from './filter.js?v=202611232348';
-import { SND } from './audio.js?v=202611232348';
-import * as TX from './tex.js?v=202611232348';
-import * as P from './prog.js?v=202611232348';
-import * as F from './fishing.js?v=202611232348';
-import * as HM from './home.js?v=202611232348';
-import * as HN from './hanamachi.js?v=202611232348';
-import * as JB from './jobs.js?v=202611232348';
-import * as FM from './farm.js?v=202611232348';
-import * as ON from './onsen.js?v=202611232348';
-import * as SO from './social.js?v=202611232348';
-import { updBoats } from './kashi.js?v=202611232348';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611240018';
+import { RIDE_Y } from './chara.js?v=202611240018';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611240018';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611240018';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611240018';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611240018';
+import { Net } from './net.js?v=202611240018';
+import { cleanText } from './filter.js?v=202611240018';
+import { SND } from './audio.js?v=202611240018';
+import * as TX from './tex.js?v=202611240018';
+import * as P from './prog.js?v=202611240018';
+import * as F from './fishing.js?v=202611240018';
+import * as HM from './home.js?v=202611240018';
+import * as HN from './hanamachi.js?v=202611240018';
+import * as JB from './jobs.js?v=202611240018';
+import * as FM from './farm.js?v=202611240018';
+import * as ON from './onsen.js?v=202611240018';
+import * as SO from './social.js?v=202611240018';
+import { updBoats } from './kashi.js?v=202611240018';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -807,7 +807,7 @@ async function switchRoom(i, x, z) {
 }
 
 // ---------- 人力車：點路上的空車或按🛺叫車 → 選名所／點地圖／找玩家，車資依距離 ----------
-const RIDE = { fare2: 40 }; const RIDE_SPD = 4.8; // 乘車速度＝走路(3.2)的 1.5 倍，慢慢欣賞風景
+const RIDE = { fare2: 40 }; const RIDE_SPD = 4.8; // 乘車速度＝走路(2.2)的 2 倍多，慢慢欣賞風景
 const DEST = [['大街中央', 0, 3], ['花街・金波楼', 0, -98], ['郊外農村', -60, 84], ['溫泉鄉・湯の郷', 194, 0], ['隅田川河岸', 104, -62], ['新開地（建地）', 52, -66], ['神社', -116, 4], ['千本鳥居', -125, -30], ['名所南區', -125, 50], ['江戶城', -212, 92], ['不忍池', -122, 86], ['中村座', -166, 66], ['回向院相撲', -170, 104], ['日本橋', 106, 0], ['雷門', 158, 4], ['露天風呂', 153, 8], ['東光寺', 178, -42], ['五重塔', 155, -90], ['金閣寺', 180, 97]];
 const GM_DEST = DEST;
 // 路線規劃：地圖切 1 公尺格子（可走＝walkable 且不碰障礙物），從起點做一次最短路，就能得到到每個地方的距離與路線
@@ -1564,7 +1564,7 @@ function update(dt) {
       const wantRun = (keys.ShiftLeft || keys.ShiftRight || joy.mag > .9) && !G.me.gm;
       const run = wantRun && !G.tired && G.sta > 0;
       if (run) { G.sta -= 20 * dt; if (G.sta <= 0) { G.sta = 0; G.tired = true; G.me.say('はぁ…はぁ…', 2.5); G.me.emoji('💦'); toast('跑太久喘不過氣了，休息一下再跑吧', 2500); } }
-      speed = (G.me.gm ? 1.6 : run ? 6 : G.tired ? 2.4 : 3.2) * len;
+      speed = (G.me.gm ? 1.6 : run ? 4.2 : G.tired ? 1.7 : 2.2) * len; /* 11/24 走路放慢（原 3.2／跑 6） */
       const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw), rx = -fz, rz = fx;
       let dx = fx * iz + rx * ix, dz = fz * iz + rz * ix; const dl = Math.hypot(dx, dz); dx /= dl; dz /= dl;
       const nx = G.pos.x + dx * speed * dt, nz = G.pos.z + dz * speed * dt;

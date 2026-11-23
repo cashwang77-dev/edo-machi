@@ -1,9 +1,9 @@
 // 2D 手繪立繪人物（RO 式紙娃娃）：一個面向鏡頭的平面＋換色著色器；每人 1 次繪製
 // SChara 與 3D 的 Chara 介面相同（root、setLook、play、update、say、emoji、setName、lod、setRide、updRide、headG、foodG、accG、waistG），遊戲端直接替換
 import * as THREE from 'three';
-import { Chara, KIMONO, OBI } from './chara.js?v=202611232348';
-import * as TX from './tex.js?v=202611232348';
-import { ACC } from './shops.js?v=202611232348';
+import { Chara, KIMONO, OBI } from './chara.js?v=202611240018';
+import * as TX from './tex.js?v=202611240018';
+import { ACC } from './shops.js?v=202611240018';
 
 const ATLAS = {}; // 原型名 → { tex, mask, meta }
 export const ARCH_LIST = ['f1', 'f2', 'f3', 'f4', 'm1', 'm2', 'm3', 'm4', 'f5', 'f6', 'f7', 'f8', 'f9', 'm5', 'oi']; // 新的只能接在後面（玩家存的是編號）
@@ -131,12 +131,13 @@ export class SChara {
     const moving = speed > .2 && !act && !SIT.has(a);
     const set = act ? null : moving ? F.walk : SIT.has(a) ? F.sit : F.idle;
     let fr = act || set[DIRS[k]] || set.S, i = 0, bob = 0;
-    if (moving) { const ph = this.t * speed * 1.6; i = Math.floor(ph) % fr.length; }
+    let sway = 0;
+    if (moving) { const ph = this.t * speed * 1.6; i = Math.floor(ph) % fr.length; bob = Math.abs(Math.sin(ph * Math.PI / 2)) * .06; sway = Math.sin(ph * Math.PI / 2) * .05; } /* 正面背面的走路圖腳幾乎不動：加上踏步彈跳與左右搖擺 */
     else if (act) { if (a === 10) fr = (Math.floor(this.t * 2) % 2 ? F.act.wave : F.act.cheer); bob = Math.abs(Math.sin(this.t * 4)) * (a === 10 || a === 11 ? .04 : 0); }
     else if (!SIT.has(a)) bob = Math.sin(this.t * 2.2) * .004;
     const { fw, fh, cols, rows } = this.A.meta, idx = fr[i % fr.length].i, W = cols * fw, Hh = rows * fh;
     this.u.uRect.value.set((idx % cols) * fw / W, 1 - (Math.floor(idx / cols) + 1) * fh / Hh, fw / W, fh / Hh); this.u.uFlip.value = flip && !act ? 1 : 0;
-    this.mesh.position.y = bob;
+    this.mesh.position.y = bob; this.mesh.rotation.z = sway;
     if (this.accP && this.accP.children.length) { this.accP.scale.x = flip && !act ? -1 : 1; for (const sp of this.accP.children) { const sl = sp.userData.slot; sp.visible = !(k === 4 && !act && (sl === 'hs' || sl === 'm' || sl === 'w' || (sl === 'c' && sp.scale.x < .9))); sp.material.color.copy(SPR_LIGHT.value); } }
   }
 }
