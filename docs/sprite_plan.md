@@ -31,7 +31,7 @@ art_src/sprites/<原型>/A.png,B.png → tools/sprite_cut.py（find_figures 找�
   - SPR_LIGHT 依 W.night 調亮度
 ## 之後可改進
 - [x] 11/19 飾品手繪圖 36 件（tools/acc_cut.py → img/spr/acc.*；sprite.js ACC_POS/ACC_FIX 位置）
-- 羽織／袴／法被、臉部五官與膚色選項在立繪模式不顯示
-- m3 坐下斜前那格腳邊細線
+- [x] 11/24 膚色（skin_mask.py，遮罩 B 通道）、羽織／袴／法被（outfit_band.py 腰帶分區＋著色器）、腮紅／淚痣（face_pts.py 眼睛定位）；眼／眉／嘴仍是原圖
+- [x] m3 坐下斜前那格腳邊細線（11/19 手動清掉）
 - [x] 11/19 新增 f5 唐輪、f6 勝山髷、f7 兵庫髷、f8 お団子、f9 二つ結び、m5 銀杏髷（ARCH_LIST 只能接在後面；HAIR2ARCH 一對一）
 - [x] 11/19 f9 歡呼：Gemini 圖片編輯重畫（art_src/sprites/f9_cheer.png）手動塞進 atlas 第 34 格；m3 坐下斜前的長椅線手動清掉。⚠ 重跑 sprite_cut 的 f9、m3 會蓋掉這兩個手動修正

@@ -1,6 +1,6 @@
 // 町人帳：個人進度（等級／稱號、每日簽到、町人委託、圖鑑、存檔備份）
 // 存在瀏覽器 localStorage（edo_save_<暱稱>），另可匯出／匯入備份碼
-import { SHOPS, ACC } from './shops.js?v=202611241026';
+import { SHOPS, ACC } from './shops.js?v=202611241302';
 
 let A = null; // game.js 傳進來的介面
 let S = null; // 目前存檔
@@ -212,6 +212,6 @@ export function initProg(api) {
     .filter((e, i, a) => a.findIndex(x => x.k === e.k) === i);
   for (const id of api.invGet()) if (ACC.some(x => x.id === id) && !S.dex.acc[id]) S.dex.acc[id] = today(); // 舊玩家已有的飾品
   dailyCheck(); hud(); save();
-  if (loginCheck()) setTimeout(() => open('day'), 1800);
+  if (loginCheck() && !location.search.includes('cam=')) setTimeout(() => open('day'), 1800);
 }
 export function spotKey(label) { return (label.includes('：') ? label.split('：').pop() : label.replace(/^[^぀-鿿]+/, '')).trim(); }

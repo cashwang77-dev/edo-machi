@@ -12,12 +12,21 @@ export const MAT = [['ishi', '礎石', 'zai', 30], ['hashira', '柱', 'zai', 60]
 // 家具：[id, 名, 價, 放哪 in|out|both]
 export const FURN = [['andon', '行灯', 80, 'in'], ['hibachi', '火鉢', 100, 'in'], ['byobu', '金屏風', 180, 'in'], ['kakejiku', '掛軸', 140, 'in'], ['tansu', '箪笥', 220, 'in'],
   ['bonsai', '盆栽', 90, 'both'], ['maneki', '招き猫', 120, 'both'], ['chochin', '赤提灯', 50, 'out'], ['endai', '縁台', 100, 'out'], ['toro', '石燈籠', 240, 'out'],
-  ['koinobori', '鯉のぼり', 180, 'out'], ['ido', '井戸', 320, 'out'], ['sakura', '桜の木', 260, 'out'], ['matsu', '松の木', 260, 'out'], ['ike', '小池', 400, 'out']];
+  ['koinobori', '鯉のぼり', 180, 'out'], ['ido', '井戸', 320, 'out'], ['sakura', '桜の木', 260, 'out'], ['matsu', '松の木', 260, 'out'], ['ike', '小池', 400, 'out'],
+  // 11/24 新增：江戶町「道具屋」（家具）、「瀬戸物屋」（飾品）販售
+  ['zataku', '座卓', 160, 'in'], ['zabuton', '座布団', 40, 'in'], ['kotatsu', '炬燵', 200, 'in'], ['kyodai', '鏡台', 210, 'in'], ['tsuitate', '衝立', 130, 'in'], ['shamisen', '三味線', 260, 'in'],
+  ['daruma', '達磨', 60, 'both'], ['hina', '雛人形', 300, 'in'], ['kabuto', '兜飾り', 280, 'in'], ['ikebana', '生け花', 90, 'in'], ['hagoita', '羽子板', 110, 'in'],
+  ['tanuki', '信楽狸', 150, 'out'], ['fuurin', '風鈴', 45, 'out'], ['kadomatsu', '門松', 120, 'out'], ['tsukubai', '蹲踞', 200, 'out']];
+export const FZH = { andon: '紙罩油燈', hibachi: '炭火盆', byobu: '金箔屏風', kakejiku: '水墨掛軸', tansu: '桐木衣櫃', bonsai: '松樹盆栽', maneki: '招財貓', chochin: '紅燈籠', endai: '長板凳', toro: '石燈籠', koinobori: '鯉魚旗', ido: '水井', sakura: '櫻花樹', matsu: '松樹', ike: '鯉魚池',
+  zataku: '和式矮桌', zabuton: '坐墊', kotatsu: '暖桌', kyodai: '梳妝鏡台', tsuitate: '屏風隔板', shamisen: '三味線', daruma: '不倒翁', hina: '女兒節人偶', kabuto: '武士頭盔擺飾', ikebana: '插花', hagoita: '羽子板擺飾', tanuki: '狸貓陶偶', fuurin: '風鈴', kadomatsu: '新年門松', tsukubai: '洗手石缽' };
+export const TOWN_FURN = { dogu: ['andon', 'hibachi', 'tansu', 'zataku', 'zabuton', 'kotatsu', 'kyodai', 'tsuitate', 'byobu', 'shamisen', 'endai', 'chochin'],
+  seto: ['kakejiku', 'ikebana', 'daruma', 'maneki', 'hagoita', 'hina', 'kabuto', 'bonsai', 'fuurin', 'tanuki', 'kadomatsu', 'toro', 'tsukubai'] };
 export const STORES = { zai: ['材木屋 木曽屋', '「上等的檜木，蓋房子就靠它！」'], kawa: ['瓦屋 瓦善', '「屋頂沒瓦，下雨可就慘囉。」'], tate: ['建具屋 戸田屋', '「障子紙是今早剛糊的。」'], tata: ['畳屋 畳清', '「藺草香，聞了就想躺。」'], yoro: ['萬屋 よろづ屋', '「家具擺飾，應有盡有！」'] };
 // 工序：[名, 說明, 需要材料, 小遊戲]
 export const STEPS = [['整地・礎石', '把地面夯平，放上礎石', { ishi: 4 }, 'mash'], ['柱立て', '一根一根立起柱子', { hashira: 4 }, 'tap'], ['上棟', '架上大樑，辦上棟式！', { hari: 2 }, 'hold'],
   ['床・壁', '鋪地板、釘牆板', { ita: 6 }, 'tap'], ['屋根', '一片片鋪上屋瓦', { kawara: 3 }, 'tap'], ['建具・畳', '裝障子、鋪榻榻米', { shoji: 4, tatami: 4 }, 'mash']];
-const SLOTS_IN = [[-2.6, -1.3], [-.9, -1.3], [.9, -1.3], [2.6, -1.3]], SLOTS_OUT = [[-4.6, 4.2], [-1.8, 4.8], [1.8, 4.8], [4.6, 4.2], [-5.3, .6], [5.3, .6]];
+const SLOTS_IN = [[-2.6, -1.3], [-.9, -1.3], [.9, -1.3], [2.6, -1.3], [-2.9, 1.2], [-1.2, 1.4], [1.2, 1.4], [2.9, 1.2]], SLOTS_OUT = [[-4.6, 4.2], [-1.8, 4.8], [1.8, 4.8], [4.6, 4.2], [-5.3, .6], [5.3, .6], [-3.4, 6.6], [3.4, 6.6]];
+const WALL_ONLY = ['kakejiku']; // 掛在後牆，只能放室內前四格
 
 let A, H = null, grp = null, cols = [], GEN = 0;
 const $ = s => document.querySelector(s);
@@ -59,7 +68,7 @@ function setHome(h) { A.P.prog().home = h; A.P.save(); }
 const MATS = {};
 function m(k, o) { return MATS[k] || (MATS[k] = new THREE.MeshStandardMaterial({ roughness: .85, ...o })); }
 const box = (w, h, d, mat, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); b.position.set(x, y, z); b.castShadow = b.receiveShadow = true; return b; };
-function furnMesh(id) {
+export function furnMesh(id) {
   const g = new THREE.Group(), wd = m('fwd', { color: '#7a5434' });
   const add = o => { o.castShadow = true; g.add(o); return o; };
   const cyl = (rt, rb, h, mat, y = h / 2, x = 0, z = 0) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, 14), mat); c.position.set(x, y, z); return add(c); };
@@ -79,6 +88,26 @@ function furnMesh(id) {
     case 'ido': { const st = m('fst', {}); cyl(.6, .65, .7, st, .35); cyl(.48, .48, .05, m('fwater', { color: '#2a4a5a' }), .66); for (const x of [-.6, .6]) cyl(.05, .05, 1.8, wd, .9, x); add(box(1.6, .08, 1, m('froof', { color: '#3a3430' }), 0, 1.85, 0)); break; }
     case 'sakura': cyl(.12, .2, 1.8, m('fbark', { color: '#5a3e2e' }), .9); for (let i = 0; i < 6; i++) sph(.6, m('fpink', { color: '#f4b8c8' }), Math.cos(i) * .6, 2.2 + (i % 3) * .3, Math.sin(i) * .6); break;
     case 'matsu': cyl(.12, .2, 2, m('fbark', {}), 1); for (let i = 0; i < 3; i++) sph(.8 - i * .15, m('fpine', { color: '#3a5a3a' }), (i - 1) * .3, 1.8 + i * .5, 0, 1.4, .4, 1); break;
+    case 'zataku': add(box(1.1, .07, .65, m('furu', { color: '#5a2a1a', roughness: .35 }), 0, .32, 0)); for (const x of [-.48, .48]) for (const z of [-.26, .26]) add(box(.07, .29, .07, m('furu', {}), x, .145, z)); break;
+    case 'zabuton': for (const [x, c] of [[-.3, '#6a3a6a'], [.3, '#a8323e']]) add(box(.55, .09, .55, m('fzb' + c, { color: c }), x, .05, 0)); break;
+    case 'kotatsu': add(box(1.05, .32, 1.05, m('fkf', { color: '#a8323e' }), 0, .16, 0)); add(box(.9, .05, .9, m('fkt', { color: '#8a5a2a', roughness: .4 }), 0, .345, 0)); sph(.07, m('fmikan', { color: '#f08a20' }), .1, .41, .05); sph(.07, m('fmikan', {}), -.05, .41, -.08); break;
+    case 'kyodai': add(box(.55, .4, .35, m('furu', { color: '#5a2a1a', roughness: .35 }), 0, .2, 0)); add(box(.06, .55, .05, m('furu', {}), 0, .65, -.1)); add(box(.38, .46, .03, m('fmirror', { color: '#c8d4dc', emissive: '#7a8a98', emissiveIntensity: .5, roughness: .2 }), 0, .78, -.07)); add(box(.5, .06, .04, m('fred', { color: '#d83a2a' }), 0, .42, .16)); break;
+    case 'tsuitate': for (const x of [-.4, .4]) add(box(.12, .08, .4, wd, x, .04, 0)); add(box(1.05, .85, .05, wd, 0, .55, 0)); add(box(.95, .75, .055, m('fpaper2', { color: '#efe6d0' }), 0, .55, 0)); add(box(.6, .07, .06, m('fink', { color: '#3a4a3a' }), .1, .7, 0)); add(box(.05, .45, .06, m('fink', {}), -.15, .5, 0)); break;
+    case 'shamisen': { const s = new THREE.Group(); s.add(box(.34, .36, .09, m('fsh', { color: '#efe2c0' }), 0, .18, 0)); s.add(box(.045, .95, .04, m('furu', { color: '#5a2a1a' }), 0, .74, 0)); s.add(box(.07, .12, .05, m('furu', {}), 0, 1.24, -.02)); s.rotation.z = .22; s.position.x = .12; g.add(s); add(box(.4, .04, .3, wd, 0, .02, 0)); break; }
+    case 'daruma': sph(.26, m('fdaru', { color: '#c8221a', roughness: .4 }), 0, .26, 0, 1, 1.1, .95); sph(.15, m('fface', { color: '#f6efe0' }), 0, .33, .16, 1, 1, .45); for (const x of [-.05, .05]) sph(.025, m('fcoal2', { color: '#111111' }), x, .36, .225); add(box(.2, .03, .02, m('fgold', { color: '#e8c050', metalness: .5, roughness: .3 }), 0, .16, .25)); break;
+    case 'hina': { const red = m('fhina', { color: '#c8222a' }); for (let i = 0; i < 3; i++) add(box(1.1 - i * .25, .22, .5 - i * .1, red, 0, .11 + i * .22, i * -.06));
+      [[-.15, .66, '#2a2a4a'], [.15, .66, '#c84a6a'], [-.35, .44, '#f0e6d0'], [0, .44, '#f0e6d0'], [.35, .44, '#f0e6d0'], [-.3, .22, '#3a6a4a'], [.3, .22, '#6a4a8a']].forEach(([x, y, c]) => { sph(.07, m('fdoll' + c, { color: c }), x, y + .07, .05, 1, 1.3, 1); sph(.045, m('fface', { color: '#f6efe0' }), x, y + .19, .05); }); break; }
+    case 'kabuto': add(box(.6, .12, .45, m('furu', { color: '#5a2a1a' }), 0, .06, 0)); sph(.22, m('fkab', { color: '#2a2a30', metalness: .5, roughness: .35 }), 0, .2, 0, 1, .8, 1); add(box(.6, .05, .5, m('fkab', {}), 0, .18, .02));
+      for (const sd of [-1, 1]) { const k = box(.04, .4, .02, m('fgold', { color: '#e8c050', metalness: .5, roughness: .3 }), sd * .12, .5, .15); k.rotation.z = -sd * .45; add(k); } break;
+    case 'ikebana': cyl(.1, .14, .3, m('fvase', { color: '#2a4a6a', roughness: .2 })); for (const [x, y, z] of [[0, .62, 0], [-.12, .5, .05], [.13, .55, -.04]]) cyl(.012, .012, y - .2, m('fstem', { color: '#4a7a3a' }), (y + .2) / 2, x * .5, z * .5);
+      sph(.07, m('fpink', { color: '#f4b8c8' }), 0, .65, 0); sph(.06, m('fwhite', { color: '#fbf6ec' }), -.12, .52, .05); sph(.06, m('fdaru', { color: '#c8221a', roughness: .4 }), .13, .57, -.04); sph(.1, m('fstem', {}), .02, .38, .06, 1.6, .4, 1); break;
+    case 'hagoita': add(box(.4, .05, .25, wd, 0, .025, 0)); add(box(.07, .28, .03, wd, 0, .19, -.02)); add(box(.3, .55, .03, m('fhago', { color: '#e8c050', metalness: .3 }), 0, .6, -.02)); add(box(.22, .38, .035, m('fhina', { color: '#c8222a' }), 0, .62, -.01)); sph(.05, m('fface', { color: '#f6efe0' }), 0, .72, .01); break;
+    case 'tanuki': { const cl = m('ftan2', { color: '#8a6a4a', roughness: .6 }); sph(.35, cl, 0, .38, 0, 1, 1, .9); sph(.23, cl, 0, .88, .02); sph(.13, m('fbel', { color: '#d8c8a8' }), 0, .38, .25, 1, 1.2, .5); for (const x of [-.09, .09]) sph(.04, m('fcoal2', { color: '#111111' }), x, .92, .22);
+      const h = new THREE.Mesh(new THREE.ConeGeometry(.3, .18, 14), m('fstraw', { color: '#c8a868' })); h.position.y = 1.15; add(h); cyl(.07, .08, .22, m('fsake', { color: '#f0e6d0' }), .4, .33, .1); break; }
+    case 'fuurin': cyl(.03, .035, 1.7, wd, .85); add(box(.5, .04, .04, wd, .22, 1.68, 0)); sph(.09, m('fglass', { color: '#bfe2f0', transparent: true, opacity: .7, roughness: .05 }), .44, 1.55, 0, 1, .8, 1); add(box(.07, .25, .01, m('fslip', { color: '#d83a2a' }), .44, 1.33, 0)); break;
+    case 'kadomatsu': cyl(.3, .26, .4, m('fstraw', { color: '#c8a868' })); for (const [x, z, h] of [[0, -.08, 1.2], [-.12, .08, 1.0], [.12, .08, .85]]) cyl(.06, .06, h, m('fbamb', { color: '#5a8a3a' }), .3 + h / 2, x, z);
+      sph(.32, m('fpine', { color: '#3a5a3a' }), 0, .5, .05, 1.3, .5, 1); for (const sd of [-1, 1]) sph(.05, m('fdaru', { color: '#c8221a', roughness: .4 }), sd * .25, .45, .25); break;
+    case 'tsukubai': { const st = m('fst', { color: '#9a958a' }); cyl(.4, .45, .45, st); cyl(.3, .3, .04, m('fwater', { color: '#2a4a5a' }), .44); const p = box(.06, .06, .7, m('fbamb', { color: '#5a8a3a' }), 0, .62, -.55); p.rotation.x = .25; add(p); add(box(.08, .7, .08, m('fbamb', {}), 0, .35, -.85)); for (let i = 0; i < 4; i++) sph(.13, st, Math.cos(i * 1.7) * .7, .08, Math.sin(i * 1.7) * .5 + .2); break; }
     case 'ike': { const w = new THREE.Mesh(new THREE.CircleGeometry(1.1, 24), m('fpond', { color: '#3f7088', metalness: .3, roughness: .1 })); w.rotation.x = -PI / 2; w.position.y = .03; w.scale.set(1.3, .9, 1); add(w); for (let i = 0; i < 8; i++) sph(.16, m('fst', {}), Math.cos(i / 8 * 6.28) * 1.45, .08, Math.sin(i / 8 * 6.28) * 1.0); sph(.1, m('fkoi0', {}), .3, .06, .1, 1.8, .4, .8); break; }
   }
   return g;
@@ -99,8 +128,8 @@ function buildHouse(h, owner) { // 依存檔（plot/stage/deco）蓋出一棟房
   if (s >= 6) { for (let i = 0; i < 4; i++) grp.add(box(1.9, 2.4, .05, m('hshoji', { color: '#f6efdc', emissive: '#ffcf90', emissiveIntensity: .12 }), -3 + i * 2 + (i % 2 ? .6 : 0), 1.8, 2.92 - (i % 2) * .08));
     for (let i = 0; i < 4; i++) grp.add(box(1.9, .03, 2.9, m('htatami', { color: '#b8c070' }), -3 + i * 2, .62, -.9)); grp.add(box(.5, .9, .05, m('hnoren', { color: '#2f4f7a' }), 0, 2.6, 3.0)); }
   if (s >= 6) { const d = h.deco || {}; // 家具
-    SLOTS_IN.forEach(([x, z], i) => { const id = d['i' + i]; if (!id) return; const f = furnMesh(id); f.position.set(x, id === 'kakejiku' ? .62 : .62, z - (id === 'kakejiku' ? .95 : 0)); grp.add(f); });
-    SLOTS_OUT.forEach(([x, z], i) => { const id = d['o' + i]; if (!id) return; const f = furnMesh(id); f.position.set(x, 0, z); f.rotation.y = x < 0 ? .3 : -.3; grp.add(f); colAt(x, z, ['sakura', 'matsu', 'ido', 'ike', 'toro'].includes(id) ? .9 : .5); }); }
+    SLOTS_IN.forEach(([x, z], i) => { const id = d['i' + i]; if (!id) return; const f = furnMesh(id); f.position.set(x, .62, z - (WALL_ONLY.includes(id) ? .95 : 0)); grp.add(f); });
+    SLOTS_OUT.forEach(([x, z], i) => { const id = d['o' + i]; if (!id) return; const f = furnMesh(id); f.position.set(x, 0, z); f.rotation.y = x < 0 ? .3 : -.3; grp.add(f); colAt(x, z, ['sakura', 'matsu', 'ido', 'ike', 'toro', 'tsukubai'].includes(id) ? .9 : .5); }); }
   if (owner) { // 屋主名牌
     const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64; const c = cv.getContext('2d'); c.fillStyle = 'rgba(40,28,18,.85)'; c.fillRect(0, 0, 256, 64); c.fillStyle = '#f4e8d0'; c.font = '700 30px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(owner).slice(0, 8) + ' の家', 128, 34);
     const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false })); sp.scale.set(2.6, .65, 1); sp.position.set(4.5, 2.2, 8.6); grp.add(sp); }
@@ -198,16 +227,16 @@ function doStep() {
     h.stage++; setHome(h); rebuild(); A.P.ev('build', { k: 'step' + h.stage }); A.P.addXp(30 + h.stage * 5);
     A.G.me.emoji('🔨'); A.toast(`完成工序「${st[0]}」！${h.stage < STEPS.length ? '下一步：' + STEPS[h.stage][0] : ''}`, 3500);
     if (h.stage === 3) { A.announceSelf('上棟式！撒餅慶祝 🎉（獲得 150 文賀禮）', '我的家'); A.addMoney(150, '上棟式賀禮'); A.G.me.emoji('🎊'); }
-    if (h.stage === STEPS.length) { A.announceSelf('房子蓋好了！到萬屋買家具來裝飾吧', '我的家'); A.P.addXp(120); A.G.me.emoji('🏡'); }
+    if (h.stage === STEPS.length) { A.announceSelf('房子蓋好了！到江戶町的道具屋、瀬戸物屋買家具和飾品來裝飾吧', '我的家'); A.P.addXp(120); A.G.me.emoji('🏡'); }
   });
 }
 export function openDeco() {
   const h = home(), fb = A.P.bag('furn'), d = h.deco = h.deco || {};
   const used = {}; for (const k in d) if (d[k]) used[d[k]] = (used[d[k]] || 0) + 1;
-  const opt = (slot, where) => { const cur = d[slot] || ''; const ids = FURN.filter(f => f[3] === where || f[3] === 'both').map(f => f[0]).filter(id => id === cur || (fb[id] || 0) - (used[id] || 0) > 0);
+  const opt = (slot, where) => { const cur = d[slot] || ''; const ids = FURN.filter(f => (f[3] === where || f[3] === 'both') && !(where === 'in' && +slot.slice(1) >= 4 && WALL_ONLY.includes(f[0]))).map(f => f[0]).filter(id => id === cur || (fb[id] || 0) - (used[id] || 0) > 0);
     return `<select data-slot="${slot}"><option value="">（空）</option>${ids.map(id => `<option value="${id}" ${id === cur ? 'selected' : ''}>${furN(id)}</option>`).join('')}</select>`; };
-  const pp = panel(`<h2>我的家<small>建地 ${h.plot + 1} 號・裝飾</small></h2><p class="sub">把在「萬屋」買的家具擺進家裡和庭院。每換一次擺設都會馬上看到。</p>
-    <h4>🏠 室內</h4><div class="slots">${SLOTS_IN.map((_, i) => `<label>位置 ${i + 1}${opt('i' + i, 'in')}</label>`).join('')}</div>
+  const pp = panel(`<h2>我的家<small>建地 ${h.plot + 1} 號・裝飾</small></h2><p class="sub">把買來的家具、飾品擺進家裡和庭院（江戶町「道具屋」賣家具、「瀬戸物屋」賣飾品，新開地「萬屋」什麼都有）。每換一次擺設都會馬上看到。</p>
+    <h4>🏠 室內（1–4 靠牆、5–8 前排）</h4><div class="slots">${SLOTS_IN.map((_, i) => `<label>位置 ${i + 1}${opt('i' + i, 'in')}</label>`).join('')}</div>
     <h4>🌳 庭院</h4><div class="slots">${SLOTS_OUT.map((_, i) => `<label>位置 ${i + 1}${opt('o' + i, 'out')}</label>`).join('')}</div>
     <div class="btns"><button id="hRest" class="big alt">🍵 在家休息（每天一次 +經驗）</button></div>`);
   pp.querySelectorAll('select').forEach(s => s.onchange = () => { d[s.dataset.slot] = s.value || undefined; if (!s.value) delete d[s.dataset.slot]; setHome(h); rebuild(); A.P.ev('deco', { k: s.value }); openDeco(); });

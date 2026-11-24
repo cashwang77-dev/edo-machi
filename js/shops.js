@@ -1,4 +1,5 @@
 // 店鋪資料：位置、外觀、菜單、做菜步驟
+import { FURN, FZH, TOWN_FURN } from './home.js?v=202611241302';
 // step: g = 'tap'（看準時機按）| 'mash'（連打）| 'hold'（按住到剛好放開）
 const S = (n, zh, g) => ({ n, zh, g });
 const SOBA = [S('こねる', '揉麵', 'mash'), S('切る', '切麵', 'tap'), S('茹でる', '煮麵', 'hold'), S('盛る', '盛碗', 'tap')];
@@ -44,6 +45,8 @@ export const ACC = [
   { id: 'furoshiki', n: '風呂敷包み', zh: '唐草包袱', slot: 'b', v: 1, p: 25 }, { id: 'kago', n: '背負い籠', zh: '背簍', slot: 'b', v: 2, p: 35 },
   { id: 'shamisen', n: '三味線', zh: '三味線', slot: 'b', v: 3, p: 120 }, { id: 'stole', n: '肩掛け', zh: '紅披肩', slot: 'b', v: 4, p: 80 },
 ];
+const FURNMENU = (ids, steps) => ids.map(id => FURN.find(f => f[0] === id)).map(f => ({ id: f[0], n: f[1], zh: FZH[f[0]], p: f[2], furn: f[0], cat: f[3] === 'out' ? '庭院' : '室內', steps }))
+  .sort((a, b) => (a.cat === '庭院') - (b.cat === '庭院'));
 export const SHOPS = [
   // 北側（面向南）
   { id: 'soba', name: '信濃屋', kind: '蕎麥麵', sign: 'そば', noren: '#24406e', w: 12, floors: 2, side: -1, x: -54, wall: '#e8e0cc',
@@ -154,6 +157,11 @@ export const SHOPS = [
   { id: 'kingyosukui', name: '金魚すくい', kind: '撈金魚（遊戲）', sign: '金魚', noren: '#1f6a9a', w: 8, floors: 1, side: -1, x: 72, wall: '#e8e0cc', stall: true, play: 'kingyo', style: 'yatai', price: 10, nobori: ['#1f6a9a', '金魚'] },
   { id: 'omenya', name: '面屋', kind: 'お面屋（面具）', sign: 'お面', noren: '#c8322a', w: 10, floors: 1, side: -1, x: 88, wall: '#efe5d0', service: true, style: 'masks', nobori: ['#c8322a', 'お面'],
     menu: ACC.filter(a => a.slot === 'm').map(a => ({ id: a.id, n: a.n, zh: a.zh, p: a.p, look: { m: a.v }, acc: a, cat: '面具', steps: [S('選ぶ', '挑面具', 'tap'), S('結ぶ', '綁繩', 'tap')] })) },
+  // 11/24：西側兩家，賣自家裝飾用的家具與飾品（買了收進持有，回新開地的家擺設）
+  { id: 'doguya', name: '木曽道具', kind: '道具屋（家具）', sign: '道具', noren: '#5a3e28', w: 12, floors: 2, side: -1, x: -80, wall: '#e6dcc4', service: true,
+    menu: FURNMENU(TOWN_FURN.dogu, [S('選ぶ', '挑選', 'tap'), S('運ぶ', '搬運', 'mash')]) },
+  { id: 'setomono', name: '有田屋', kind: '瀬戸物・飾り物（飾品）', sign: '瀬戸物', noren: '#2a5a7a', w: 12, floors: 2, side: 1, x: -80, wall: '#efe5d0', service: true,
+    menu: FURNMENU(TOWN_FURN.seto, KOMA) },
   { id: 'shateki', name: '射的屋', kind: '射的（遊戲）', sign: '射的', noren: '#2f6a4a', w: 9, floors: 1, side: 1, x: 72, wall: '#e6dac0', stall: true, play: 'shateki', style: 'yatai', price: 15, nobori: ['#e8c56a', '射的'] },
   { id: 'yukata', name: '夏衣', kind: '浴衣屋（吳服）', sign: '浴衣', noren: '#3a6aa8', w: 12, floors: 2, side: 1, x: 89, wall: '#f2ead6', service: true, style: 'yukata', nobori: ['#3a6aa8', '浴衣'],
     menu: [

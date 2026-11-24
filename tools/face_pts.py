@@ -1,5 +1,5 @@
 # 立繪五官定位：每一格找出眼睛（被皮膚左右包住的深色塊），寫進 img/spr/<原型>.json 的 "fc"（依格號）
-# fc[i] = [眼睛下緣 y, 左眼 x, 右眼 x, 眼寬]（像素），找不到眼睛（背面等）= 0。遊戲用它畫腮紅、淚痣。
+# fc[i] = [眼睛下緣 y, 左眼 x, 右眼 x, 眼寬, 眼高]（像素），找不到眼睛（背面等）= 0。遊戲用它畫腮紅、淚痣。
 # 需要 _m.png 的 B 通道（皮膚，tools/skin_mask.py）。用法：python -I tools/face_pts.py [原型…] [--preview]
 import sys, os, json, glob
 import numpy as np
@@ -24,13 +24,13 @@ def eyes(rgb, al, sk, fh):
     comps = []
     for i in range(1, n2 + 1):
         ys, xs = np.nonzero(lab2 == i)
-        if 6 <= len(ys) <= 260 and xs.max() - xs.min() <= 22 and ys.max() - ys.min() <= 20: comps.append((len(ys), xs.mean(), ys.max(), xs.max() - xs.min() + 1))
+        if 6 <= len(ys) <= 260 and xs.max() - xs.min() <= 22 and ys.max() - ys.min() <= 20: comps.append((len(ys), xs.mean(), ys.max(), xs.max() - xs.min() + 1, ys.max() - ys.min() + 1))
     if not comps: return 0
     comps.sort(reverse=True); e = comps[:2]
     if len(e) == 2 and (abs(e[0][2] - e[1][2]) > 8 or abs(e[0][1] - e[1][1]) < 10): e = e[:1]  # 兩塊不在同一高度＝只有一隻眼
     e.sort(key=lambda c: c[1])
     yb = int(round(max(c[2] for c in e))); w = int(round(max(c[3] for c in e)))
-    return [yb, int(round(e[0][1])), int(round(e[-1][1])), w]
+    h = int(round(max(c[4] for c in e))); return [yb, int(round(e[0][1])), int(round(e[-1][1])), w, h]
 
 def run(name, preview=False):
     jp = os.path.join(SPR, name + '.json'); meta = json.load(open(jp, encoding='utf-8'))
@@ -47,7 +47,7 @@ def run(name, preview=False):
         im = Image.open(os.path.join(SPR, name + '.png')).convert('RGBA'); bg = Image.new('RGBA', im.size, (235, 230, 220, 255)); bg.alpha_composite(im); d = ImageDraw.Draw(bg)
         for i, e in enumerate(fc):
             if not e: continue
-            x, y = (i % cols) * fw, (i // cols) * fh; yb, xl, xr, w = e
+            x, y = (i % cols) * fw, (i // cols) * fh; yb, xl, xr, w, h = e
             for ex in {xl, xr}: d.ellipse([x + ex - 6, y + yb + 3, x + ex + 6, y + yb + 9], outline='magenta')
         bg.convert('RGB').save(os.path.join(ROOT, 'shots', 'fc_' + name + '.png'))
     return sum(1 for e in fc if e)

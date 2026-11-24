@@ -182,7 +182,11 @@ export function playMaiko() {
 
 export function initHana(api) {
   A = api; geisha = [];
-  for (const p of A.W.geishaPos || []) { const lk = { ...A.randomLook(), k: 3, p: 1, hat: 0, c: 0, f: '' }; const ch = A.makeNPC(lk, true); ch.root.position.set(p.x, p.y, p.z); ch.root.rotation.y = p.r; A.scene.add(ch.root); geisha.push({ ch, stage: !!p.stage, p }); }
+  // 每位藝妓不一樣：髮型（島田髷／唐輪／勝山髷／兵庫髷，ai＝立繪原型、h＝對應 3D 髮型）、和服色、花紋、腰帶各自洗牌
+  const sh = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const HA = sh([[0, 1], [8, 4], [9, 9], [10, 10]]), KC = sh([1, 3, 7, 5, 0, 4]), PT = sh([5, 12, 21, 11, 17, 6, 16, 14]), OB = sh([2, 0, 5, 3, 2, 0]);
+  (A.W.geishaPos || []).forEach((p, i) => { const [ai, h] = HA[i % HA.length];
+    const lk = { ...A.randomLook(), ai, h, aiH: h, k: KC[i % KC.length], p: PT[i % PT.length], o: OB[i % OB.length], s: 0, ck: 1 + (i % 2), y: 0, hat: 0, c: 0, f: '' }; const ch = A.makeNPC(lk, !!p.stage); ch.root.position.set(p.x, p.y, p.z); ch.root.rotation.y = p.r; A.scene.add(ch.root); geisha.push({ ch, stage: !!p.stage, p }); });
   // 小路上的藝妓偶爾行禮、掩嘴笑
   setInterval(() => { for (const g of geisha) { if (g.stage && show) continue; if (Math.random() < .35) g.ch.play([6, 14, 9, 7][Math.floor(Math.random() * 4)]); else g.ch.play(0); } }, 3500);
 }

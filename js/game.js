@@ -5,25 +5,25 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611241026';
-import { RIDE_Y } from './chara.js?v=202611241026';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611241026';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611241026';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611241026';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611241026';
-import { Net } from './net.js?v=202611241026';
-import { cleanText } from './filter.js?v=202611241026';
-import { SND } from './audio.js?v=202611241026';
-import * as TX from './tex.js?v=202611241026';
-import * as P from './prog.js?v=202611241026';
-import * as F from './fishing.js?v=202611241026';
-import * as HM from './home.js?v=202611241026';
-import * as HN from './hanamachi.js?v=202611241026';
-import * as JB from './jobs.js?v=202611241026';
-import * as FM from './farm.js?v=202611241026';
-import * as ON from './onsen.js?v=202611241026';
-import * as SO from './social.js?v=202611241026';
-import { updBoats } from './kashi.js?v=202611241026';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611241302';
+import { RIDE_Y } from './chara.js?v=202611241302';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611241302';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611241302';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611241302';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611241302';
+import { Net } from './net.js?v=202611241302';
+import { cleanText } from './filter.js?v=202611241302';
+import { SND } from './audio.js?v=202611241302';
+import * as TX from './tex.js?v=202611241302';
+import * as P from './prog.js?v=202611241302';
+import * as F from './fishing.js?v=202611241302';
+import * as HM from './home.js?v=202611241302';
+import * as HN from './hanamachi.js?v=202611241302';
+import * as JB from './jobs.js?v=202611241302';
+import * as FM from './farm.js?v=202611241302';
+import * as ON from './onsen.js?v=202611241302';
+import * as SO from './social.js?v=202611241302';
+import { updBoats } from './kashi.js?v=202611241302';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -479,6 +479,9 @@ function served(s, item, q, from) {
     G.look = { ...G.look, ...item.look }; G.me.setLook(G.look); store.set('look', G.look); net.send({ t: 'look', lk: G.look }); G.me.emoji('✨');
     if (item.acc) toast(`「${item.n}」已收進 🎒 持ち物，可隨時穿戴`, 3000);
     G.me.say('換好了！好看嗎？'); toast(`完成「${item.zh}」！品質：${gname}`); seatBar(s, `✔ ${item.n}`); closeup(4, { dist: 2.4, h: .95, ang: .2, look: .75, spin: .45, keep: 1 });
+  } else if (item.furn) {
+    P.bagAdd('furn', item.furn, 1); P.ev('furn', { k: item.furn, dex: 'furn' }); G.me.emoji('📦'); seatBar(s, `✔ ${item.n}`);
+    const h = HM.homeState(); toast(h && h.stage >= HM.STEPS.length ? `買到「${item.n}」！回新開地的家，點「裝飾」就能擺上` : `買到「${item.n}」！先收著，等新開地的房子蓋好就能擺`, 3800);
   } else if (item.fortune) {
     const arr = FORTUNE[item.fortune]; const [h, t] = arr[Math.floor(Math.random() * arr.length)];
     $('#fortune').innerHTML = `<div class="kuji"><div class="kt">${h}</div><p>${t}</p><button onclick="this.closest('.modal').classList.add('hide')">收下</button></div>`; show('#fortune'); show('#panel', false);
@@ -1476,6 +1479,7 @@ async function start() {
   SO.inviteCheck();
   F.initFishing({ G, P, gameModal, toast, addMoney, show, closePanels, SND, isNight, announceSelf: (s, n) => announce(s, n) });
   if (!store.get('helped', false) && !G.shot && !QS.has('nohelp')) { show('#help'); store.set('helped', true); }
+  if (QS.has('openmap')) setTimeout(() => openMap(QS.get('openmap') || undefined), 1500);
   sfx(660, .3); setTimeout(() => sfx(990, .4), 180);
 }
 
@@ -1679,7 +1683,42 @@ function drawMini(cv) {
   mg.fillStyle = '#e8322a'; mg.beginPath(); mg.arc(X(G.pos.x), Z(G.pos.z), 3.4, 0, 7); mg.fill(); mg.strokeStyle = '#fff'; mg.lineWidth = 1.5; mg.stroke();
   mg.font = '600 10px sans-serif'; mg.fillStyle = '#3a2a1a'; mg.fillText('神社', X(-140), Z(-17)); mg.fillText('江戶城', X(-268), Z(96)); mg.fillText('中村座', X(-200), Z(54)); mg.fillText('相撲', X(-182), Z(132)); mg.fillText('不忍池', X(-138), Z(84)); mg.fillText('金閣寺', X(165), Z(108)); mg.fillText('千本鳥居', X(-150), Z(-80)); mg.fillText('日本橋', X(110), Z(-6)); mg.fillText('湯', X(157), Z(6)); mg.fillStyle = '#f3ead6'; mg.fillText('東光寺', X(170), Z(-88)); mg.fillStyle = '#3a2a1a'; mg.fillText('御觸書', X(92), Z(-12));
 }
-mini.onclick = () => { const big = mini.classList.toggle('big'); mini.width = big ? 520 : 240; mini.height = big ? 260 : 120; drawMini(); };
+mini.onclick = () => openMap();
+// 大地圖：主街每家店的位置與店名（x 往東、北側在上）
+function drawStreet(cv, hi) {
+  const g = cv.getContext('2d'), w = cv.width, h = cv.height, x0 = -102, x1 = 108, sx = w / (x1 - x0), X = x => (x - x0) * sx, mid = h / 2, road = h * .2;
+  g.clearRect(0, 0, w, h); g.fillStyle = '#f3ead6'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#cdbb98'; g.fillRect(X(-100), mid - road / 2, 206 * sx, road);
+  g.fillStyle = '#7a6a58'; g.font = '600 15px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('本町通り（大街）', X(3), mid);
+  g.font = '600 13px sans-serif'; g.textAlign = 'left'; g.fillText('← 神社・千本鳥居', X(-100) + 4, mid - road / 2 - 10); g.textAlign = 'right'; g.fillText('日本橋・淺草 →', X(106) - 4, mid - road / 2 - 10);
+  for (const s of SHOPS) {
+    if (!s.side) continue;
+    const d = s, top = d.side < 0, bw = d.w * sx - 3, bx = X(d.x - d.w / 2) + 1.5, bh = h * .3, by = top ? mid - road / 2 - 6 - bh : mid + road / 2 + 6;
+    g.fillStyle = d.id === hi ? '#e8a020' : G.owners[d.id] ? '#c8322a' : '#efe2c4'; g.fillRect(bx, by, bw, bh); g.strokeStyle = '#5a4636'; g.lineWidth = 1.5; g.strokeRect(bx, by, bw, bh);
+    g.fillStyle = d.noren || '#5a4636'; g.fillRect(bx, top ? by + bh - 7 : by, bw, 7); // 暖簾那一側朝街
+    g.fillStyle = d.id === hi || G.owners[d.id] ? '#fff' : '#2a1c12'; g.textAlign = 'center';
+    const nm = d.name, fs = Math.min(15, (bw - 4) / Math.max(2, nm.length) * 1.05); g.font = `700 ${fs}px sans-serif`;
+    const cy = by + bh / 2 + (top ? -4 : 4); g.fillText(nm, bx + bw / 2, cy - 7);
+    const kd = d.kind.replace(/（.*）/, ''); g.font = `500 ${Math.min(11, (bw - 4) / Math.max(2, kd.length) * 1.05)}px sans-serif`; g.fillText(kd, bx + bw / 2, cy + 9);
+  }
+  if (G.pos.x > -102 && G.pos.x < 108 && Math.abs(G.pos.z) < 12) { g.fillStyle = '#e8322a'; g.beginPath(); g.arc(X(G.pos.x), mid + G.pos.z / 7 * road / 2, 6, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke(); }
+  g.textBaseline = 'alphabetic'; g.textAlign = 'start';
+}
+function openMap(hi) {
+  const el = $('#bigmap .card'), here = placeName(G.pos.x, G.pos.z);
+  const list = SHOPS.filter(s => s.side).sort((a, b) => a.x - b.x || a.side - b.side).concat(SHOPS.filter(s => !s.side));
+  const areas = {}; for (const s of W.spots) { if (!s.label) continue; const a = placeName(s.x, s.z); if (/前$|^大街$/.test(a)) continue; const l = s.label.replace(/（.*?）/g, ''); (areas[a] = areas[a] || new Set()).add(l); }
+  el.innerHTML = `<button class="close" data-mc>✕</button><h3>🗺 江戶町 地圖 <small style="font-size:13px;color:var(--sub)">你現在在：${here}</small></h3>
+    <canvas id="mapAll" width="1080" height="540"></canvas>
+    <h4>🏮 本町通り 店舖位置 <small style="font-weight:400;color:var(--sub)">上＝北側、下＝南側；紅點是你，紅底是玩家開的店</small></h4>
+    <canvas id="mapSt" width="1600" height="300"></canvas>
+    <h4>📜 店舖一覽（由西到東，最後是神社參道的緣日屋台；點一下在上圖標出位置）</h4>
+    <div class="shl">${list.map(s => `<button data-sh="${s.id}" class="${s.id === hi ? 'on' : ''}"><i style="background:${s.noren || '#5a4636'}"></i><span><b>${s.name}</b>${G.owners[s.id] ? ' 👤' : ''}<small>${s.kind}・${!s.side ? '神社參道' : s.side < 0 ? '北側' : '南側'}</small></span></button>`).join('')}</div>
+    <h4>🧭 其他地區</h4>${Object.entries(areas).map(([a, ls]) => `<div class="area"><b>${a}</b>${[...ls].join('　')}</div>`).join('')}`;
+  show('#bigmap'); drawMini($('#mapAll')); drawStreet($('#mapSt'), hi);
+  el.querySelector('[data-mc]').onclick = () => show('#bigmap', false);
+  el.querySelectorAll('[data-sh]').forEach(b => b.onclick = () => { el.querySelectorAll('[data-sh]').forEach(x => x.classList.toggle('on', x === b)); drawStreet($('#mapSt'), b.dataset.sh); $('#mapSt').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+}
 
 // ---------- UI 綁定 ----------
 addEventListener('pointerdown', () => { if (SND.ac && SND.ac.state !== 'running') SND.ac.resume(); });
@@ -1796,6 +1835,11 @@ async function runTest() {
     P.bagAdd('furn', 'andon', 1); P.bagAdd('furn', 'sakura', 1); act(); { const si = $('select[data-slot="i0"]'), so = $('select[data-slot="o0"]'); ok(!!si && !!so, '裝飾面板');
       if (si) { si.value = 'andon'; si.dispatchEvent(new Event('change')); } const so2 = $('select[data-slot="o0"]'); if (so2) { so2.value = 'sakura'; so2.dispatchEvent(new Event('change')); }
       ok(HM.homeState().deco.i0 === 'andon' && HM.homeState().deco.o0 === 'sakura', '擺上行灯與櫻花樹'); } closePanels();
+    { const dg = W.shops.find(s => s.def.id === 'doguya'), se = W.shops.find(s => s.def.id === 'setomono'); ok(!!dg && !!se && se.def.menu.some(m => m.furn === 'daruma'), '道具屋、瀬戸物屋開張');
+      const z0 = P.bag('furn').zataku || 0; openShop(dg); $('#bCust').click(); order(dg, dg.def.menu.find(m => m.id === 'zataku')); ok(await until(() => (P.bag('furn').zataku || 0) > z0), '道具屋買座卓'); standUp(); closePanels();
+      HM.openDeco(); const s4 = $('select[data-slot="i4"]'); ok(!!s4 && ![...s4.options].some(o => o.value === 'kakejiku'), '前排不能放掛軸');
+      if (s4) { s4.value = 'zataku'; s4.dispatchEvent(new Event('change')); } ok(HM.homeState().deco.i4 === 'zataku', '前排擺座卓'); closePanels(); }
+    openMap('doguya'); ok(document.querySelectorAll('#bigmap .shl button').length === SHOPS.length && !!$('#bigmap .shl button.on') && !$('#bigmap').classList.contains('hide'), '大地圖：店舖一覽'); show('#bigmap', false);
     G.pos.set(28, 0, -59.4); ok(await until(() => near && near.type === 'mat' && near.spot.k === 'zai'), '材木屋'); act(); ok(!!$('#hJob') && !!$('[data-b="hashira"]'), '材木屋面板與大工打工'); { const m0 = G.money; $('[data-b="hashira"]').click(); ok(G.money === m0 - HM.MAT.find(m => m[0] === 'hashira')[3] && (P.bag('mat').hashira || 0) >= 1, '買柱子'); } closePanels();
     // 口入屋打工
     G.pos.set(98, 0, 4.4); ok(await until(() => near && near.type === 'kuchi'), '口入屋告示牌'); act(); ok(!!$('#jb1'), '口入屋面板');
