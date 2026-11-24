@@ -1,9 +1,9 @@
 // 2D 手繪立繪人物（RO 式紙娃娃）：一個面向鏡頭的平面＋換色著色器；每人 1 次繪製
 // SChara 與 3D 的 Chara 介面相同（root、setLook、play、update、say、emoji、setName、lod、setRide、updRide、headG、foodG、accG、waistG），遊戲端直接替換
 import * as THREE from 'three';
-import { Chara, KIMONO, OBI, SKINS, OUTER } from './chara.js?v=202611241357';
-import * as TX from './tex.js?v=202611241357';
-import { ACC } from './shops.js?v=202611241357';
+import { Chara, KIMONO, OBI, SKINS, OUTER } from './chara.js?v=202611241543';
+import * as TX from './tex.js?v=202611241543';
+import { ACC } from './shops.js?v=202611241543';
 
 const ATLAS = {}; // 原型名 → { tex, mask, meta }
 export const ARCH_LIST = ['f1', 'f2', 'f3', 'f4', 'm1', 'm2', 'm3', 'm4', 'f5', 'f6', 'f7', 'f8', 'f9', 'm5', 'oi']; // 新的只能接在後面（玩家存的是編號）
@@ -17,13 +17,13 @@ export const archOf = lk => (lk && lk.ai != null && lk.aiH === lk.h && ARCH_LIST
 export async function loadArchetype(name, base = 'img/spr/') {
   if (ATLAS[name]) return ATLAS[name];
   const L = new THREE.TextureLoader();
-  const [tex, mask, meta] = await Promise.all([L.loadAsync(base + name + '.png'), L.loadAsync(base + name + '_m.png'), fetch(base + name + '.json').then(r => r.json())]);
+  const [tex, mask, meta] = await Promise.all([L.loadAsync(base + name + '.webp').catch(() => L.loadAsync(base + name + '.png')), L.loadAsync(base + name + '_m.png'), fetch(base + name + '.json').then(r => r.json())]);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
   mask.colorSpace = THREE.NoColorSpace; mask.magFilter = mask.minFilter = THREE.NearestFilter; mask.generateMipmaps = false;
   return ATLAS[name] = { tex, mask, meta };
 }
 let ACCA = null; // 飾品圖集
-async function loadAcc() { const [t, m] = await Promise.all([new THREE.TextureLoader().loadAsync('img/spr/acc.png'), fetch('img/spr/acc.json').then(r => r.json())]); t.colorSpace = THREE.SRGBColorSpace; ACCA = { t, m }; }
+async function loadAcc() { const [t, m] = await Promise.all([new THREE.TextureLoader().loadAsync('img/spr/acc.webp').catch(() => new THREE.TextureLoader().loadAsync('img/spr/acc.png')), fetch('img/spr/acc.json').then(r => r.json())]); t.colorSpace = THREE.SRGBColorSpace; ACCA = { t, m }; }
 export const preloadSprites = () => Promise.all([...ARCH_LIST.map(n => loadArchetype(n).catch(() => null)), loadAcc().catch(() => null)]);
 // 各部位的位置（以人物平面為準，x 正＝畫面右邊；z 正＝在人物前面）與大小
 const ACC_POS = { hat: [0, 1.5, .03, .62], hs: [-.17, 1.42, .03, .22], m: [.18, 1.3, .03, .3], w: [.2, .72, .03, .26], c: [.25, .85, .04, .3], b: [-.22, 1.02, -.03, .55] };

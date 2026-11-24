@@ -5,25 +5,25 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611241357';
-import { RIDE_Y } from './chara.js?v=202611241357';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611241357';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611241357';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611241357';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611241357';
-import { Net } from './net.js?v=202611241357';
-import { cleanText } from './filter.js?v=202611241357';
-import { SND } from './audio.js?v=202611241357';
-import * as TX from './tex.js?v=202611241357';
-import * as P from './prog.js?v=202611241357';
-import * as F from './fishing.js?v=202611241357';
-import * as HM from './home.js?v=202611241357';
-import * as HN from './hanamachi.js?v=202611241357';
-import * as JB from './jobs.js?v=202611241357';
-import * as FM from './farm.js?v=202611241357';
-import * as ON from './onsen.js?v=202611241357';
-import * as SO from './social.js?v=202611241357';
-import { updBoats } from './kashi.js?v=202611241357';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611241543';
+import { RIDE_Y } from './chara.js?v=202611241543';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611241543';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611241543';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611241543';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611241543';
+import { Net } from './net.js?v=202611241543';
+import { cleanText } from './filter.js?v=202611241543';
+import { SND } from './audio.js?v=202611241543';
+import * as TX from './tex.js?v=202611241543';
+import * as P from './prog.js?v=202611241543';
+import * as F from './fishing.js?v=202611241543';
+import * as HM from './home.js?v=202611241543';
+import * as HN from './hanamachi.js?v=202611241543';
+import * as JB from './jobs.js?v=202611241543';
+import * as FM from './farm.js?v=202611241543';
+import * as ON from './onsen.js?v=202611241543';
+import * as SO from './social.js?v=202611241543';
+import { updBoats } from './kashi.js?v=202611241543';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -1618,6 +1618,7 @@ function update(dt) {
     if (R.ovT > 0) { R.ovT -= dt; R.ch.play(R.ov); } else R.ch.play(R.a); { const sp = Math.hypot(p.x - ox, p.z - oz) / Math.max(dt, .001); R.ch.update(dt, sp); R.ch.updRide(dt, sp); }
   }
   for (const c of G.npcCust) c.ch.update(dt, 0);
+  if (G.shot) { const v = G.shot; camera.position.set(v[0], v[1], v[2]); camera.lookAt(v[3], v[4], v[5]); } // 固定鏡頭要在立繪轉向前套用，否則立繪朝向舊鏡頭（藝妓表演會看不到）
   updNPCs(dt); updDeer(dt); updRetinue(dt); updKids(dt);
   if ((lodT = (lodT || 0) - dt) < 0) { lodT = .3; const cp = camera.position; const all = [G.me, ...[...G.remotes.values()].map(r => r.ch), ...NPCS.map(n => n.ch), ...Object.values(keepers), ...EXTRA, ...G.npcCust.map(c => c.ch), ...[...RETINUE.values()].flatMap(r => r.mem.map(m => m.ch)), ...KIDS.map(k => k.ch)]; for (const ch of all) if (ch && ch.lod) ch.lod(ch.root.position.distanceTo(cp)); }
   if (G.mode !== 'title' && W) {
