@@ -1,9 +1,9 @@
 // 2D 手繪立繪人物（RO 式紙娃娃）：一個面向鏡頭的平面＋換色著色器；每人 1 次繪製
 // SChara 與 3D 的 Chara 介面相同（root、setLook、play、update、say、emoji、setName、lod、setRide、updRide、headG、foodG、accG、waistG），遊戲端直接替換
 import * as THREE from 'three';
-import { Chara, KIMONO, OBI } from './chara.js?v=202611240236';
-import * as TX from './tex.js?v=202611240236';
-import { ACC } from './shops.js?v=202611240236';
+import { Chara, KIMONO, OBI, SKINS } from './chara.js?v=202611240915';
+import * as TX from './tex.js?v=202611240915';
+import { ACC } from './shops.js?v=202611240915';
 
 const ATLAS = {}; // 原型名 → { tex, mask, meta }
 export const ARCH_LIST = ['f1', 'f2', 'f3', 'f4', 'm1', 'm2', 'm3', 'm4', 'f5', 'f6', 'f7', 'f8', 'f9', 'm5', 'oi']; // 新的只能接在後面（玩家存的是編號）
@@ -51,7 +51,7 @@ export class SChara {
     this.arms = [-1, 1].map(sx => { const g = new THREE.Group(); g.position.set(sx * .2, .95, .08); this.root.add(g); return g; }); // 手的掛點（提燈籠、扛轎）
     this.blob = new THREE.Mesh(BLOB_G, BLOB_M); this.blob.rotation.x = -Math.PI / 2; this.blob.position.y = .012; this.blob.renderOrder = -1; this.root.add(this.blob);
     this.u = { uMask: { value: null }, uRect: { value: new THREE.Vector4(0, 0, 1, 1) }, uFlip: { value: 0 }, uKim: { value: new THREE.Color('#9fb8e8') }, uObi: { value: new THREE.Color('#e8b84a') },
-      uPat: { value: null }, uPatOn: { value: 0 }, uPatS: { value: 6 }, uLight: SPR_LIGHT, uStep: { value: 0 } };
+      uPat: { value: null }, uPatOn: { value: 0 }, uPatS: { value: 6 }, uLight: SPR_LIGHT, uStep: { value: 0 }, uSkin: { value: new THREE.Color(1, 1, 1) } };
     this.setLook(look);
     this.name = name; if (name) this.setName(name);
   }
@@ -61,7 +61,7 @@ export class SChara {
     this.A = A; this.u.uMask.value = A.mask;
     const m = new THREE.MeshBasicMaterial({ map: A.tex, alphaTest: .5 });
     m.onBeforeCompile = sh => { Object.assign(sh.uniforms, this.u);
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D uMask, uPat; uniform vec4 uRect; uniform float uFlip, uPatOn, uPatS, uStep; uniform vec3 uKim, uObi, uLight;')
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D uMask, uPat; uniform vec4 uRect; uniform float uFlip, uPatOn, uPatS, uStep; uniform vec3 uKim, uObi, uLight, uSkin;')
         .replace('#include <map_fragment>', `
           vec2 uv0 = vMapUv; if (uFlip > .5) uv0.x = 1. - uv0.x;
           if (uStep != 0.) { float sd = smoothstep(.44, .56, uv0.x); float lift = mix(max(uStep, 0.), max(-uStep, 0.), sd) * .085 * smoothstep(.3, .06, uv0.y); uv0.y -= lift; if (uv0.y < .005) discard; }
@@ -71,10 +71,11 @@ export class SChara {
           vec3 kim = uPatOn > .5 ? texture2D(uPat, a * uPatS).rgb : uKim;
           c.rgb = mix(c.rgb, kim * clamp(l / .5, .2, 1.25), mk.r);
           c.rgb = mix(c.rgb, uObi * clamp(c.r / .45, .2, 1.3), mk.g);
+          c.rgb *= mix(vec3(1.), uSkin, mk.b); /* 膚色：遮罩 B＝皮膚，乘上與預設膚色的比例 */
           c.rgb *= uLight;
           diffuseColor *= c;`);
     };
-    m.customProgramCacheKey = () => 'schara2';
+    m.customProgramCacheKey = () => 'schara3';
     this.mat = m; this.mesh = new THREE.Mesh(geoFor(A.meta.fw, A.meta.fh), m); this.root.add(this.mesh);
     if (!this.accP) this.accP = new THREE.Group(); this.mesh.add(this.accP);
   }
@@ -83,6 +84,7 @@ export class SChara {
     const A = (this.gm && ATLAS.oi) || ATLAS[archOf(lk)] || ATLAS.f1; if (A) this._mesh(A);
     if (this.mesh) this.mesh.scale.setScalar(A === ATLAS.oi ? 1.4 : 1); this._aura(A === ATLAS.oi);
     const kc = (KIMONO[lk.k % KIMONO.length] || KIMONO[0])[1];
+    { const s0 = new THREE.Color(SKINS[0]), s1 = new THREE.Color(SKINS[(lk.s || 0) % SKINS.length]); const k = 1.8; this.u.uSkin.value.setRGB((s1.r / s0.r) ** k, (s1.g / s0.g) ** k, (s1.b / s0.b) ** k); } /* 立繪較亮，差距放大才看得出來 */
     this.u.uKim.value.set(lk.kc || kc); this.u.uObi.value.set(lk.oc || OBI[lk.o % OBI.length]);
     if (lk.p) { this.u.uPat.value = TX.pattern(lk.p, kc, lk.k === 9 ? '#5a5a66' : '#f4efe2'); this.u.uPatOn.value = 1; } else { this.u.uPat.value = null; this.u.uPatOn.value = 0; }
     this.foodG.clear(); Chara.prototype.addHeld.call(this, lk);
