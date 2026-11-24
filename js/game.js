@@ -5,25 +5,25 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611240949';
-import { RIDE_Y } from './chara.js?v=202611240949';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611240949';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611240949';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611240949';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611240949';
-import { Net } from './net.js?v=202611240949';
-import { cleanText } from './filter.js?v=202611240949';
-import { SND } from './audio.js?v=202611240949';
-import * as TX from './tex.js?v=202611240949';
-import * as P from './prog.js?v=202611240949';
-import * as F from './fishing.js?v=202611240949';
-import * as HM from './home.js?v=202611240949';
-import * as HN from './hanamachi.js?v=202611240949';
-import * as JB from './jobs.js?v=202611240949';
-import * as FM from './farm.js?v=202611240949';
-import * as ON from './onsen.js?v=202611240949';
-import * as SO from './social.js?v=202611240949';
-import { updBoats } from './kashi.js?v=202611240949';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611241026';
+import { RIDE_Y } from './chara.js?v=202611241026';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611241026';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611241026';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611241026';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611241026';
+import { Net } from './net.js?v=202611241026';
+import { cleanText } from './filter.js?v=202611241026';
+import { SND } from './audio.js?v=202611241026';
+import * as TX from './tex.js?v=202611241026';
+import * as P from './prog.js?v=202611241026';
+import * as F from './fishing.js?v=202611241026';
+import * as HM from './home.js?v=202611241026';
+import * as HN from './hanamachi.js?v=202611241026';
+import * as JB from './jobs.js?v=202611241026';
+import * as FM from './farm.js?v=202611241026';
+import * as ON from './onsen.js?v=202611241026';
+import * as SO from './social.js?v=202611241026';
+import { updBoats } from './kashi.js?v=202611241026';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -1412,7 +1412,7 @@ function buildTitle() {
   $('#nameIn').value = G.name; $('#gmIn').value = store.get('gmk', ''); if (store.get('gmk', '')) { show('#gmModeRow'); $('#gmMode').checked = store.get('gmMode', true); document.body.classList.add('hasgm'); }
   $('#gmIn').addEventListener('input', () => { if ($('#gmIn').value.trim()) { show('#gmModeRow'); $('#gmMode').checked = true; } }); { let taps = [], lg = document.querySelector('#title .logo h1'); lg.style.pointerEvents = 'auto'; lg.addEventListener('pointerdown', () => { const t = performance.now(); taps = taps.filter(x => t - x < 2500); taps.push(t); if (taps.length >= 5) { taps = []; $('#gmRow').classList.toggle('hide'); } }); }
   const rows = [['k', '和服', KIMONO.map(k => k[1]), KIMONO.map(k => k[0])], ['p', '花紋', null, PATTERNS], ['o', '腰帶', OBI, null], ['h', '髮型', null, HAIRS], ['s', '膚色', SKINS, null], ['y', '衣裝', null, OUTFITS], ['yc', '外衣色', OUTER, null], ['ey', '眼睛', null, EYES], ['br', '眉毛', null, BROWS], ['mo', '嘴巴', null, MOUTHS], ['ck', '腮紅', null, CHEEKS], ['mk', '痣', null, MOLES], ['ft', '特徵', null, FEATS]];
-  if (NPCChara === SChara) { rows.splice(0, rows.length, rows[0], rows[1], rows[2], ['ai', '髮型', null, ARCH_LIST.map(n => ARCH_NAME[n])], rows[4], rows[5], rows[6]); if (G.look.ai == null || G.look.aiH !== G.look.h) { G.look.ai = ARCH_LIST.indexOf(archOf(G.look)); G.look.aiH = G.look.h; } }
+  if (NPCChara === SChara) { rows.splice(0, rows.length, rows[0], rows[1], rows[2], ['ai', '髮型', null, ARCH_LIST.map(n => ARCH_NAME[n])], rows[4], rows[5], rows[6], rows[11], rows[12]); if (G.look.ai == null || G.look.aiH !== G.look.h) { G.look.ai = ARCH_LIST.indexOf(archOf(G.look)); G.look.aiH = G.look.h; } }
   $('#looks').innerHTML = rows.map(([k, t, cols, names]) => `<div class="lr"><span>${t}</span><div>${(cols || names).map((c, i) => cols ? `<button class="sw" data-k="${k}" data-v="${i}" style="background:${c}" title="${names ? names[i] : ''}"></button>` : `<button class="tx" data-k="${k}" data-v="${i}">${c}</button>`).join('')}</div></div>`).join('');
   ['ey', 'br', 'mo', 'ck', 'mk', 'fc', 'y', 'yc', 'ft'].forEach(k => { if (G.look[k] == null) G.look[k] = k === 'ck' || k === 'fc' ? 1 : 0; });
   const sync = () => document.querySelectorAll('#looks [data-k]').forEach(b => b.classList.toggle('on', G.look[b.dataset.k] == b.dataset.v));
@@ -1818,7 +1818,7 @@ async function runTest() {
     G.pos.set(209.6, 0, -18); ok(await until(() => near && near.type === 'onsen' && near.spot.i === 0), '美肌の湯'); G.sta = 30; act(); ok(G.mode === 'bath' && G.sta === 100, '泡溫泉（體力全滿）'); await sleep(500); standUp(); ok(G.mode === 'walk' && okAt(G.pos.x, G.pos.z) && G.pos.x > 208, '起身回到池邊 ' + G.pos.x.toFixed(1));
     G.pos.set(192, 0, 28.4); ok(await until(() => near && near.type === 'gather'), '採集點'); act(); ok(Object.values(P.bag('gather')).reduce((a, b) => a + b, 0) >= 1, '採到山貨'); act(); ok(Object.values(P.bag('gather')).reduce((a, b) => a + b, 0) <= 4, '同一處一天只能採一次');
     G.pos.set(240, 0, 21.8); ok(await until(() => near && near.type === 'ryokan'), '湯けむり荘'); act(); ok(!!$('#ryS') && !!$('#ryT'), '旅館面板'); $('#ryS').click(); ok(P.prog().ryokan, '住一晚');
-    act(); $('#ryT').click(); await sleep(300); { const t0 = performance.now(); while (!$('#pg').classList.contains('hide') && performance.now() - t0 < 90000) { const q = window.__pp; if (q && !q.done) q.setPx(q.b.x + (q.b.x < 180 ? 22 : -22)); await sleep(10); } ok((window.__pp || {}).me >= 5 || (window.__pp || {}).ai >= 5, '溫泉卓球打完一局 ' + (window.__pp || {}).me + ':' + (window.__pp || {}).ai); }
+    act(); $('#ryT').click(); await sleep(300); { const t0 = performance.now(); while (!$('#pg').classList.contains('hide') && performance.now() - t0 < 180000) { const q = window.__pp; if (q && !q.done) q.setPx(q.b.x + (q.b.x < 180 ? 22 : -22)); await sleep(10); } ok((window.__pp || {}).me >= 5 || (window.__pp || {}).ai >= 5, '溫泉卓球打完一局 ' + (window.__pp || {}).me + ':' + (window.__pp || {}).ai); }
     G.pos.set(102.8, 0, -100); await sleep(600); ok(!(near && near.type === 'yoichi'), '白天沒有夜市'); ON.openYoichi(0); { $('#yoB').click(); ok(P.prog().dex.night && P.prog().dex.night.soba && (P.prog().stats.night || 0) >= 1, '夜市買夜鳴きそば、登錄圖鑑'); }
     // 玩家互動（離線用假訊息模擬對手）
     SO.onAct({ from: 'pX', n: '假朋友', k: 'friend' }); ok(!!$('#soY'), '收到好友邀請面板'); $('#soY').click(); ok(SO.isFriend('假朋友'), '成為好友');

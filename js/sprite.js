@@ -1,9 +1,9 @@
 // 2D 手繪立繪人物（RO 式紙娃娃）：一個面向鏡頭的平面＋換色著色器；每人 1 次繪製
 // SChara 與 3D 的 Chara 介面相同（root、setLook、play、update、say、emoji、setName、lod、setRide、updRide、headG、foodG、accG、waistG），遊戲端直接替換
 import * as THREE from 'three';
-import { Chara, KIMONO, OBI, SKINS, OUTER } from './chara.js?v=202611240949';
-import * as TX from './tex.js?v=202611240949';
-import { ACC } from './shops.js?v=202611240949';
+import { Chara, KIMONO, OBI, SKINS, OUTER } from './chara.js?v=202611241026';
+import * as TX from './tex.js?v=202611241026';
+import { ACC } from './shops.js?v=202611241026';
 
 const ATLAS = {}; // 原型名 → { tex, mask, meta }
 export const ARCH_LIST = ['f1', 'f2', 'f3', 'f4', 'm1', 'm2', 'm3', 'm4', 'f5', 'f6', 'f7', 'f8', 'f9', 'm5', 'oi']; // 新的只能接在後面（玩家存的是編號）
@@ -53,7 +53,7 @@ export class SChara {
     this.blob = new THREE.Mesh(BLOB_G, BLOB_M); this.blob.rotation.x = -Math.PI / 2; this.blob.position.y = .012; this.blob.renderOrder = -1; this.root.add(this.blob);
     this.u = { uMask: { value: null }, uRect: { value: new THREE.Vector4(0, 0, 1, 1) }, uFlip: { value: 0 }, uKim: { value: new THREE.Color('#9fb8e8') }, uObi: { value: new THREE.Color('#e8b84a') },
       uPat: { value: null }, uPatOn: { value: 0 }, uPatS: { value: 6 }, uLight: SPR_LIGHT, uStep: { value: 0 }, uSkin: { value: new THREE.Color(1, 1, 1) },
-      uOy: { value: 0 }, uOut: { value: new THREE.Color() }, uBand: { value: new THREE.Vector3(.5, .57, .95) }, uDir: { value: 0 }, uPat2: { value: null }, uMat: { value: null } };
+      uOy: { value: 0 }, uOut: { value: new THREE.Color() }, uBand: { value: new THREE.Vector3(.5, .57, .95) }, uDir: { value: 0 }, uPat2: { value: null }, uMat: { value: null }, uFc: { value: new THREE.Vector4() }, uCk: { value: 0 }, uMk: { value: 0 } };
     this.setLook(look);
     this.name = name; if (name) this.setName(name);
   }
@@ -63,7 +63,7 @@ export class SChara {
     this.A = A; this.u.uMask.value = A.mask;
     const m = new THREE.MeshBasicMaterial({ map: A.tex, alphaTest: .5 });
     m.onBeforeCompile = sh => { Object.assign(sh.uniforms, this.u);
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D uMask, uPat, uPat2, uMat; uniform vec4 uRect; uniform float uFlip, uPatOn, uPatS, uStep, uOy, uDir; uniform vec3 uKim, uObi, uLight, uSkin, uOut, uBand;')
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D uMask, uPat, uPat2, uMat; uniform vec4 uRect; uniform float uFlip, uPatOn, uPatS, uStep, uOy, uDir, uCk, uMk; uniform vec4 uFc; uniform vec3 uKim, uObi, uLight, uSkin, uOut, uBand;')
         .replace('#include <map_fragment>', `
           vec2 uv0 = vMapUv; if (uFlip > .5) uv0.x = 1. - uv0.x;
           if (uStep != 0.) { float sd = smoothstep(.44, .56, uv0.x); float lift = mix(max(uStep, 0.), max(-uStep, 0.), sd) * .085 * smoothstep(.3, .06, uv0.y); uv0.y -= lift; if (uv0.y < .005) discard; }
@@ -95,11 +95,16 @@ export class SChara {
                 if (q.x > 0. && q.x < 1. && q.y > 0. && q.y < 1.) { vec4 tm = texture2D(uMat, q); c.rgb = mix(c.rgb, tm.rgb * sh, up * tm.a); } }
             }
           }
+          if (uFc.w > 0.) { /* 腮紅、淚痣：uFc＝眼睛下緣 y（由上往下）、左眼 x、右眼 x、眼寬（皆為格子比例） */
+            vec2 pp = vec2(uv0.x, 1. - uv0.y), ar = vec2(1., 1.75); float cy = uFc.x + uFc.w * .55;
+            float bl = max(1. - smoothstep(.0, 1., length((pp - vec2(uFc.y, cy)) * ar) / (uFc.w * .62)), uFc.y != uFc.z ? 1. - smoothstep(.0, 1., length((pp - vec2(uFc.z, cy)) * ar) / (uFc.w * .62)) : 0.);
+            c.rgb = mix(c.rgb, c.rgb * vec3(1., .62, .62), bl * uCk * mk.b);
+            if (uMk > .5) c.rgb = mix(c.rgb, vec3(.22, .13, .1), (1. - smoothstep(.006, .011, length((pp - vec2(uFc.z + uFc.w * .32, uFc.x + uFc.w * .22)) * ar))) * mk.b); }
           c.rgb *= mix(vec3(1.), uSkin, mk.b); /* 膚色：遮罩 B＝皮膚，乘上與預設膚色的比例 */
           c.rgb *= uLight;
           diffuseColor *= c;`);
     };
-    m.customProgramCacheKey = () => 'schara4';
+    m.customProgramCacheKey = () => 'schara5';
     this.mat = m; this.mesh = new THREE.Mesh(geoFor(A.meta.fw, A.meta.fh), m); this.root.add(this.mesh);
     if (!this.accP) this.accP = new THREE.Group(); this.mesh.add(this.accP);
   }
@@ -113,6 +118,7 @@ export class SChara {
     if (lk.p) { this.u.uPat.value = TX.pattern(lk.p, kc, lk.k === 9 ? '#5a5a66' : '#f4efe2'); this.u.uPatOn.value = 1; } else { this.u.uPat.value = null; this.u.uPatOn.value = 0; }
     { const ob = A && A !== ATLAS.oi && A.meta.ob, y = ob ? (lk.y || 0) % 4 : 0, oc = OUTER[(lk.yc || 0) % OUTER.length]; this.u.uOy.value = y; this.u.uOut.value.set(oc); /* 衣裝：遮罩 json 有 ob（腰帶分區）才做 */
       if (y === 3) { this.u.uPat2.value = TX.pattern(9, oc, '#f4efe2'); this.u.uMat.value = MATSURI || (MATSURI = TX.text('祭', { w: 128, h: 128, circle: '#f4efe2', fg: '#a8232e', vertical: false })); } }
+    this.u.uCk.value = A === ATLAS.oi ? 0 : [0, .4, .75][lk.ck == null ? 1 : lk.ck % 3]; this.u.uMk.value = A !== ATLAS.oi && lk.mk ? 1 : 0; /* 腮紅：預設淡 */
     this.foodG.clear(); Chara.prototype.addHeld.call(this, lk);
     this.accG.clear(); this.waistG.clear(); this._acc(lk);
   }
@@ -168,6 +174,8 @@ export class SChara {
     const { fw, fh, cols, rows } = this.A.meta, idx = fr[i % fr.length].i, W = cols * fw, Hh = rows * fh;
     this.u.uRect.value.set((idx % cols) * fw / W, 1 - (Math.floor(idx / cols) + 1) * fh / Hh, fw / W, fh / Hh); this.u.uFlip.value = flip && !act ? 1 : 0;
     if (this.u.uOy.value) { const b = this.A.meta.ob[idx]; this.u.uBand.value.set(b[0] / fh, b[1] / fh, b[2] / fh); this.u.uDir.value = act ? -1 : k; }
+    { const e = (this.u.uCk.value || this.u.uMk.value) && (act || k < 3) && this.A.meta.fc && this.A.meta.fc[idx]; /* 斜後方、背面看不到臉；側面只用朝向那側的眼睛 */
+      if (e) { const xr = e[2] / fw, xl = !act && k === 2 ? xr : e[1] / fw; this.u.uFc.value.set(e[0] / fh, xl, xr, e[3] / fw); } else this.u.uFc.value.w = 0; }
     this.mesh.position.y = bob; this.mesh.rotation.z = sway; this.u.uStep.value = step;
     if (this.accP && this.accP.children.length) { this.accP.scale.x = flip && !act ? -1 : 1; for (const sp of this.accP.children) { const sl = sp.userData.slot; sp.visible = !(k === 4 && !act && (sl === 'hs' || sl === 'm' || sl === 'w' || (sl === 'c' && sp.scale.x < .9))); sp.material.color.copy(SPR_LIGHT.value); } }
   }
