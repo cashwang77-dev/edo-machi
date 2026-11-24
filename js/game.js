@@ -5,25 +5,25 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611241302';
-import { RIDE_Y } from './chara.js?v=202611241302';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611241302';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611241302';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611241302';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611241302';
-import { Net } from './net.js?v=202611241302';
-import { cleanText } from './filter.js?v=202611241302';
-import { SND } from './audio.js?v=202611241302';
-import * as TX from './tex.js?v=202611241302';
-import * as P from './prog.js?v=202611241302';
-import * as F from './fishing.js?v=202611241302';
-import * as HM from './home.js?v=202611241302';
-import * as HN from './hanamachi.js?v=202611241302';
-import * as JB from './jobs.js?v=202611241302';
-import * as FM from './farm.js?v=202611241302';
-import * as ON from './onsen.js?v=202611241302';
-import * as SO from './social.js?v=202611241302';
-import { updBoats } from './kashi.js?v=202611241302';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611241357';
+import { RIDE_Y } from './chara.js?v=202611241357';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611241357';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611241357';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611241357';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611241357';
+import { Net } from './net.js?v=202611241357';
+import { cleanText } from './filter.js?v=202611241357';
+import { SND } from './audio.js?v=202611241357';
+import * as TX from './tex.js?v=202611241357';
+import * as P from './prog.js?v=202611241357';
+import * as F from './fishing.js?v=202611241357';
+import * as HM from './home.js?v=202611241357';
+import * as HN from './hanamachi.js?v=202611241357';
+import * as JB from './jobs.js?v=202611241357';
+import * as FM from './farm.js?v=202611241357';
+import * as ON from './onsen.js?v=202611241357';
+import * as SO from './social.js?v=202611241357';
+import { updBoats } from './kashi.js?v=202611241357';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -1564,10 +1564,10 @@ function update(dt) {
     if ((G.mode === 'seat' || G.mode === 'bath') && len > .5 && !G.busy) standUp();
     let anim = 0, speed = 0;
     if (G.mode === 'walk' && len > .05 && !cam.auto) {
-      // 跑步耗體力：體力用完會喘，恢復到 45 才能再跑；花魁不跑、走外八文字慢步
+      // 跑步耗體力：體力用完會喘，恢復到 30 才能再跑；花魁不跑、走外八文字慢步
       const wantRun = (keys.ShiftLeft || keys.ShiftRight || joy.mag > .9) && !G.me.gm;
       const run = wantRun && !G.tired && G.sta > 0;
-      if (run) { G.sta -= 20 * dt; if (G.sta <= 0) { G.sta = 0; G.tired = true; G.me.say('はぁ…はぁ…', 2.5); G.me.emoji('💦'); toast('跑太久喘不過氣了，休息一下再跑吧', 2500); } }
+      if (run) { G.sta -= 7 * dt; if (G.sta <= 0) { G.sta = 0; G.tired = true; G.me.say('はぁ…はぁ…', 2.5); G.me.emoji('💦'); toast('跑太久喘不過氣了，休息一下再跑吧', 2500); } }
       speed = (G.me.gm ? 1.6 : run ? 4.2 : G.tired ? 1.7 : 2.2) * len; /* 11/24 走路放慢（原 3.2／跑 6） */
       const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw), rx = -fz, rz = fx;
       let dx = fx * iz + rx * ix, dz = fz * iz + rz * ix; const dl = Math.hypot(dx, dz); dx /= dl; dz /= dl;
@@ -1576,7 +1576,7 @@ function update(dt) {
       G.ry = angLerp(G.ry, Math.atan2(dx, dz), Math.min(1, dt * 10)); anim = run ? 2 : 1; G.emoteT = 0;
     }
     if (G.mode === 'walk') G.pos.y = heightAt(G.pos.x, G.pos.z);
-    { const running = anim === 2; if (!running) { G.sta = Math.min(100, G.sta + (speed > 0 ? 10 : 20) * dt); if (G.tired && G.sta >= 45) { G.tired = false; G.me.say('呼～好了！', 1.5); } }
+    { const running = anim === 2; if (!running) { G.sta = Math.min(100, G.sta + (speed > 0 ? 12 : 25) * dt); if (G.tired && G.sta >= 30) { G.tired = false; G.me.say('呼～好了！', 1.5); } }
       if (G.mode === 'walk' && speed === 0 && G.tired && !(G.emoteT > 0)) anim = 18; updSta(); }
     const rideSp = updRide(dt); if (G.mode === 'ride') anim = 3;
     if (G.mode === 'hail') { updHail(dt, len); if (G.mode === 'hail') anim = 16; } updLeave(dt); updCabs(dt);
