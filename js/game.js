@@ -5,25 +5,25 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611240915';
-import { RIDE_Y } from './chara.js?v=202611240915';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611240915';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611240915';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611240915';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611240915';
-import { Net } from './net.js?v=202611240915';
-import { cleanText } from './filter.js?v=202611240915';
-import { SND } from './audio.js?v=202611240915';
-import * as TX from './tex.js?v=202611240915';
-import * as P from './prog.js?v=202611240915';
-import * as F from './fishing.js?v=202611240915';
-import * as HM from './home.js?v=202611240915';
-import * as HN from './hanamachi.js?v=202611240915';
-import * as JB from './jobs.js?v=202611240915';
-import * as FM from './farm.js?v=202611240915';
-import * as ON from './onsen.js?v=202611240915';
-import * as SO from './social.js?v=202611240915';
-import { updBoats } from './kashi.js?v=202611240915';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611240949';
+import { RIDE_Y } from './chara.js?v=202611240949';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611240949';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611240949';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611240949';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611240949';
+import { Net } from './net.js?v=202611240949';
+import { cleanText } from './filter.js?v=202611240949';
+import { SND } from './audio.js?v=202611240949';
+import * as TX from './tex.js?v=202611240949';
+import * as P from './prog.js?v=202611240949';
+import * as F from './fishing.js?v=202611240949';
+import * as HM from './home.js?v=202611240949';
+import * as HN from './hanamachi.js?v=202611240949';
+import * as JB from './jobs.js?v=202611240949';
+import * as FM from './farm.js?v=202611240949';
+import * as ON from './onsen.js?v=202611240949';
+import * as SO from './social.js?v=202611240949';
+import { updBoats } from './kashi.js?v=202611240949';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -1412,7 +1412,7 @@ function buildTitle() {
   $('#nameIn').value = G.name; $('#gmIn').value = store.get('gmk', ''); if (store.get('gmk', '')) { show('#gmModeRow'); $('#gmMode').checked = store.get('gmMode', true); document.body.classList.add('hasgm'); }
   $('#gmIn').addEventListener('input', () => { if ($('#gmIn').value.trim()) { show('#gmModeRow'); $('#gmMode').checked = true; } }); { let taps = [], lg = document.querySelector('#title .logo h1'); lg.style.pointerEvents = 'auto'; lg.addEventListener('pointerdown', () => { const t = performance.now(); taps = taps.filter(x => t - x < 2500); taps.push(t); if (taps.length >= 5) { taps = []; $('#gmRow').classList.toggle('hide'); } }); }
   const rows = [['k', '和服', KIMONO.map(k => k[1]), KIMONO.map(k => k[0])], ['p', '花紋', null, PATTERNS], ['o', '腰帶', OBI, null], ['h', '髮型', null, HAIRS], ['s', '膚色', SKINS, null], ['y', '衣裝', null, OUTFITS], ['yc', '外衣色', OUTER, null], ['ey', '眼睛', null, EYES], ['br', '眉毛', null, BROWS], ['mo', '嘴巴', null, MOUTHS], ['ck', '腮紅', null, CHEEKS], ['mk', '痣', null, MOLES], ['ft', '特徵', null, FEATS]];
-  if (NPCChara === SChara) { rows.splice(0, rows.length, rows[0], rows[1], rows[2], ['ai', '髮型', null, ARCH_LIST.map(n => ARCH_NAME[n])], rows[4]); if (G.look.ai == null || G.look.aiH !== G.look.h) { G.look.ai = ARCH_LIST.indexOf(archOf(G.look)); G.look.aiH = G.look.h; } }
+  if (NPCChara === SChara) { rows.splice(0, rows.length, rows[0], rows[1], rows[2], ['ai', '髮型', null, ARCH_LIST.map(n => ARCH_NAME[n])], rows[4], rows[5], rows[6]); if (G.look.ai == null || G.look.aiH !== G.look.h) { G.look.ai = ARCH_LIST.indexOf(archOf(G.look)); G.look.aiH = G.look.h; } }
   $('#looks').innerHTML = rows.map(([k, t, cols, names]) => `<div class="lr"><span>${t}</span><div>${(cols || names).map((c, i) => cols ? `<button class="sw" data-k="${k}" data-v="${i}" style="background:${c}" title="${names ? names[i] : ''}"></button>` : `<button class="tx" data-k="${k}" data-v="${i}">${c}</button>`).join('')}</div></div>`).join('');
   ['ey', 'br', 'mo', 'ck', 'mk', 'fc', 'y', 'yc', 'ft'].forEach(k => { if (G.look[k] == null) G.look[k] = k === 'ck' || k === 'fc' ? 1 : 0; });
   const sync = () => document.querySelectorAll('#looks [data-k]').forEach(b => b.classList.toggle('on', G.look[b.dataset.k] == b.dataset.v));

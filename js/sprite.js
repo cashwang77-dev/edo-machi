@@ -1,9 +1,9 @@
 // 2D 手繪立繪人物（RO 式紙娃娃）：一個面向鏡頭的平面＋換色著色器；每人 1 次繪製
 // SChara 與 3D 的 Chara 介面相同（root、setLook、play、update、say、emoji、setName、lod、setRide、updRide、headG、foodG、accG、waistG），遊戲端直接替換
 import * as THREE from 'three';
-import { Chara, KIMONO, OBI, SKINS } from './chara.js?v=202611240915';
-import * as TX from './tex.js?v=202611240915';
-import { ACC } from './shops.js?v=202611240915';
+import { Chara, KIMONO, OBI, SKINS, OUTER } from './chara.js?v=202611240949';
+import * as TX from './tex.js?v=202611240949';
+import { ACC } from './shops.js?v=202611240949';
 
 const ATLAS = {}; // 原型名 → { tex, mask, meta }
 export const ARCH_LIST = ['f1', 'f2', 'f3', 'f4', 'm1', 'm2', 'm3', 'm4', 'f5', 'f6', 'f7', 'f8', 'f9', 'm5', 'oi']; // 新的只能接在後面（玩家存的是編號）
@@ -33,6 +33,7 @@ export const spritesReady = () => ARCH_LIST.every(n => ATLAS[n]);
 export const SPR_LIGHT = { value: new THREE.Color(1, 1, 1) }; // 共用環境光（遊戲依晝夜更新）
 let CAM = null; export function setSprCam(c) { CAM = c; }
 const DIRS = ['S', 'SE', 'E', 'NE', 'N'];
+let MATSURI = null; // 法被背後的「祭」字
 const H = 1.62; // 人物在世界中的高度
 // 3D 動作編號 → 立繪狀態
 const ACT = { 6: 'bow', 7: 'wave', 9: 'laugh', 10: 'cheer', 11: 'cheer', 13: 'wave', 14: 'laugh', 16: 'wave', 17: 'bow' };
@@ -51,7 +52,8 @@ export class SChara {
     this.arms = [-1, 1].map(sx => { const g = new THREE.Group(); g.position.set(sx * .2, .95, .08); this.root.add(g); return g; }); // 手的掛點（提燈籠、扛轎）
     this.blob = new THREE.Mesh(BLOB_G, BLOB_M); this.blob.rotation.x = -Math.PI / 2; this.blob.position.y = .012; this.blob.renderOrder = -1; this.root.add(this.blob);
     this.u = { uMask: { value: null }, uRect: { value: new THREE.Vector4(0, 0, 1, 1) }, uFlip: { value: 0 }, uKim: { value: new THREE.Color('#9fb8e8') }, uObi: { value: new THREE.Color('#e8b84a') },
-      uPat: { value: null }, uPatOn: { value: 0 }, uPatS: { value: 6 }, uLight: SPR_LIGHT, uStep: { value: 0 }, uSkin: { value: new THREE.Color(1, 1, 1) } };
+      uPat: { value: null }, uPatOn: { value: 0 }, uPatS: { value: 6 }, uLight: SPR_LIGHT, uStep: { value: 0 }, uSkin: { value: new THREE.Color(1, 1, 1) },
+      uOy: { value: 0 }, uOut: { value: new THREE.Color() }, uBand: { value: new THREE.Vector3(.5, .57, .95) }, uDir: { value: 0 }, uPat2: { value: null }, uMat: { value: null } };
     this.setLook(look);
     this.name = name; if (name) this.setName(name);
   }
@@ -61,7 +63,7 @@ export class SChara {
     this.A = A; this.u.uMask.value = A.mask;
     const m = new THREE.MeshBasicMaterial({ map: A.tex, alphaTest: .5 });
     m.onBeforeCompile = sh => { Object.assign(sh.uniforms, this.u);
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D uMask, uPat; uniform vec4 uRect; uniform float uFlip, uPatOn, uPatS, uStep; uniform vec3 uKim, uObi, uLight, uSkin;')
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D uMask, uPat, uPat2, uMat; uniform vec4 uRect; uniform float uFlip, uPatOn, uPatS, uStep, uOy, uDir; uniform vec3 uKim, uObi, uLight, uSkin, uOut, uBand;')
         .replace('#include <map_fragment>', `
           vec2 uv0 = vMapUv; if (uFlip > .5) uv0.x = 1. - uv0.x;
           if (uStep != 0.) { float sd = smoothstep(.44, .56, uv0.x); float lift = mix(max(uStep, 0.), max(-uStep, 0.), sd) * .085 * smoothstep(.3, .06, uv0.y); uv0.y -= lift; if (uv0.y < .005) discard; }
@@ -71,11 +73,33 @@ export class SChara {
           vec3 kim = uPatOn > .5 ? texture2D(uPat, a * uPatS).rgb : uKim;
           c.rgb = mix(c.rgb, kim * clamp(l / .5, .2, 1.25), mk.r);
           c.rgb = mix(c.rgb, uObi * clamp(c.r / .45, .2, 1.3), mk.g);
+          if (uOy > .5) { /* 衣裝（羽織／袴／法被）：依腰帶上下緣 uBand（由上往下的比例）把和服分成上身、下身 */
+            float py = 1. - uv0.y, ux = uv0.x, bt = uBand.x, bb = uBand.y, kb = uBand.z, cl = max(mk.r, mk.g);
+            float sh = clamp(l / mix(.5, .3, mk.g), .3, 1.2);
+            if (uOy < 1.5) { /* 羽織：罩到大腿，正面中間敞開看得到和服與腰帶，胸前白色羽織紐 */
+              float hem = bb + (kb - bb) * .4, op = uDir < .5 ? 1. - smoothstep(.03, .045, abs(ux - .5)) : 0.;
+              float cv = cl * step(py, hem) * (1. - op);
+              c.rgb = mix(c.rgb, uOut * sh * (1. - .3 * smoothstep(hem - .014, hem, py)), cv);
+              if (uDir < .5) { c.rgb = mix(c.rgb, uOut * .45, cl * step(py, hem) * (1. - smoothstep(.045, .056, abs(abs(ux - .5) - .04)))); /* 前襟邊線 */
+                float tie = (1. - smoothstep(.006, .009, abs(py - bt + .045))) * (1. - smoothstep(.04, .05, abs(ux - .5))); c.rgb = mix(c.rgb, vec3(.96, .94, .88) * clamp(l / .5, .7, 1.1), tie * cl); }
+            } else if (uOy < 2.5) { /* 袴：腰帶以下改成外衣色，加直向褶線 */
+              float lo = mk.r * smoothstep(bb - .01, bb + .005, py);
+              float pl = .8 + .2 * smoothstep(.1, .7, abs(sin(ux * 38.)));
+              c.rgb = mix(c.rgb, uOut * clamp(l / .5, .3, 1.2) * pl, lo);
+            } else { /* 法被：短外褂（花紋，到腰帶下一點，下緣白線）、背後「祭」字；下身深色緊身褲 */
+              float hem = bb + (kb - bb) * .2, up = mk.r * step(py, hem);
+              c.rgb = mix(c.rgb, texture2D(uPat2, a * uPatS).rgb * sh, up);
+              c.rgb = mix(c.rgb, vec3(.96, .94, .88) * sh, up * smoothstep(hem - .022, hem - .016, py));
+              c.rgb = mix(c.rgb, vec3(.035, .04, .07) * clamp(l / .5, .4, 1.3), mk.r * step(hem, py));
+              if (uDir > 3.5) { vec2 q = vec2((ux - .5) / .36 + .5, 1. - ((py - bt + .075) / .2 + .5));
+                if (q.x > 0. && q.x < 1. && q.y > 0. && q.y < 1.) { vec4 tm = texture2D(uMat, q); c.rgb = mix(c.rgb, tm.rgb * sh, up * tm.a); } }
+            }
+          }
           c.rgb *= mix(vec3(1.), uSkin, mk.b); /* 膚色：遮罩 B＝皮膚，乘上與預設膚色的比例 */
           c.rgb *= uLight;
           diffuseColor *= c;`);
     };
-    m.customProgramCacheKey = () => 'schara3';
+    m.customProgramCacheKey = () => 'schara4';
     this.mat = m; this.mesh = new THREE.Mesh(geoFor(A.meta.fw, A.meta.fh), m); this.root.add(this.mesh);
     if (!this.accP) this.accP = new THREE.Group(); this.mesh.add(this.accP);
   }
@@ -87,6 +111,8 @@ export class SChara {
     { const s0 = new THREE.Color(SKINS[0]), s1 = new THREE.Color(SKINS[(lk.s || 0) % SKINS.length]); const k = 1.8; this.u.uSkin.value.setRGB((s1.r / s0.r) ** k, (s1.g / s0.g) ** k, (s1.b / s0.b) ** k); } /* 立繪較亮，差距放大才看得出來 */
     this.u.uKim.value.set(lk.kc || kc); this.u.uObi.value.set(lk.oc || OBI[lk.o % OBI.length]);
     if (lk.p) { this.u.uPat.value = TX.pattern(lk.p, kc, lk.k === 9 ? '#5a5a66' : '#f4efe2'); this.u.uPatOn.value = 1; } else { this.u.uPat.value = null; this.u.uPatOn.value = 0; }
+    { const ob = A && A !== ATLAS.oi && A.meta.ob, y = ob ? (lk.y || 0) % 4 : 0, oc = OUTER[(lk.yc || 0) % OUTER.length]; this.u.uOy.value = y; this.u.uOut.value.set(oc); /* 衣裝：遮罩 json 有 ob（腰帶分區）才做 */
+      if (y === 3) { this.u.uPat2.value = TX.pattern(9, oc, '#f4efe2'); this.u.uMat.value = MATSURI || (MATSURI = TX.text('祭', { w: 128, h: 128, circle: '#f4efe2', fg: '#a8232e', vertical: false })); } }
     this.foodG.clear(); Chara.prototype.addHeld.call(this, lk);
     this.accG.clear(); this.waistG.clear(); this._acc(lk);
   }
@@ -141,6 +167,7 @@ export class SChara {
     else if (!SIT.has(a)) bob = Math.sin(this.t * 2.2) * .004;
     const { fw, fh, cols, rows } = this.A.meta, idx = fr[i % fr.length].i, W = cols * fw, Hh = rows * fh;
     this.u.uRect.value.set((idx % cols) * fw / W, 1 - (Math.floor(idx / cols) + 1) * fh / Hh, fw / W, fh / Hh); this.u.uFlip.value = flip && !act ? 1 : 0;
+    if (this.u.uOy.value) { const b = this.A.meta.ob[idx]; this.u.uBand.value.set(b[0] / fh, b[1] / fh, b[2] / fh); this.u.uDir.value = act ? -1 : k; }
     this.mesh.position.y = bob; this.mesh.rotation.z = sway; this.u.uStep.value = step;
     if (this.accP && this.accP.children.length) { this.accP.scale.x = flip && !act ? -1 : 1; for (const sp of this.accP.children) { const sl = sp.userData.slot; sp.visible = !(k === 4 && !act && (sl === 'hs' || sl === 'm' || sl === 'w' || (sl === 'c' && sp.scale.x < .9))); sp.material.color.copy(SPR_LIGHT.value); } }
   }
