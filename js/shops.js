@@ -1,5 +1,5 @@
 // 店鋪資料：位置、外觀、菜單、做菜步驟
-import { FURN, FZH, TOWN_FURN } from './home.js?v=202611241543';
+import { FURN, FZH, TOWN_FURN } from './home.js?v=202611241712';
 // step: g = 'tap'（看準時機按）| 'mash'（連打）| 'hold'（按住到剛好放開）
 const S = (n, zh, g) => ({ n, zh, g });
 const SOBA = [S('こねる', '揉麵', 'mash'), S('切る', '切麵', 'tap'), S('茹でる', '煮麵', 'hold'), S('盛る', '盛碗', 'tap')];

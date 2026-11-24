@@ -1,5 +1,5 @@
 // 釣魚（隅田川棧橋）、魚河岸賣魚、搬貨打工
-import { FISH, rollFish } from './kashi.js?v=202611241543';
+import { FISH, rollFish } from './kashi.js?v=202611241712';
 let A, GEN = 0; // GEN：每開一次小遊戲 +1，舊的畫面迴圈自動停止
 const $ = s => document.querySelector(s);
 const stars = r => r ? '★'.repeat(r) : '—';

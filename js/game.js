@@ -5,25 +5,25 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611241543';
-import { RIDE_Y } from './chara.js?v=202611241543';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611241543';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611241543';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611241543';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611241543';
-import { Net } from './net.js?v=202611241543';
-import { cleanText } from './filter.js?v=202611241543';
-import { SND } from './audio.js?v=202611241543';
-import * as TX from './tex.js?v=202611241543';
-import * as P from './prog.js?v=202611241543';
-import * as F from './fishing.js?v=202611241543';
-import * as HM from './home.js?v=202611241543';
-import * as HN from './hanamachi.js?v=202611241543';
-import * as JB from './jobs.js?v=202611241543';
-import * as FM from './farm.js?v=202611241543';
-import * as ON from './onsen.js?v=202611241543';
-import * as SO from './social.js?v=202611241543';
-import { updBoats } from './kashi.js?v=202611241543';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611241712';
+import { RIDE_Y } from './chara.js?v=202611241712';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611241712';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611241712';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611241712';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611241712';
+import { Net } from './net.js?v=202611241712';
+import { cleanText } from './filter.js?v=202611241712';
+import { SND } from './audio.js?v=202611241712';
+import * as TX from './tex.js?v=202611241712';
+import * as P from './prog.js?v=202611241712';
+import * as F from './fishing.js?v=202611241712';
+import * as HM from './home.js?v=202611241712';
+import * as HN from './hanamachi.js?v=202611241712';
+import * as JB from './jobs.js?v=202611241712';
+import * as FM from './farm.js?v=202611241712';
+import * as ON from './onsen.js?v=202611241712';
+import * as SO from './social.js?v=202611241712';
+import { updBoats } from './kashi.js?v=202611241712';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -1479,6 +1479,7 @@ async function start() {
   SO.inviteCheck();
   F.initFishing({ G, P, gameModal, toast, addMoney, show, closePanels, SND, isNight, announceSelf: (s, n) => announce(s, n) });
   if (!store.get('helped', false) && !G.shot && !QS.has('nohelp')) { show('#help'); store.set('helped', true); }
+  if ('serviceWorker' in navigator && !QS.has('test') && (location.protocol === 'https:' || QS.has('sw'))) navigator.serviceWorker.register('sw.js').catch(() => { }); // 離線快取，回訪秒開
   if (QS.has('openmap')) setTimeout(() => openMap(QS.get('openmap') || undefined), 1500);
   sfx(660, .3); setTimeout(() => sfx(990, .4), 180);
 }
@@ -1932,7 +1933,8 @@ async function runTest() {
     emote(10, 1e9); ok(await until(() => G.me.anim === 10), '跳舞'); G.emoteT = 0; sendEmoji('🌸'); ok(!!G.me.emo, '表情符號');
     ok(NPCS.filter(n => n.ch.root.visible).length >= 4 && NPCS.some(n => n.st === 'sit' || n.st === 'walk'), 'NPC 町人活動中（' + NPCS.filter(n => n.ch.root.visible).length + ' 人）');
     G.pos.set(30, 0, 3); const n = NPCS[0]; n.ch.root.position.set(31, 0, 3); n.st = 'idle'; n.goal = null; n.wait = 20;
-    ok(await until(() => near && near.type === 'npc'), 'NPC 互動提示'); act(); ok(!!n.ch.bub, 'NPC 回話');
+    for (const m of NPCS) if (m !== n && m.ch.root.position.distanceTo(n.ch.root.position) < 3) m.ch.root.position.x += 6; // 旁邊路人移開，避免對到別人
+    ok(await until(() => near && near.type === 'npc'), 'NPC 互動提示'); const tn = near.npc; act(); ok(!!tn.ch.bub, 'NPC 回話');
     G.me.bub = null; onChat(G.myId, '你好'); ok(!!G.me.bub, '聊天泡泡');
     { const kg = W.shops.find(s => s.def.id === 'kingyosukui'); openShop(kg); ok(!!$('#bPlay'), '金魚攤可以玩'); closePanels(); }
     await kashiTest();
