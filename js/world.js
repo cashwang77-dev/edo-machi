@@ -1,16 +1,17 @@
 // 江戶町 3D 世界
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import * as TX from './tex.js?v=202611260116';
-import { SHOPS, STREET } from './shops.js?v=202611260116';
-import { buildTemple } from './temple.js?v=202611260116';
-import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611260116';
-import { buildMeisho2, walkSouth } from './meisho2.js?v=202611260116';
-import { buildKashi, walkKashi } from './kashi.js?v=202611260116';
-import { buildHomeArea, walkHome } from './home.js?v=202611260116';
-import { buildHana, walkHana } from './hanamachi.js?v=202611260116';
-import { buildFarm, walkFarm } from './farm.js?v=202611260116';
-import { buildOnsen, buildYoichi, walkOnsen } from './onsen.js?v=202611260116';
+import * as TX from './tex.js?v=202611260241';
+import { SHOPS, STREET } from './shops.js?v=202611260241';
+import { buildTemple } from './temple.js?v=202611260241';
+import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611260241';
+import { buildMeisho2, walkSouth } from './meisho2.js?v=202611260241';
+import { buildKashi, walkKashi } from './kashi.js?v=202611260241';
+import { buildHomeArea, walkHome } from './home.js?v=202611260241';
+import { buildHana, walkHana } from './hanamachi.js?v=202611260241';
+import { walkForest } from './adventure.js?v=202611260241';
+import { buildFarm, walkFarm } from './farm.js?v=202611260241';
+import { buildOnsen, buildYoichi, walkOnsen } from './onsen.js?v=202611260241';
 
 const PI = Math.PI;
 export const ARCH = x => (x > 110 && x < 140) ? 1.7 * Math.sin(PI * (x - 110) / 30) : 0;
@@ -632,7 +633,7 @@ export function buildWorld(scene) {
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(); let k = 0;
     for (let gx = -260; gx < 260 && k < n; gx += 11) for (let gz = -170; gz < 170 && k < n; gz += 10) {
       if (Math.abs(gz) < 19) continue; if (gx > 102 && gx < 148) continue; if (gx < -96 && gx > -152 && Math.abs(gz) < 30) continue;
-      if (gx > 140 && gx < 190 && Math.abs(gz) < 34) continue; if (gx > 132 && gx < 228 && gz > 28 && gz < 120) continue; if (gx > -142 && gx < -108 && gz < -20 && gz > -90) continue; // 名所區
+      if (gx > 140 && gx < 190 && Math.abs(gz) < 34) continue; if (gx > 132 && gx < 228 && gz > 28 && gz < 120) continue; if (gx > -142 && gx < -108 && gz < -20 && gz > -90) continue; if (gx > -196 && gx < -50 && gz < -76 && gz > -170) continue; // 名所區・妖怪の森
       if (gx > 132 && gx < 224 && gz < -30 && gz > -114) continue; if (Math.abs(gx - 8) < 6 && Math.abs(gz + 26) < 6) continue; if (gx > 74 && gx < 104 && gz < -28 && gz > -146) continue; if (gx > -60 && gx < 104 && gz < -50 && gz > -146) continue; // 隅田川河岸・新開地
       if (gx > -212 && gx < -94 && gz > 22 && gz < 148) continue; if (gx > -110 && gx < -12 && gz > 36 && gz < 150) continue; if (gx > 176 && gx < 274 && Math.abs(gz) < 46) continue; // 郊外農村・溫泉鄉 if (gx > -296 && gx < -206 && gz > 46 && gz < 138) continue; // 名所南區・江戶城
       if (rand() < .1) continue;
@@ -646,7 +647,7 @@ export function buildWorld(scene) {
       for (let i = 0; i < k; i++) { walls.setColorAt(i, col.set(wc[Math.floor(r2() * wc.length)])); roofs.setColorAt(i, col.set(rc[Math.floor(r2() * rc.length)])); } walls.material.color.set('#ffffff'); roofs.material.color.set('#ffffff'); }
     walls.count = roofs.count = k; walls.castShadow = roofs.castShadow = true; walls.receiveShadow = roofs.receiveShadow = true;
     scene.add(walls, roofs);
-    for (let i = 0; i < 70; i++) { const x = -250 + rand() * 500, z = (rand() < .5 ? -1 : 1) * (25 + rand() * 140); if (x > 100 && x < 150) continue; if (x > 74 && x < 112 && z < -28 && z > -146) continue; if (x > -56 && x < 90 && z < -50 && z > -144) continue; if (x > -300 && x < -94 && z > 22 && z < 148) continue; if (x > -106 && x < -16 && z > 40 && z < 140) continue; if (x > 178 && x < 272 && Math.abs(z) < 44) continue; (rand() < .5 ? pine : sakura)(B, x, z, 1 + rand() * .6, rand); }
+    for (let i = 0; i < 70; i++) { const x = -250 + rand() * 500, z = (rand() < .5 ? -1 : 1) * (25 + rand() * 140); if (x > 100 && x < 150) continue; if (x > -196 && x < -50 && z < -76) continue; if (x > 74 && x < 112 && z < -28 && z > -146) continue; if (x > -56 && x < 90 && z < -50 && z > -144) continue; if (x > -300 && x < -94 && z > 22 && z < 148) continue; if (x > -106 && x < -16 && z > 40 && z < 140) continue; if (x > 178 && x < 272 && Math.abs(z) < 44) continue; (rand() < .5 ? pine : sakura)(B, x, z, 1 + rand() * .6, rand); }
   }
 
   // 遠景：富士山、江戶城、群山
@@ -752,6 +753,7 @@ export function buildWorld(scene) {
 
 // 可走區域
 export function walkable(x, z) {
+  if (walkForest(x, z)) return true;
   if (x > -100 && x < 106 && Math.abs(z) < 6.9) return true;
   if (x >= -150 && x <= -98 && Math.abs(z) < 23.5) return x > -129.6 || Math.abs(z) > 7.5 || true;
   if (x >= 103 && x <= 111.6 && Math.abs(z) < 40) return true;

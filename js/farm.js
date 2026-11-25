@@ -1,6 +1,6 @@
 // 郊外農村：自己的田（8 塊）——種屋買種子、依真實時間成長、澆水加速、收成賣給八百屋
 import * as THREE from 'three';
-import { WX } from './weather.js?v=202611260116';
+import { WX } from './weather.js?v=202611260241';
 const PI = Math.PI;
 export const FARM = { x0: -100.5, x1: -22, z0: 46, z1: 136 };
 export function walkFarm(x, z) { return x >= FARM.x0 && x <= FARM.x1 && z >= FARM.z0 && z <= FARM.z1 && !(x > -36 && x < -26 && z > 106.5 && z < 113.5); } // 農家擋住

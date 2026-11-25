@@ -1,6 +1,6 @@
 // 町人帳：個人進度（等級／稱號、每日簽到、町人委託、圖鑑、存檔備份）
 // 存在瀏覽器 localStorage（edo_save_<暱稱>），另可匯出／匯入備份碼
-import { SHOPS, ACC } from './shops.js?v=202611260116';
+import { SHOPS, ACC } from './shops.js?v=202611260241';
 
 let A = null; // game.js 傳進來的介面
 let S = null; // 目前存檔
@@ -92,7 +92,9 @@ export function addXp(n, why) {
 // ---- 事件 ----
 // cook{item,q,shop} eat{id} get{item,shop} buy{} spot{k} play{k} deer pray ride acc{id} fish{k} crop{k} gather{k}
 const XP = { friend: 15, visit: 3, duel: 8, photo: 2, bath: 3, pingpong: 4, plant: 3, water: 1, sellveg: 4, ozashiki: 4, build: 5, mat: 1, furn: 3, deco: 2, sell: 4, job: 10, cook: 10, eat: 5, get: 3, buy: 6, spot: 4, play: 8, deer: 3, pray: 5, ride: 6, fish: 8, crop: 10, gather: 6, night: 6, home: 2 };
+export const EVL = []; // 事件監聽（新手之路）
 export function ev(type, d = {}) {
+  for (const f of EVL) try { f(type, d); } catch (e) { }
   if (!S) return;
   S.stats[type] = (S.stats[type] || 0) + 1;
   let xp = XP[type] || 0; if (type === 'cook' && d.q >= 85) xp += 6; else if (type === 'cook' && d.q >= 60) xp += 3;
@@ -212,6 +214,6 @@ export function initProg(api) {
     .filter((e, i, a) => a.findIndex(x => x.k === e.k) === i);
   for (const id of api.invGet()) if (ACC.some(x => x.id === id) && !S.dex.acc[id]) S.dex.acc[id] = today(); // 舊玩家已有的飾品
   dailyCheck(); hud(); save();
-  if (loginCheck() && !location.search.includes('cam=')) setTimeout(() => open('day'), 1800);
+  if (loginCheck() && !location.search.includes('cam=') && (location.search.includes('test') || A.store.get('guide', A.store.get('helped', false) ? 99 : 0) >= 99)) setTimeout(() => open('day'), 1800);
 }
 export function spotKey(label) { return (label.includes('：') ? label.split('：').pop() : label.replace(/^[^぀-鿿]+/, '')).trim(); }
