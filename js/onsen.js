@@ -1,7 +1,7 @@
 // 溫泉鄉（東岸再往東）：三座露天溫泉、湯けむり荘（住宿・溫泉卓球・饅頭・收購山貨）、山貨採集
 // 夜市（隅田川河岸，只在晚上出現）：夜鳴きそば、甘酒、烤地瓜、夜店抽籤
 import * as THREE from 'three';
-import { WX } from './weather.js?v=202611260241';
+import { WX } from './weather.js?v=202611260248';
 const PI = Math.PI;
 export const ONSEN = { x0: 184.5, x1: 262, z0: -36, z1: 36 };
 export const POOLS = [{ x: 204, z: -18, n: '美肌の湯', c: '#7ab8c8' }, { x: 226, z: 16, n: '金の湯', c: '#c8a048' }, { x: 248, z: -16, n: '雪見の湯', c: '#9ac8d8' }];

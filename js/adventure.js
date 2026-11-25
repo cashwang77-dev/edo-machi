@@ -35,10 +35,16 @@ const st = () => S;
 function save() { A.store.set('adv', S); }
 const lv = () => (A.P.prog() ? A.P.prog().lv : 1);
 export function stats() {
-  const L = lv(), w = WEAP[S.w]; let atk = 8 + L * 2 + w[1], def = Math.floor(L * .6), hp = 80 + L * 12, crit = .05, drop = 1, atkP = 0;
+  const L = lv(), w = WEAP[S.w], r = rfOf(S.w); let atk = 8 + L * 2 + w[1] + r * 3 + Math.max(0, r - 6) * 5, def = Math.floor(L * .6), hp = 80 + L * 12, crit = .05, drop = 1, atkP = 0;
   for (const c of S.eq) { const e = CARD[c] && CARD[c][2]; if (!e) continue; atk += e.atk || 0; def += e.def || 0; hp += e.hp || 0; crit += e.crit || 0; drop += e.drop || 0; atkP += e.atkP || 0; }
-  return { atk: Math.round(atk * (1 + atkP)), def, hp, sp: 30 + L * 3, crit, drop, w };
+  return { atk: Math.round(atk * (1 + atkP)), def, hp, sp: 30 + L * 3, crit, drop, w, r, wn: (r ? '+' + r + ' ' : '') + w[0] };
 }
+const rfOf = k => (S.rf && S.rf[k]) || 0, RF_OK = [1, 1, 1, 1, .9, .75, .6, .45, .3, .2], rfCost = r => 40 * (r + 1) * (r + 1);
+export function refine() { const k = S.w, r = rfOf(k); if (r >= 10) return A.toast('已經是 +10 了，這把刀傳家寶等級！'); const c = rfCost(r); if (!A.afford(c)) { A.toast('錢不夠喔'); return null; }
+  A.addMoney(-c, '精煉 ' + WEAP[k][0]); S.rf = S.rf || {}; const ok = Math.random() < RF_OK[r];
+  if (ok) { S.rf[k] = r + 1; tone(520, 1560, .35, .1, 'triangle'); setTimeout(() => tone(1560, 2080, .3, .08), 180); burst(A.G.pos.x, 1.4, A.G.pos.z, r + 1 >= 7 ? '#ffd848' : '#bfe4ff', r + 1 >= 7 ? 40 : 18, 3, 1); A.toast(`🔨 精煉成功！${WEAP[k][0]} → +${r + 1}`, 2500); if (r + 1 >= 7) { A.G.me && A.G.me.emoji('✨'); A.announce && A.announce(`🔨 ${A.G.name || '旅人'} 的 ${WEAP[k][0]} 精煉到 +${r + 1}！`, '妖怪の森'); } }
+  else { S.rf[k] = 0; noise(.5, 900, 200, 1, .3); shake = .4; A.toast(`💥 精煉失敗……${WEAP[k][0]} 變回 +0 了`, 3000); A.G.me && A.G.me.emoji('😭'); }
+  save(); hud(); return ok; }
 
 // ---------- 小工具：貼圖、音效 ----------
 const emoTex = {}; function etex(e) { if (emoTex[e]) return emoTex[e]; const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); g.font = '48px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(e, 32, 36); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return emoTex[e] = t; }
@@ -323,11 +329,11 @@ function nearest(r = 9) { let b = null, bd = r; for (const m of mobs) { if (m.st
 export function attackNearest() { if (!canFight()) return false; const m = nearest(); if (!m) { A.toast('附近沒有妖怪', 1500); return false; } tgt = m; return true; }
 function hitRoll(m, mul, s) { const crit = Math.random() < s.crit; const dmg = Math.max(1, Math.round(crit ? s.atk * mul * 1.6 : s.atk * mul * rnd(.9, 1.1) - m.d.def)); return [dmg, crit]; }
 function swing(m, mul = 1, big = false) { const G = A.G, s = stats(), w = s.w; const ry = Math.atan2(m.x - G.pos.x, m.z - G.pos.z); G.ry = ry; lunge = 0; combatT = 0;
-  slash(G.pos.x, G.pos.z, ry, w[6], big); SFX.swing(); setTimeout(() => { if (m.st === 'dead') return; const [d, c] = hitRoll(m, mul, s); hurtMob(m, d, c, big ? .9 : .5); }, 70); }
+  slash(G.pos.x, G.pos.z, ry, (s.r >= 7 ? '#ffe070' : w[6]), big); SFX.swing(); setTimeout(() => { if (m.st === 'dead') return; const [d, c] = hitRoll(m, mul, s); hurtMob(m, d, c, big ? .9 : .5); }, 70); }
 export function skill(i) {
   if (!canFight()) return; const s = stats(); if (skCd[i] > 0) return; const cost = [6, 14][i]; if (S.spv < cost) return A.toast('SP 不夠（SP 會慢慢恢復）', 1500);
   if (i === 0) { const m = tgt && tgt.st !== 'dead' ? tgt : nearest(s.w[5] + 1.5); if (!m || Math.hypot(m.x - A.G.pos.x, m.z - A.G.pos.z) > s.w[5] + 1.6) return A.toast('斬擊：要先靠近妖怪', 1500); tgt = m; S.spv -= cost; skCd[0] = 2.5; swing(m, 2.2, true); A.G.me && A.G.me.say('斬！', .8); }
-  else { S.spv -= cost; skCd[1] = 7; const G = A.G; lunge = 0; for (let k = 0; k < 3; k++) setTimeout(() => { slash(G.pos.x, G.pos.z, G.ry + k * 2.1, s.w[6], true); SFX.swing(); }, k * 70); burst(G.pos.x, .3, G.pos.z, '#cfe8ff', 26, 4, .5); A.G.me && A.G.me.say('旋風斬！', .9);
+  else { S.spv -= cost; skCd[1] = 7; const G = A.G; lunge = 0; for (let k = 0; k < 3; k++) setTimeout(() => { slash(G.pos.x, G.pos.z, G.ry + k * 2.1, (s.r >= 7 ? '#ffe070' : s.w[6]), true); SFX.swing(); }, k * 70); burst(G.pos.x, .3, G.pos.z, '#cfe8ff', 26, 4, .5); A.G.me && A.G.me.say('旋風斬！', .9);
     setTimeout(() => { for (const m of mobs) if (m.st !== 'dead' && m.st !== 'spawn' && Math.hypot(m.x - G.pos.x, m.z - G.pos.z) < 3.4 + m.d.r) { const [d, c] = hitRoll(m, 1.5, s); hurtMob(m, d, c, 1); } }, 120); }
   hud();
 }
@@ -348,7 +354,7 @@ export function pick3d(ray) { if (!inF) return false; let b = null, bd = 60; for
 
 // ---------- HUD ----------
 function hud() { if (!hudEl) return; const s = stats(); S.hp = Math.min(S.hp, s.hp); S.spv = Math.min(S.spv, s.sp);
-  barEl.innerHTML = `<div class="ab"><i class="hp" style="width:${S.hp / s.hp * 100}%"></i><span>HP ${Math.ceil(S.hp)} / ${s.hp}</span></div><div class="ab sp"><i class="sp" style="width:${S.spv / s.sp * 100}%"></i><span>SP ${Math.floor(S.spv)} / ${s.sp}</span></div><small>${s.w[0]}　攻 ${s.atk}　防 ${s.def}</small>`;
+  barEl.innerHTML = `<div class="ab"><i class="hp" style="width:${S.hp / s.hp * 100}%"></i><span>HP ${Math.ceil(S.hp)} / ${s.hp}</span></div><div class="ab sp"><i class="sp" style="width:${S.spv / s.sp * 100}%"></i><span>SP ${Math.floor(S.spv)} / ${s.sp}</span></div><small>${s.wn}　攻 ${s.atk}　防 ${s.def}</small>`;
   const pb = document.getElementById('advPot'); if (pb) pb.dataset.n = S.pot || 0;
   for (let i = 0; i < 2; i++) { const b = document.getElementById('advS' + i); if (b) { b.style.setProperty('--cd', skCd[i] > 0 ? skCd[i] / [2.5, 7][i] : 0); b.classList.toggle('cd', skCd[i] > 0); } } }
 let hudT = 0, lastTgt = null;
@@ -359,7 +365,8 @@ function updTgt() { if (!tgtEl) return; if (tgt !== lastTgt || tgt) { lastTgt = 
 function panel(html) { const p = document.getElementById('panel'); p.innerHTML = html + '<button class="close" id="advX">✕</button>'; A.show('#panel'); document.getElementById('advX').onclick = A.closePanels; return p; }
 export function openShop() {
   const s = stats(), yb = A.P.bag('yokai'), ks = Object.keys(yb).filter(k => yb[k] > 0 && MAT[k]), tot = ks.reduce((a, k) => a + MAT[k][2] * yb[k], 0);
-  const pp = panel(`<h2>武器屋 鐵五郎<small>妖怪の森 營地</small></h2><p class="sub">「刀不夠利，可是會被唐傘舔一臉口水的喔！」　目前：<b>${s.w[0]}</b>（攻 ${s.atk}）</p>
+  const pp = panel(`<h2>武器屋 鐵五郎<small>妖怪の森 營地</small></h2><p class="sub">「刀不夠利，可是會被唐傘舔一臉口水的喔！」　目前：<b>${s.wn}</b>（攻 ${s.atk}）</p>
+    <div class="mlist"><div class="mrow"><span>🔨 精煉 ${s.wn}${s.r < 10 ? ` → +${s.r + 1}` : ''} <small>每級攻擊 +3（+7 起 +8）・${s.r < 10 ? (RF_OK[s.r] < 1 ? `<b style="color:#e04030">成功率 ${RF_OK[s.r] * 100}%，失敗會變回 +0</b>` : '+4 以前一定成功') : '已達上限'}</small></span><span></span><span>${s.r < 10 ? rfCost(s.r) + ' 文' : '—'}</span><button id="advRf" ${s.r >= 10 ? 'disabled' : ''}>精煉</button></div></div>
     <div class="mlist">${Object.entries(WEAP).map(([k, w]) => `<div class="mrow"><span>🗡️ ${w[0]} <small>攻擊 ${w[1]}・${w[2] ? `插槽 ${w[2]}` : '無插槽'}・${w[4] < .8 ? '出手快' : w[4] > 1 ? '出手慢' : '普通'}${w[5] > 2 ? '・射程長' : ''}</small></span><span></span><span>${w[3] ? w[3] + ' 文' : '—'}</span><button data-w="${k}" ${S.w === k ? 'disabled' : ''}>${S.w === k ? '裝備中' : S.own.includes(k) ? '裝備' : '買'}</button></div>`).join('')}
     <div class="mrow"><span>🍡 藥草團子 <small>回復 50% HP（H 鍵）・持有 ${S.pot || 0}</small></span><span></span><span>15 文</span><button id="advBP">買 1</button></div>
     <div class="mrow"><span>🍡×5 藥草團子 <small>五串一起買比較便宜</small></span><span></span><span>65 文</span><button id="advBP5">買 5</button></div></div>
@@ -368,6 +375,7 @@ export function openShop() {
     if (!S.own.includes(k)) { if (!A.afford(w[3])) return A.toast('錢不夠喔'); A.addMoney(-w[3], w[0]); S.own.push(k); A.toast(`買了「${w[0]}」！`, 2000); }
     S.w = k; S.eq = S.eq.slice(0, w[2]); save(); hud(); openShop(); });
   const bp = (n, c) => { if (!A.afford(c)) return A.toast('錢不夠喔'); A.addMoney(-c, '藥草團子'); S.pot = (S.pot || 0) + n; save(); hud(); openShop(); };
+  pp.querySelector('#advRf').onclick = () => { refine(); openShop(); };
   pp.querySelector('#advBP').onclick = () => bp(1, 15); pp.querySelector('#advBP5').onclick = () => bp(5, 65);
   const sl = pp.querySelector('#advSell'); if (sl) sl.onclick = () => { let n = 0; for (const k of ks) { n += yb[k]; A.P.bagAdd('yokai', k, -yb[k]); } A.addMoney(tot, `賣妖怪素材 ${n} 個`); openShop(); };
 }
@@ -442,4 +450,4 @@ export function updAdv(dt, time, camera) {
   if (shake > 0) { shake = Math.max(0, shake - dt * 1.6); const a = shake * shake * .5; camera.position.x += Math.sin(time * 71) * a; camera.position.y += Math.sin(time * 53) * a; }
   if ((hudT -= dt) < 0) { hudT = .1; hud(); updTgt(); }
 }
-export const __adv = { get mobs() { return mobs; }, get tgt() { return tgt; }, get S() { return S; }, get inF() { return inF; }, stats, CAMP, P_IN, spawnMob, killMob, hurtMob, WEAP, CARD }; // 測試用
+export const __adv = { get mobs() { return mobs; }, get tgt() { return tgt; }, get S() { return S; }, get inF() { return inF; }, stats, refine, CAMP, P_IN, spawnMob, killMob, hurtMob, WEAP, CARD }; // 測試用

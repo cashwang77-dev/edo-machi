@@ -5,28 +5,28 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611260241';
-import { RIDE_Y } from './chara.js?v=202611260241';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611260241';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611260241';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611260241';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611260241';
-import { Net } from './net.js?v=202611260241';
-import { cleanText } from './filter.js?v=202611260241';
-import { SND } from './audio.js?v=202611260241';
-import * as TX from './tex.js?v=202611260241';
-import * as P from './prog.js?v=202611260241';
-import { initGuide, updGuide, guiding, __guide as GD } from './guide.js?v=202611260241';
-import * as AD from './adventure.js?v=202611260241';
-import { initWeather, updWeather, setPx, WX, BONUS } from './weather.js?v=202611260241';
-import * as F from './fishing.js?v=202611260241';
-import * as HM from './home.js?v=202611260241';
-import * as HN from './hanamachi.js?v=202611260241';
-import * as JB from './jobs.js?v=202611260241';
-import * as FM from './farm.js?v=202611260241';
-import * as ON from './onsen.js?v=202611260241';
-import * as SO from './social.js?v=202611260241';
-import { updBoats } from './kashi.js?v=202611260241';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611260248';
+import { RIDE_Y } from './chara.js?v=202611260248';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611260248';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611260248';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611260248';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611260248';
+import { Net } from './net.js?v=202611260248';
+import { cleanText } from './filter.js?v=202611260248';
+import { SND } from './audio.js?v=202611260248';
+import * as TX from './tex.js?v=202611260248';
+import * as P from './prog.js?v=202611260248';
+import { initGuide, updGuide, guiding, __guide as GD } from './guide.js?v=202611260248';
+import * as AD from './adventure.js?v=202611260248';
+import { initWeather, updWeather, setPx, WX, BONUS } from './weather.js?v=202611260248';
+import * as F from './fishing.js?v=202611260248';
+import * as HM from './home.js?v=202611260248';
+import * as HN from './hanamachi.js?v=202611260248';
+import * as JB from './jobs.js?v=202611260248';
+import * as FM from './farm.js?v=202611260248';
+import * as ON from './onsen.js?v=202611260248';
+import * as SO from './social.js?v=202611260248';
+import { updBoats } from './kashi.js?v=202611260248';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -2006,6 +2006,7 @@ async function runTest() {
       ok(!$('#adv').classList.contains('hide') && AV.mobs.length > 20, '冒險 HUD＋妖怪 ' + AV.mobs.length);
       const m = AV.mobs.find(m => m.k === 'onibi' && m.st === 'idle'); m.x = m.hx = G.pos.x; m.z = m.hz = G.pos.z - 4; const k0 = AV.S.kills.onibi || 0;
       ok(AD.attackNearest() && AV.tgt === m, '鎖定最近的鬼火'); ok(await until(() => m.st === 'dead', 20000), '自動走過去打倒鬼火'); ok((AV.S.kills.onibi || 0) === k0 + 1, '討伐紀錄＋1');
+      { const m0 = G.money; addMoney(5000, 'test'); const a0 = AD.stats().atk; for (let i = 0; i < 4; i++) AV.refine(); ok(AD.stats().r === 4 && AD.stats().atk === a0 + 12 && AD.stats().wn.startsWith('+4'), '武器精煉 +4 攻擊 +12'); AV.S.rf = {}; setMoney(m0); }
       const hp0 = AV.S.hp; AV.S.pot = 1; AV.S.hp = 5; AD.usePot(); ok(AV.S.hp > 5 && AV.S.pot === 0, '吃藥草團子回血'); AV.S.hp = hp0;
       await sleep(2100); G.pos.set(AV.CAMP.x, 0, -87.4); ok(await until(() => !AV.inF, 5000) && Math.abs(G.pos.z) < 24, '傳送陣回神社'); }
   } catch (e) { if (!e.done) ok(false, 'EXC ' + e.message); }
