@@ -1,5 +1,6 @@
 // 釣魚（隅田川棧橋）、魚河岸賣魚、搬貨打工
-import { FISH, rollFish } from './kashi.js?v=202611250924';
+import { FISH, rollFish } from './kashi.js?v=202611260116';
+import { WX } from './weather.js?v=202611260116';
 let A, GEN = 0; // GEN：每開一次小遊戲 +1，舊的畫面迴圈自動停止
 const $ = s => document.querySelector(s);
 const stars = r => r ? '★'.repeat(r) : '—';
@@ -17,8 +18,8 @@ export function playFish() {
   let st = 'cast', t = 0, wait = 0, fake = [], fish = null, ten = .3, prog = .25, hold = false, surge = 0, sT = 0, msg = '', last = performance.now(), run = true, ripple = [];
   const reset = () => { st = 'cast'; t = 0; fish = null; ten = .3; prog = .25; };
   M.cv.onpointerdown = e => { e.preventDefault(); hold = true;
-    if (st === 'cast') { st = 'wait'; t = 0; wait = 2 + Math.random() * 4.5; fake = [Math.random() * wait * .8, Math.random() * wait * .8].filter(() => Math.random() < .6); A.SND.pluck(330, .06); ripple.push({ x: 180, y: 120, t: 1 }); }
-    else if (st === 'bite') { fish = rollFish(night); st = 'reel'; t = 0; ten = .45; prog = .3; A.SND.pluck(880, .06); }
+    if (st === 'cast') { st = 'wait'; t = 0; wait = (2 + Math.random() * 4.5) * (WX.rain > .4 ? .6 : 1); fake = [Math.random() * wait * .8, Math.random() * wait * .8].filter(() => Math.random() < .6); A.SND.pluck(330, .06); ripple.push({ x: 180, y: 120, t: 1 }); }
+    else if (st === 'bite') { fish = rollFish(night); for (let k = WX.thunder > .5 ? 2 : WX.rain > .4 ? 1 : 0; k > 0; k--) { const f2 = rollFish(night); if (f2[3] > fish[3]) fish = f2; } st = 'reel'; t = 0; ten = .45; prog = .3; A.SND.pluck(880, .06); }
     else if (st === 'wait') { msg = '太早了！魚被嚇跑了'; st = 'miss'; t = 0; }
     else if (st === 'done' || st === 'miss') { if (t > .6) reset(); } };
   M.cv.onpointerup = M.cv.onpointerleave = () => { hold = false; };

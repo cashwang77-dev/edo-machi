@@ -56,6 +56,9 @@ button:not(:disabled):active{transform:translateY(1px)}
 #go{flex:1;background:var(--red);color:#fff8e8;border-color:#7a1f1a;font-size:18px;font-weight:700;padding:11px}
 /* HUD */
 #hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+#vig{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 75% 70% at 50% 48%,transparent 55%,rgba(28,14,4,.26) 100%);transition:background 3s}
+body.rainy #vig{background:radial-gradient(ellipse 75% 70% at 50% 48%,rgba(60,80,100,.05) 40%,rgba(16,24,36,.38) 100%)}
+#clock{cursor:pointer}
 #hud>*{pointer-events:auto}
 #topbar{position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap;max-width:60vw}
 .chip{background:rgba(243,234,214,.92);border:1.5px solid var(--ink);border-radius:20px;padding:4px 12px;font-size:14px;white-space:nowrap}
@@ -332,6 +335,7 @@ body.touch #held{left:calc(12px + var(--sl));bottom:auto;top:calc(100px + var(--
     <p id="iosTip" class="sub hide" style="margin:8px 0 0;font-size:13px">📱 iPhone 小提醒：按 Safari 下方「分享」→「加入主畫面」，從主畫面打開就是全螢幕，沒有網址列。</p>
   </div>
 </div>
+<div id="vig"></div>
 <div id="hud" class="hide">
   <div id="topbar"><span class="chip" id="clock"></span><span class="chip">💰 <b id="mon">0</b> 文</span><span class="chip" id="online"></span><button class="chip lvchip" id="lvchip">📜</button><button class="chip kchip" id="bKofi" data-donate>☕<span class="lb2"> 支持作者</span><span class="lb3"> 支持</span></button></div>
   <canvas id="mini" width="240" height="120"></canvas>
@@ -397,6 +401,6 @@ body.touch #held{left:calc(12px + var(--sl));bottom:auto;top:calc(100px + var(--
 </div></div>
 <div id="toast"></div>
 <script>addEventListener("error",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+e.message+" @"+(e.filename||"").split("/").pop()+":"+e.lineno});addEventListener("unhandledrejection",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+(e.reason&&e.reason.stack||e.reason)})</script>
-<script type="module" src="js/game.js?v=202611250924"></script>
+<script type="module" src="js/game.js?v=202611260116"></script>
 </body>
 </html>

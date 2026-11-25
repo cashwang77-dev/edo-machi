@@ -1,16 +1,16 @@
 // 江戶町 3D 世界
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import * as TX from './tex.js?v=202611250924';
-import { SHOPS, STREET } from './shops.js?v=202611250924';
-import { buildTemple } from './temple.js?v=202611250924';
-import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611250924';
-import { buildMeisho2, walkSouth } from './meisho2.js?v=202611250924';
-import { buildKashi, walkKashi } from './kashi.js?v=202611250924';
-import { buildHomeArea, walkHome } from './home.js?v=202611250924';
-import { buildHana, walkHana } from './hanamachi.js?v=202611250924';
-import { buildFarm, walkFarm } from './farm.js?v=202611250924';
-import { buildOnsen, buildYoichi, walkOnsen } from './onsen.js?v=202611250924';
+import * as TX from './tex.js?v=202611260116';
+import { SHOPS, STREET } from './shops.js?v=202611260116';
+import { buildTemple } from './temple.js?v=202611260116';
+import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611260116';
+import { buildMeisho2, walkSouth } from './meisho2.js?v=202611260116';
+import { buildKashi, walkKashi } from './kashi.js?v=202611260116';
+import { buildHomeArea, walkHome } from './home.js?v=202611260116';
+import { buildHana, walkHana } from './hanamachi.js?v=202611260116';
+import { buildFarm, walkFarm } from './farm.js?v=202611260116';
+import { buildOnsen, buildYoichi, walkOnsen } from './onsen.js?v=202611260116';
 
 const PI = Math.PI;
 export const ARCH = x => (x > 110 && x < 140) ? 1.7 * Math.sin(PI * (x - 110) / 30) : 0;
@@ -717,6 +717,7 @@ export function buildWorld(scene) {
     const cm = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, side: THREE.DoubleSide });
     const clouds = new THREE.Mesh(mergeGeometries(geos), cm); clouds.renderOrder = -0.5; clouds.frustumCulled = false; scene.add(clouds); W.clouds = clouds;
   }
+  W.hemi = hemi; W.petals = petals; W.skyMat = skyMat; // 給 weather.js 疊天氣用
   let lt = 0; const sunDir = new THREE.Vector3(); const tmp = new THREE.Vector3();
   W.update = (dt, time, tday, focus, camPos, quality) => {
     const D = sampleDay(tday);

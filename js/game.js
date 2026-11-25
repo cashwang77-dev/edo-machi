@@ -5,25 +5,26 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611250924';
-import { RIDE_Y } from './chara.js?v=202611250924';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611250924';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611250924';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611250924';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611250924';
-import { Net } from './net.js?v=202611250924';
-import { cleanText } from './filter.js?v=202611250924';
-import { SND } from './audio.js?v=202611250924';
-import * as TX from './tex.js?v=202611250924';
-import * as P from './prog.js?v=202611250924';
-import * as F from './fishing.js?v=202611250924';
-import * as HM from './home.js?v=202611250924';
-import * as HN from './hanamachi.js?v=202611250924';
-import * as JB from './jobs.js?v=202611250924';
-import * as FM from './farm.js?v=202611250924';
-import * as ON from './onsen.js?v=202611250924';
-import * as SO from './social.js?v=202611250924';
-import { updBoats } from './kashi.js?v=202611250924';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611260116';
+import { RIDE_Y } from './chara.js?v=202611260116';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611260116';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611260116';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611260116';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611260116';
+import { Net } from './net.js?v=202611260116';
+import { cleanText } from './filter.js?v=202611260116';
+import { SND } from './audio.js?v=202611260116';
+import * as TX from './tex.js?v=202611260116';
+import * as P from './prog.js?v=202611260116';
+import { initWeather, updWeather, setPx, WX, BONUS } from './weather.js?v=202611260116';
+import * as F from './fishing.js?v=202611260116';
+import * as HM from './home.js?v=202611260116';
+import * as HN from './hanamachi.js?v=202611260116';
+import * as JB from './jobs.js?v=202611260116';
+import * as FM from './farm.js?v=202611260116';
+import * as ON from './onsen.js?v=202611260116';
+import * as SO from './social.js?v=202611260116';
+import { updBoats } from './kashi.js?v=202611260116';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -47,9 +48,17 @@ function setupPost() {
   composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera));
   bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), .4, .55, .92); composer.addPass(bloom); composer.addPass(new OutputPass());
 }
+// 動態解析度：FPS 不夠時先慢慢降渲染解析度（0.6～1 倍），真的不行才降畫質等級
+const DRS = { s: 1, acc: 0, n: 0 };
+function drs(raw) {
+  if (QS.has('test') || G.shot || raw > .3) return; DRS.acc += raw; DRS.n++; if (DRS.acc < 1.5) return;
+  const fps = DRS.n / DRS.acc; DRS.acc = 0; DRS.n = 0; let s = DRS.s;
+  if (fps < 45 && s > .6) s = Math.max(.6, s - (fps < 30 ? .12 : .06)); else if (fps > 57 && s < 1) s = Math.min(1, s + .04);
+  if (s !== DRS.s) { DRS.s = s; applyQuality(); }
+}
 function applyQuality() {
-  const pr = Math.min(devicePixelRatio, quality === 2 ? 2 : quality === 1 ? 1.5 : 1) * (quality === 0 && AQ.soft ? .7 : 1);
-  renderer.setPixelRatio(pr); renderer.shadowMap.enabled = quality > 0;
+  const pr = Math.min(devicePixelRatio, quality === 2 ? 2 : quality === 1 ? 1.5 : 1) * (quality === 0 && AQ.soft ? .7 : 1) * DRS.s;
+  renderer.setPixelRatio(pr); if (composer) composer.setPixelRatio(pr); setPx(pr); renderer.shadowMap.enabled = quality > 0;
   if (W && W.sunLight) W.sunLight.shadow.mapSize.set(quality === 2 ? 2048 : 1024, quality === 2 ? 2048 : 1024);
   resize();
 }
@@ -59,7 +68,7 @@ function applyQuality() {
 function autoQuality(dt) {
   if (store.get('qUser', false) || quality === 0) return;
   AQ.warm += dt; if (AQ.warm < 6) return; AQ.f++; AQ.t += dt;
-  if (AQ.t >= 4) { const fps = AQ.f / AQ.t; AQ.f = 0; AQ.t = 0; if (fps < 24) { quality--; store.set('q', quality); applyQuality(); AQ.warm = 0; toast(`畫面有點卡，已自動調低畫質（可在 ⚙ 設定改回）`, 3500); } }
+  if (AQ.t >= 4) { const fps = AQ.f / AQ.t; AQ.f = 0; AQ.t = 0; if (fps < 24 && DRS.s <= .61) { quality--; DRS.s = 1; store.set('q', quality); applyQuality(); AQ.warm = 0; toast(`畫面有點卡，已自動調低畫質（可在 ⚙ 設定改回）`, 3500); } }
 }
 function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); if (composer) composer.setSize(w, h); }
 addEventListener('resize', resize);
@@ -1613,8 +1622,8 @@ function update(dt) {
     if (G.online && sendT < 0) { sendT = .2; const a = G.me.anim; if (Math.abs(last.x - G.pos.x) > .03 || Math.abs(last.z - G.pos.z) > .03 || Math.abs(last.r - G.ry) > .05 || last.a !== a) { net.send({ t: 'p', x: G.pos.x, z: G.pos.z, y: G.pos.y, r: G.ry, a }); last = { x: G.pos.x, z: G.pos.z, r: G.ry, a }; } }
     nearT -= dt; if (nearT < 0) { nearT = .2; findNear(); }
     npcCustomerTick(dt); updMG(dt);
-    $('#clock').textContent = edoTime(tday());
-    if ((miniT -= dt) < 0) { miniT = .25; drawMini(); }
+    $('#clock').textContent = WX.icon + ' ' + edoTime(tday());
+    if ((miniT -= dt) < 0) { miniT = .25; drawMini(); document.body.classList.toggle('rainy', WX.rain > .3 || WX.snow > .3); }
   }
   // 其他玩家
   const k = Math.min(1, dt * 10);
@@ -1633,7 +1642,7 @@ function update(dt) {
     SND.update(dt, tday(), W.night || 0, Math.max(0, Math.abs(G.pos.x - 125) - 13), near, Math.abs(G.pos.z) < 12 && G.pos.x > -100 && G.pos.x < 104);
     callTick(dt); peddlerTick(dt); updMatsuri(dt); festNotice();
   }
-  updBoats(W, dt); FM.farmUpdate(dt); ON.onsenUpdate(dt); if (G.mode !== 'title') JB.jobUpdate(dt); W.update(dt, time, tday(), G.me ? G.me.root.position : new THREE.Vector3(), camera.position, quality);
+  updBoats(W, dt); FM.farmUpdate(dt); ON.onsenUpdate(dt); if (G.mode !== 'title') JB.jobUpdate(dt); W.update(dt, time, tday(), G.me ? G.me.root.position : new THREE.Vector3(), camera.position, quality); updWeather(dt, time, W, scene, camera, false);
   { const n = W.night || 0; SPR_LIGHT.value.setRGB(1.02 - .5 * n, 1 - .52 * n, .97 - .42 * n); } // 立繪亮度跟晝夜
   if (bloom) bloom.strength = .18 + W.night * .55;
 }
@@ -1655,14 +1664,14 @@ function updViewOffset() {
 }
 let shadowF = 0; const PERF = new URLSearchParams(location.search).has('perf'); let perfF = 0, perfT = performance.now();
 if (PERF) renderer.info.autoReset = false;
-function render() { if (PERF) { renderer.info.reset(); perfF++; const n = performance.now(); if (n - perfT > 2000) { const i = renderer.info; let meshes = 0, chars = 0; scene.traverseVisible(o => { if (o.isMesh) meshes++; }); document.title = 'PERF ' + JSON.stringify({ fps: +(perfF * 1000 / (n - perfT)).toFixed(1), calls: i.render.calls, tris: i.render.triangles, geo: i.memory.geometries, tex: i.memory.textures, meshes, npcs: NPCS.length, q: quality }); perfF = 0; perfT = n; } }
+function render() { if (PERF) { renderer.info.reset(); perfF++; const n = performance.now(); if (n - perfT > 2000) { const i = renderer.info; let meshes = 0, chars = 0; scene.traverseVisible(o => { if (o.isMesh) meshes++; }); document.title = 'PERF ' + JSON.stringify({ fps: +(perfF * 1000 / (n - perfT)).toFixed(1), calls: i.render.calls, tris: i.render.triangles, geo: i.memory.geometries, tex: i.memory.textures, meshes, npcs: NPCS.length, q: quality, drs: DRS.s, wx: WX.name }); perfF = 0; perfT = n; } }
   renderer.shadowMap.autoUpdate = quality !== 1; if (quality === 1) renderer.shadowMap.needsUpdate = (shadowF = (shadowF + 1) % 2) === 0 || G.mode === 'title'; // 中畫質：陰影隔格更新
   updViewOffset(); if (G.shot) { const v = G.shot; camera.position.set(v[0], v[1], v[2]); camera.lookAt(v[3], v[4], v[5]); } if (quality === 2 && composer) composer.render(); else renderer.render(scene, camera); }
 let miniT = 0, lodT = 0;
 let frameN = 0;
 function loop() {
   if (QS.has('test')) { const now = performance.now(), tdt = Math.min(.25, Math.max(1 / 30, (now - (loop.lt || now)) / 1000)); loop.lt = now; let left = tdt; while (left > 1e-4) { const st = Math.min(1 / 20, left); update(st); left -= st; } if (frameN++ % 15 === 0) render(); setTimeout(loop, 33); return; }
-  const raw = clock.getDelta(), dt = Math.min(.05, raw); update(dt); render(); autoQuality(Math.min(raw, .5)); requestAnimationFrame(loop);
+  const raw = clock.getDelta(), dt = Math.min(.05, raw); update(dt); render(); drs(raw); autoQuality(Math.min(raw, .5)); requestAnimationFrame(loop);
 }
 
 // ---------- 小地圖 ----------
@@ -1774,6 +1783,7 @@ $('#bMore').onclick = () => { const m = $('#moreMenu'), gm = !$('#bGM').classLis
 $('#bHelp').onclick = () => show('#help');
 $('#bFS').onclick = toggleFS;
 document.querySelectorAll('[data-donate]').forEach(b => b.onclick = () => { show('#settings', false); show('#donate'); SND.pluck(660, .06); });
+$('#clock').onclick = () => { const m = Math.ceil(WX.left / 60000); toast(`${WX.icon} 現在「${WX.name}」${BONUS[WX.kind] ? '：' + BONUS[WX.kind] : ''}｜約 ${m} 分鐘後轉「${WX.next.n}」${WX.next.icon}`, 5000); };
 $('#bSet').onclick = () => { show('#settings'); document.querySelectorAll('#settings [data-q]').forEach(b => b.classList.toggle('on', +b.dataset.q === quality)); };
 const sndBtns = () => document.querySelectorAll('#settings [data-snd]').forEach(b => b.classList.toggle('on', !!SND.on[b.dataset.snd]));
 document.querySelectorAll('#settings [data-snd]').forEach(b => b.onclick = () => { SND.start(); SND.setOn(b.dataset.snd, !SND.on[b.dataset.snd]); sndBtns(); });
@@ -1801,6 +1811,7 @@ if (isTouch) document.body.classList.add('touch');
   if (mt.every(Boolean)) TX.IMG.motifs = mt; if (ob.every(Boolean)) TX.IMG.obi = ob;
   W = buildWorld(scene);
   W.sunLight = scene.children.find(o => o.isDirectionalLight);
+  initWeather(scene, quality, { SND, G, P, toast });
   setupPost(); applyQuality();
   await preloadSprites(); setSprCam(camera); NPCChara = spritesReady() && !QS.has('npc3d') ? SChara : Chara; // 2D 立繪（?npc3d 可切回 3D）
   addMe(); spawnNPCs(); spawnCabs(); spawnDeer(); buildTitle(); spawnFlora();

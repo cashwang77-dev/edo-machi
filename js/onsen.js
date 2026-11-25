@@ -1,6 +1,7 @@
 // 溫泉鄉（東岸再往東）：三座露天溫泉、湯けむり荘（住宿・溫泉卓球・饅頭・收購山貨）、山貨採集
 // 夜市（隅田川河岸，只在晚上出現）：夜鳴きそば、甘酒、烤地瓜、夜店抽籤
 import * as THREE from 'three';
+import { WX } from './weather.js?v=202611260116';
 const PI = Math.PI;
 export const ONSEN = { x0: 184.5, x1: 262, z0: -36, z1: 36 };
 export const POOLS = [{ x: 204, z: -18, n: '美肌の湯', c: '#7ab8c8' }, { x: 226, z: 16, n: '金の湯', c: '#c8a048' }, { x: 248, z: -16, n: '雪見の湯', c: '#9ac8d8' }];
@@ -74,7 +75,7 @@ export function enterPool(i) {
   const p = POOLS[i], S = A.P.prog(); S.bath = S.bath || {};
   A.sitAt({ x: p.x, y: -.35, z: p.z, r: p.x < 230 ? PI / 2 : -PI / 2, kind: 'onsen', exit: { x: p.x + (p.x < 230 ? 6.2 : -6.2), z: p.z } }, 'bath');
   A.G.sta = 100; A.G.me.say(['ふぅ～極楽極楽', '啊～好舒服', '泡到骨頭都軟了～'][i], 3);
-  const key = i + '|' + today(); if (!S.bath[key]) { S.bath[key] = 1; A.P.addXp(15, p.n); } A.P.ev('spot', { k: p.n === '美肌の湯' ? '湯の郷' : '湯の郷' }); A.P.ev('bath', { k: p.n });
+  const key = i + '|' + today(); if (!S.bath[key]) { S.bath[key] = 1; A.P.addXp(WX.snow > .4 ? 30 : 15, WX.snow > .4 ? p.n + '（雪見風呂）' : p.n); } A.P.ev('spot', { k: p.n === '美肌の湯' ? '湯の郷' : '湯の郷' }); A.P.ev('bath', { k: p.n });
 }
 export function openRyokan() {
   const S = A.P.prog(), gb = A.P.bag('gather'), gk = Object.keys(gb).filter(k => gb[k] > 0), tot = gk.reduce((a, k) => a + GATHER.find(g => g[0] === k)[3] * gb[k], 0);
