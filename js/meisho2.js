@@ -1,7 +1,7 @@
 // 江戶町 名所南區（神社南門出去）：江戶城天守、不忍池弁天堂、歌舞伎中村座、回向院相撲土俵
 // 靜態物件全部 bake 進合併網格；走近按 E 有特寫與介紹
 import * as THREE from 'three';
-import { hipRoof } from './temple.js?v=202611241712';
+import { hipRoof } from './temple.js?v=202611250924';
 const PI = Math.PI;
 
 export const SHINOBAZU = { x: -122, z: 102, rx: 15, rz: 11, isl: 4.6 }; // 不忍池（中島可走、北側石橋）

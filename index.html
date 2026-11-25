@@ -67,6 +67,7 @@ button:not(:disabled):active{transform:translateY(1px)}
 .mapcard .shl{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:4px 8px}
 .mapcard .shl button{display:flex;gap:6px;align-items:center;text-align:left;padding:5px 8px;font-size:13px;line-height:1.25}
 .mapcard .shl button.on{outline:3px solid #e8a020}.mapcard .shl i{width:12px;height:12px;border-radius:3px;flex:none}
+#mapGo{margin:6px 0 0;min-height:10px}#mapGo button{font-size:15px;padding:7px 14px}
 .mapcard .shl small{display:block;color:var(--sub);font-size:11px}.mapcard .area{font-size:13px;margin:2px 0;line-height:1.5}.mapcard .area b{margin-right:6px}
 #log{position:absolute;left:10px;top:50px;width:min(360px,70vw);font-size:14px;pointer-events:none}
 #log>div{background:rgba(20,14,10,.5);color:#fff6e0;padding:3px 9px;border-radius:6px;margin-bottom:3px;width:fit-content;max-width:100%;transition:opacity 1s}
@@ -396,6 +397,6 @@ body.touch #held{left:calc(12px + var(--sl));bottom:auto;top:calc(100px + var(--
 </div></div>
 <div id="toast"></div>
 <script>addEventListener("error",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+e.message+" @"+(e.filename||"").split("/").pop()+":"+e.lineno});addEventListener("unhandledrejection",e=>{const d=document.getElementById("loading");d.classList.remove("hide");d.style.fontSize="16px";d.textContent="錯誤："+(e.reason&&e.reason.stack||e.reason)})</script>
-<script type="module" src="js/game.js?v=202611241712"></script>
+<script type="module" src="js/game.js?v=202611250924"></script>
 </body>
 </html>

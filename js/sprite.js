@@ -1,9 +1,9 @@
 // 2D 手繪立繪人物（RO 式紙娃娃）：一個面向鏡頭的平面＋換色著色器；每人 1 次繪製
 // SChara 與 3D 的 Chara 介面相同（root、setLook、play、update、say、emoji、setName、lod、setRide、updRide、headG、foodG、accG、waistG），遊戲端直接替換
 import * as THREE from 'three';
-import { Chara, KIMONO, OBI, SKINS, OUTER } from './chara.js?v=202611241712';
-import * as TX from './tex.js?v=202611241712';
-import { ACC } from './shops.js?v=202611241712';
+import { Chara, KIMONO, OBI, SKINS, OUTER } from './chara.js?v=202611250924';
+import * as TX from './tex.js?v=202611250924';
+import { ACC } from './shops.js?v=202611250924';
 
 const ATLAS = {}; // 原型名 → { tex, mask, meta }
 export const ARCH_LIST = ['f1', 'f2', 'f3', 'f4', 'm1', 'm2', 'm3', 'm4', 'f5', 'f6', 'f7', 'f8', 'f9', 'm5', 'oi']; // 新的只能接在後面（玩家存的是編號）
@@ -26,8 +26,10 @@ let ACCA = null; // 飾品圖集
 async function loadAcc() { const [t, m] = await Promise.all([new THREE.TextureLoader().loadAsync('img/spr/acc.webp').catch(() => new THREE.TextureLoader().loadAsync('img/spr/acc.png')), fetch('img/spr/acc.json').then(r => r.json())]); t.colorSpace = THREE.SRGBColorSpace; ACCA = { t, m }; }
 export const preloadSprites = () => Promise.all([...ARCH_LIST.map(n => loadArchetype(n).catch(() => null)), loadAcc().catch(() => null)]);
 // 各部位的位置（以人物平面為準，x 正＝畫面右邊；z 正＝在人物前面）與大小
-const ACC_POS = { hat: [0, 1.5, .03, .62], hs: [-.17, 1.42, .03, .22], m: [.18, 1.3, .03, .3], w: [.2, .72, .03, .26], c: [.25, .85, .04, .3], b: [-.22, 1.02, -.03, .55] };
-const ACC_FIX = { tenugui: [0, 1.44, .03, .46], zukin: [0, 1.4, .03, .5], hachimaki: [0, 1.4, .03, .44], daisho: [.12, .72, .03, .46], bangasa: [.12, 1.72, .04, .95], janome: [.12, 1.72, .04, .95], kazaguruma: [.28, 1.0, .04, .42], chochin: [.3, .95, .04, .5], kingyo: [.24, .7, .04, .26], yoyo: [.24, .7, .04, .24], shamisen: [-.2, .95, -.03, .7] };
+const ACC_G = new THREE.PlaneGeometry(1, 1);
+const EYE0 = 1.0; // 頭部飾品 y 的基準眼高（實際依每格眼睛位置位移）
+const ACC_POS = { hat: [0, 1.31, .03, .62], hs: [-.17, 1.42, .03, .22], m: [.18, 1.3, .03, .3], w: [.2, .72, .03, .26], c: [.25, .85, .04, .3], b: [-.22, 1.02, -.03, .55] };
+const ACC_FIX = { tenugui: [0, 1.44, .03, .46], zukin: [0, 1.4, .03, .5], hachimaki: [0, 1.33, .03, .44], daisho: [.12, .72, .03, .46], bangasa: [-.24, 1.11, -.04, 1.3], janome: [.47, 1.17, -.04, 1.3], kazaguruma: [.28, 1.0, .04, .42], chochin: [.3, .95, .04, .5], kingyo: [.24, .7, .04, .26], yoyo: [.24, .7, .04, .24], shamisen: [-.2, .95, -.03, .7] };
 export const spritesReady = () => ARCH_LIST.every(n => ATLAS[n]);
 
 export const SPR_LIGHT = { value: new THREE.Color(1, 1, 1) }; // 共用環境光（遊戲依晝夜更新）
@@ -70,7 +72,7 @@ export class SChara {
           vec2 a = uRect.xy + uv0 * uRect.zw;
           vec4 c = texture2D(map, a); vec3 mk = texture2D(uMask, a).rgb;
           float l = dot(c.rgb, vec3(.299, .587, .114));
-          vec3 kim = uPatOn > .5 ? texture2D(uPat, a * uPatS).rgb : uKim;
+          vec3 kim = uPatOn > .5 ? texture2D(uPat, uv0 * uRect.zw * uPatS).rgb : uKim;
           c.rgb = mix(c.rgb, kim * clamp(l / .5, .2, 1.25), mk.r);
           c.rgb = mix(c.rgb, uObi * clamp(c.r / .45, .2, 1.3), mk.g);
           if (uOy > .5) { /* 衣裝（羽織／袴／法被）：依腰帶上下緣 uBand（由上往下的比例）把和服分成上身、下身 */
@@ -88,7 +90,7 @@ export class SChara {
               c.rgb = mix(c.rgb, uOut * clamp(l / .5, .3, 1.2) * pl, lo);
             } else { /* 法被：短外褂（花紋，到腰帶下一點，下緣白線）、背後「祭」字；下身深色緊身褲 */
               float hem = bb + (kb - bb) * .2, up = mk.r * step(py, hem);
-              c.rgb = mix(c.rgb, texture2D(uPat2, a * uPatS).rgb * sh, up);
+              c.rgb = mix(c.rgb, texture2D(uPat2, uv0 * uRect.zw * uPatS).rgb * sh, up);
               c.rgb = mix(c.rgb, vec3(.96, .94, .88) * sh, up * smoothstep(hem - .022, hem - .016, py));
               c.rgb = mix(c.rgb, vec3(.035, .04, .07) * clamp(l / .5, .4, 1.3), mk.r * step(hem, py));
               if (uDir > 3.5) { vec2 q = vec2((ux - .5) / .36 + .5, 1. - ((py - bt + .075) / .2 + .5));
@@ -111,7 +113,7 @@ export class SChara {
           c.rgb *= uLight;
           diffuseColor *= c;`);
     };
-    m.customProgramCacheKey = () => 'schara6';
+    m.customProgramCacheKey = () => 'schara7';
     this.mat = m; this.mesh = new THREE.Mesh(geoFor(A.meta.fw, A.meta.fh), m); this.root.add(this.mesh);
     if (!this.accP) this.accP = new THREE.Group(); this.mesh.add(this.accP);
   }
@@ -134,8 +136,8 @@ export class SChara {
     if (ACCA) { this.accP.clear(); this.accH = [];
       for (const sl of ['hat', 'hs', 'm', 'w', 'c', 'b']) { const it = lk[sl] && ACC.find(a => a.slot === sl && a.v === lk[sl]); if (!it || ACCA.m.i[it.id] == null) continue;
         const idx = ACCA.m.i[it.id], { c, cols, rows } = ACCA.m, t = ACCA.t.clone(); t.repeat.set(1 / cols, 1 / rows); t.offset.set((idx % cols) / cols, 1 - (Math.floor(idx / cols) + 1) / rows); t.needsUpdate = true;
-        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, alphaTest: .4 })); const [x, y, z, sc] = ACC_FIX[it.id] || ACC_POS[sl]; sp.position.set(x, y, z); sp.scale.set(sc, sc, 1);
-        sp.userData.slot = sl; this.accP.add(sp); if (sl === 'hat' || sl === 'hs' || sl === 'm') this.accG.add(new THREE.Object3D()); if (sl === 'w') this.waistG.add(new THREE.Object3D()); }
+        const sp = new THREE.Mesh(ACC_G, new THREE.MeshBasicMaterial({ map: t, alphaTest: .4, side: THREE.DoubleSide })); /* 與人物平面平行（Sprite 會跟著鏡頭俯角傾斜，下緣穿到臉前面） */ const [x, y, z, sc] = ACC_FIX[it.id] || ACC_POS[sl]; sp.position.set(x, y, z); sp.scale.set(sc, sc, 1);
+        sp.userData.slot = sl; sp.userData.y = y; this.accP.add(sp); if (sl === 'hat' || sl === 'hs' || sl === 'm') this.accG.add(new THREE.Object3D()); if (sl === 'w') this.waistG.add(new THREE.Object3D()); }
       return; }
     const icon = (e, par, x, y, s = .32) => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); g.font = '52px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(e, 32, 36);
       const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false })); sp.scale.set(s, s, 1); sp.position.set(x, y, .05); par.add(sp); };
@@ -154,6 +156,9 @@ export class SChara {
     const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     const pts = new THREE.Points(pg, new THREE.PointsMaterial({ map: t, size: .14, color: '#ffe08a', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false, toneMapped: false })); g.add(pts); this.spkP = pts;
   }
+  // 這一格眼睛的高度（人物座標）；沒有臉資料的格（背面）用正面站姿的眼高
+  _eyeY(idx) { const M = this.A.meta, e = M.fc && M.fc[idx]; if (e) return H * (1 - (6 + e[0]) / M.fh);
+    if (this.A.eye0 == null) { const f = M.fc && M.frames.idle.S && M.fc[M.frames.idle.S[0].i]; this.A.eye0 = f ? H * (1 - (6 + f[0]) / M.fh) : EYE0; } return this.A.eye0; }
   play(a) { if (this.anim !== a) { this.anim = a; this.t = 0; } }
   expr() {}
   lod(d) { const far = d > 70; if (this.mesh) this.mesh.visible = !far; this.blob.visible = !far; }
@@ -184,7 +189,7 @@ export class SChara {
     { const e = (act || k < 3) && this.A.meta.fc && this.A.meta.fc[idx]; /* 斜後方、背面看不到臉；側面只用朝向那側的眼睛 */
       if (e) { const xr = e[2] / fw, xl = !act && k === 2 ? xr : e[1] / fw; this.u.uFc.value.set(e[0] / fh, xl, xr, e[3] / fw); this.u.uEh.value = (e[4] || e[3]) / fh; this.u.uBlink.value = (this.t + (this.bk || (this.bk = 1 + Math.random() * 3))) % 4.3 < .14 || this.blinkTest ? 1 : 0; } else this.u.uFc.value.w = 0; }
     this.mesh.position.y = bob; this.mesh.rotation.z = sway; this.u.uStep.value = step;
-    if (this.accP && this.accP.children.length) { this.accP.scale.x = flip && !act ? -1 : 1; for (const sp of this.accP.children) { const sl = sp.userData.slot; sp.visible = !(k === 4 && !act && (sl === 'hs' || sl === 'm' || sl === 'w' || (sl === 'c' && sp.scale.x < .9))); sp.material.color.copy(SPR_LIGHT.value); } }
+    if (this.accP && this.accP.children.length) { this.accP.scale.x = flip && !act ? -1 : 1; for (const sp of this.accP.children) { const sl = sp.userData.slot; sp.visible = !(k === 4 && !act && (sl === 'hs' || sl === 'm' || sl === 'w' || (sl === 'c' && sp.scale.x < .9))); sp.material.color.copy(SPR_LIGHT.value); if (sl === 'hat' || sl === 'hs' || sl === 'm') sp.position.y = sp.userData.y + this._eyeY(idx) - EYE0; } }
   }
 }
 // 名牌、說話泡泡、表情符號、人力車：直接沿用 3D 人物的做法

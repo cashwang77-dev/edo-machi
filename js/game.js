@@ -5,25 +5,25 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611241712';
-import { RIDE_Y } from './chara.js?v=202611241712';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611241712';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611241712';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611241712';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611241712';
-import { Net } from './net.js?v=202611241712';
-import { cleanText } from './filter.js?v=202611241712';
-import { SND } from './audio.js?v=202611241712';
-import * as TX from './tex.js?v=202611241712';
-import * as P from './prog.js?v=202611241712';
-import * as F from './fishing.js?v=202611241712';
-import * as HM from './home.js?v=202611241712';
-import * as HN from './hanamachi.js?v=202611241712';
-import * as JB from './jobs.js?v=202611241712';
-import * as FM from './farm.js?v=202611241712';
-import * as ON from './onsen.js?v=202611241712';
-import * as SO from './social.js?v=202611241712';
-import { updBoats } from './kashi.js?v=202611241712';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611250924';
+import { RIDE_Y } from './chara.js?v=202611250924';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611250924';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611250924';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611250924';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611250924';
+import { Net } from './net.js?v=202611250924';
+import { cleanText } from './filter.js?v=202611250924';
+import { SND } from './audio.js?v=202611250924';
+import * as TX from './tex.js?v=202611250924';
+import * as P from './prog.js?v=202611250924';
+import * as F from './fishing.js?v=202611250924';
+import * as HM from './home.js?v=202611250924';
+import * as HN from './hanamachi.js?v=202611250924';
+import * as JB from './jobs.js?v=202611250924';
+import * as FM from './farm.js?v=202611250924';
+import * as ON from './onsen.js?v=202611250924';
+import * as SO from './social.js?v=202611250924';
+import { updBoats } from './kashi.js?v=202611250924';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -1560,6 +1560,12 @@ function update(dt) {
     if (!typing()) { if (keys.KeyW || keys.ArrowUp) iz += 1; if (keys.KeyS || keys.ArrowDown) iz -= 1; if (keys.KeyA || keys.ArrowLeft) ix -= 1; if (keys.KeyD || keys.ArrowRight) ix += 1; }
     if (joy.mag > .12) { ix += joy.x; iz -= joy.y; }
     if (G.follow && (Math.abs(ix) + Math.abs(iz) > .1)) G.follow = null;
+    if (G.goto && (Math.abs(ix) + Math.abs(iz) > .1 || G.mode !== 'walk')) G.goto = null;
+    if (G.goto) { const q = G.goto; let t = q.pts[q.i], dx = t.x - G.pos.x, dz = t.z - G.pos.z, d = Math.hypot(dx, dz);
+      while (d < .5 && q.i < q.pts.length - 1) { t = q.pts[++q.i]; dx = t.x - G.pos.x; dz = t.z - G.pos.z; d = Math.hypot(dx, dz); }
+      if (q.i >= q.pts.length - 1 && d < .9) { G.goto = null; toast(`到了「${q.name}」`); }
+      else { const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw); iz = (dx * fx + dz * fz) / d; ix = (dz * fx - dx * fz) / d;
+        if ((q.chk += dt) > 2.5) { if (Math.hypot(G.pos.x - q.px, G.pos.z - q.pz) < .6) { G.goto = null; toast('前面過不去，自己走一下吧'); } q.chk = 0; q.px = G.pos.x; q.pz = G.pos.z; } } }
     if (G.follow && G.mode === 'walk') { const R = G.remotes.get(G.follow); if (!R) G.follow = null; else { const dx = R.ch.root.position.x - G.pos.x, dz = R.ch.root.position.z - G.pos.z, d = Math.hypot(dx, dz); if (d > 2.2) { const a = Math.atan2(dx, dz) - Math.atan2(-Math.sin(cam.yaw), -Math.cos(cam.yaw)); iz = Math.cos(a) * Math.min(1, d / 4); ix = -Math.sin(a) * Math.min(1, d / 4) * -1; } } }
     const len = Math.min(1, Math.hypot(ix, iz));
     if ((G.mode === 'seat' || G.mode === 'bath') && len > .5 && !G.busy) standUp();
@@ -1713,13 +1719,32 @@ function openMap(hi) {
   el.innerHTML = `<button class="close" data-mc>✕</button><h3>🗺 江戶町 地圖 <small style="font-size:13px;color:var(--sub)">你現在在：${here}</small></h3>
     <canvas id="mapAll" width="1080" height="540"></canvas>
     <h4>🏮 本町通り 店舖位置 <small style="font-weight:400;color:var(--sub)">上＝北側、下＝南側；紅點是你，紅底是玩家開的店</small></h4>
-    <canvas id="mapSt" width="1600" height="300"></canvas>
+    <canvas id="mapSt" width="1600" height="300"></canvas><div id="mapGo"></div>
     <h4>📜 店舖一覽（由西到東，最後是神社參道的緣日屋台；點一下在上圖標出位置）</h4>
     <div class="shl">${list.map(s => `<button data-sh="${s.id}" class="${s.id === hi ? 'on' : ''}"><i style="background:${s.noren || '#5a4636'}"></i><span><b>${s.name}</b>${G.owners[s.id] ? ' 👤' : ''}<small>${s.kind}・${!s.side ? '神社參道' : s.side < 0 ? '北側' : '南側'}</small></span></button>`).join('')}</div>
+    <h4>🔨 新開地 建材店（蓋房子的材料在這買）</h4>
+    <div class="shl">${W.spots.filter(s => s.type === 'mat').map(s => `<button data-mat="${s.k}"><i style="background:#8a5a2b"></i><span><b>${s.label.replace(/^🔨 /, '')}</b><small>新開地・北側</small></span></button>`).join('')}</div>
     <h4>🧭 其他地區</h4>${Object.entries(areas).map(([a, ls]) => `<div class="area"><b>${a}</b>${[...ls].join('　')}</div>`).join('')}`;
   show('#bigmap'); drawMini($('#mapAll')); drawStreet($('#mapSt'), hi);
   el.querySelector('[data-mc]').onclick = () => show('#bigmap', false);
-  el.querySelectorAll('[data-sh]').forEach(b => b.onclick = () => { el.querySelectorAll('[data-sh]').forEach(x => x.classList.toggle('on', x === b)); drawStreet($('#mapSt'), b.dataset.sh); $('#mapSt').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+  const pick = b => { el.querySelectorAll('[data-sh],[data-mat]').forEach(x => x.classList.toggle('on', x === b)); const id = b.dataset.sh, t = goTarget(id || 'mat:' + b.dataset.mat);
+    drawStreet($('#mapSt'), id); const go = $('#mapGo'); go.innerHTML = t ? `<button class="big">🚶 走到「${t.name}」</button> <small style="color:var(--sub)">（自己移動就會停下）</small>` : '';
+    if (t) go.firstChild.onclick = () => startGoto(t); (id ? $('#mapSt') : go).scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+  el.querySelectorAll('[data-sh],[data-mat]').forEach(b => b.onclick = () => pick(b));
+  $('#mapSt').onclick = e => { const c = $('#mapSt'), r = c.getBoundingClientRect(), x = -102 + (e.clientX - r.left) / r.width * 210, top = (e.clientY - r.top) / r.height < .5;
+    const s = SHOPS.find(s => s.side && (s.side < 0) === top && Math.abs(s.x - x) < s.w / 2); if (s) pick(el.querySelector(`[data-sh="${s.id}"]`)); };
+  if (hi) { const b = el.querySelector(`[data-sh="${hi}"]`); if (b) pick(b); }
+}
+// 自動走路：目的地 → 沿格子最短路走（G.goto），到了／自己移動／卡住就停
+function goTarget(id) {
+  if (id.startsWith('mat:')) { const s = W.spots.find(s => s.type === 'mat' && s.k === id.slice(4)); return s && { x: s.x, z: s.z, name: s.label.replace(/^🔨 /, '') }; }
+  const s = W.shops.find(s => s.def.id === id); return s && { x: s.front.x, z: s.front.z, name: s.def.name };
+}
+function startGoto(t) {
+  if (G.mode !== 'walk') return toast('先起身再走吧');
+  if (!GRID) buildGrid(); const to = snapWalk(t.x, t.z); if (!to) return toast('那裡走不過去'); const r = routeTo({ x: G.pos.x, z: G.pos.z }, to);
+  G.follow = null; G.goto = { pts: r.pts, i: 1, name: t.name, chk: 0, px: G.pos.x, pz: G.pos.z };
+  show('#bigmap', false); toast(`往「${t.name}」走去（自己移動就會停下）`);
 }
 
 // ---------- UI 綁定 ----------
@@ -1841,7 +1866,7 @@ async function runTest() {
       const z0 = P.bag('furn').zataku || 0; openShop(dg); $('#bCust').click(); order(dg, dg.def.menu.find(m => m.id === 'zataku')); ok(await until(() => (P.bag('furn').zataku || 0) > z0), '道具屋買座卓'); standUp(); closePanels();
       HM.openDeco(); const s4 = $('select[data-slot="i4"]'); ok(!!s4 && ![...s4.options].some(o => o.value === 'kakejiku'), '前排不能放掛軸');
       if (s4) { s4.value = 'zataku'; s4.dispatchEvent(new Event('change')); } ok(HM.homeState().deco.i4 === 'zataku', '前排擺座卓'); closePanels(); }
-    openMap('doguya'); ok(document.querySelectorAll('#bigmap .shl button').length === SHOPS.length && !!$('#bigmap .shl button.on') && !$('#bigmap').classList.contains('hide'), '大地圖：店舖一覽'); show('#bigmap', false);
+    openMap('doguya'); ok(document.querySelectorAll('#bigmap .shl [data-sh]').length === SHOPS.length && !!$('#bigmap .shl button.on') && !$('#bigmap').classList.contains('hide'), '大地圖：店舖一覽'); show('#bigmap', false);
     G.pos.set(28, 0, -59.4); ok(await until(() => near && near.type === 'mat' && near.spot.k === 'zai'), '材木屋'); act(); ok(!!$('#hJob') && !!$('[data-b="hashira"]'), '材木屋面板與大工打工'); { const m0 = G.money; $('[data-b="hashira"]').click(); ok(G.money === m0 - HM.MAT.find(m => m[0] === 'hashira')[3] && (P.bag('mat').hashira || 0) >= 1, '買柱子'); } closePanels();
     // 口入屋打工
     G.pos.set(98, 0, 4.4); ok(await until(() => near && near.type === 'kuchi'), '口入屋告示牌'); act(); ok(!!$('#jb1'), '口入屋面板');
@@ -1935,6 +1960,7 @@ async function runTest() {
     G.pos.set(30, 0, 3); const n = NPCS[0]; n.ch.root.position.set(31, 0, 3); n.st = 'idle'; n.goal = null; n.wait = 20;
     for (const m of NPCS) if (m !== n && m.ch.root.position.distanceTo(n.ch.root.position) < 3) m.ch.root.position.x += 6; // 旁邊路人移開，避免對到別人
     ok(await until(() => near && near.type === 'npc'), 'NPC 互動提示'); const tn = near.npc; act(); ok(!!tn.ch.bub, 'NPC 回話');
+    for (const [id, ty] of [['doguya', 'shop'], ['mat:zai', 'mat']]) { G.pos.set(30, 0, 3); startGoto(goTarget(id)); const g0 = G.goto; let k = 0; for (; k < 4000 && G.goto; k++) update(1 / 30); findNear(); ok(!G.goto && near && near.type === ty, '自動走到 ' + id + (near && near.type === ty ? '' : ` [${g0 ? g0.i + '/' + g0.pts.length : 'nogo'} k${k} @${G.pos.x.toFixed(1)},${G.pos.z.toFixed(1)} near=${near && near.type}]`)); }
     G.me.bub = null; onChat(G.myId, '你好'); ok(!!G.me.bub, '聊天泡泡');
     { const kg = W.shops.find(s => s.def.id === 'kingyosukui'); openShop(kg); ok(!!$('#bPlay'), '金魚攤可以玩'); closePanels(); }
     await kashiTest();
