@@ -6,6 +6,12 @@ const PI = Math.PI, TAU = PI * 2, rnd = (a, b) => a + Math.random() * (b - a), e
 export const FOREST = { x0: -178, x1: -64, z0: -156, z1: -84 };
 const CAMP = { x: -121, z: -92 }, P_IN = { x: -137, z: -19.5 }, P_OUT = { x: -121, z: -87.4 };
 const POND = { x: -84, z: -140, r: 8 }, ARENA = { x: -152, z: -140 };
+/* 第二章：鬼ヶ洞（森林東北角的紅色傳送陣，Lv12 以上） */
+export const CAVE = { x0: -152, x1: -90, z0: -248, z1: -196 };
+const C_IN = { x: -100, z: -150 }, C_OUT = { x: -121, z: -198.5 }, C_ARR = { x: -121, z: -201.5 }, C_ARENA = { x: -121, z: -236 }, C_LV = 12, BOARD = { x: -113.5, z: -88.5 };
+const PILLARS = [[-138, -210], [-104, -212], [-142, -226], [-100, -228], [-130, -222], [-112, -219]];
+export function walkCave(x, z) { return x >= CAVE.x0 && x <= CAVE.x1 && z >= CAVE.z0 && z <= CAVE.z1; }
+const wk = (x, z) => walkForest(x, z) || walkCave(x, z);
 export function walkForest(x, z) {
   if (!(x >= FOREST.x0 && x <= FOREST.x1 && z >= FOREST.z0 && z <= FOREST.z1)) return false;
   return Math.hypot(x - POND.x, z - POND.z) > POND.r;
@@ -17,20 +23,28 @@ const MOB = {
   chochin: { n: '提灯お化け', lv: 6, hp: 100, atk: 13, def: 3, xp: 20, mon: [6, 12], spd: 1.5, agg: 1, r: .55, mat: 'rousoku', mr: .45, cr: .012 },
   tanuki: { n: '化け狸', lv: 9, hp: 160, atk: 17, def: 5, xp: 32, mon: [9, 16], spd: 2.4, agg: 0, r: .6, mat: 'konoha', mr: .45, cr: .01 },
   kappa: { n: '河童', lv: 13, hp: 250, atk: 25, def: 8, xp: 55, mon: [14, 24], spd: 2.2, agg: 1, r: .6, mat: 'sara', mr: .4, cr: .008 },
-  tengu: { n: '大天狗', lv: 20, hp: 2600, atk: 34, def: 12, xp: 650, mon: [300, 300], spd: 2.6, agg: 1, r: 1.3, mat: 'hane', mr: 1, cr: .3, boss: 1 },
+  tengu: { n: '大天狗', lv: 20, hp: 2600, atk: 34, def: 12, xp: 650, mon: [300, 300], spd: 2.6, agg: 1, r: 1.3, mat: 'hane', mr: 1, cr: .3, boss: 1, hb: 2.7, say: '大天狗：「人類，竟敢踏入吾之山！」', sum: ['onibi', '大天狗：「出來吧，鬼火們！」'] },
+  hitotsume: { n: '一つ目小僧', lv: 15, hp: 330, atk: 30, def: 10, xp: 72, mon: [18, 30], spd: 2.5, agg: 0, r: .5, mat: 'medama', mr: .4, cr: .008, hb: 1.6 },
+  rokuro: { n: 'ろくろ首', lv: 18, hp: 420, atk: 36, def: 12, xp: 95, mon: [22, 36], spd: 1.8, agg: 1, r: .55, mat: 'kami', mr: .4, cr: .007, hb: 2.7 },
+  akaoni: { n: '赤鬼', lv: 22, hp: 560, atk: 44, def: 16, xp: 130, mon: [30, 48], spd: 2.0, agg: 1, r: .75, mat: 'kanabo', mr: .38, cr: .006, hb: 2.3 },
+  gaikotsu: { n: '骸骨武者', lv: 26, hp: 720, atk: 52, def: 22, xp: 170, mon: [38, 60], spd: 2.2, agg: 1, r: .6, mat: 'hone', mr: .35, cr: .005, hb: 2.1 },
+  shuten: { n: '酒呑童子', lv: 32, hp: 5200, atk: 58, def: 24, xp: 1800, mon: [900, 900], spd: 2.4, agg: 1, r: 1.4, mat: 'sakazuki', mr: 1, cr: .25, boss: 1, hb: 2.9, sr: 4.2, say: '酒呑童子：「好酒好肉都不夠……你就當下酒菜吧！」', sum: ['hitotsume', '酒呑童子：「小的們，給我上！」'] },
 };
-const MAT = { hinoko: ['🔥', '鬼火の欠片', 6], kasabone: ['🦴', '傘の骨', 10], rousoku: ['🕯️', '妖しい蠟燭', 15], konoha: ['🍃', '化け葉', 22], sara: ['🍽️', '河童の皿', 35], hane: ['🪶', '天狗の羽', 220] };
+const MAT = { hinoko: ['🔥', '鬼火の欠片', 6], kasabone: ['🦴', '傘の骨', 10], rousoku: ['🕯️', '妖しい蠟燭', 15], konoha: ['🍃', '化け葉', 22], sara: ['🍽️', '河童の皿', 35], hane: ['🪶', '天狗の羽', 220], medama: ['👁️', '一つ目の涙', 48], kami: ['🧣', 'ろくろ首の髪紐', 62], kanabo: ['🪨', '鬼の金棒片', 85], hone: ['💀', '武者の古骨', 110], sakazuki: ['🍶', '酒呑の大盃', 650] };
 // 妖怪札（卡片）：裝在武器插槽上才有效
-const CARD = { onibi: ['鬼火札', '攻擊 +5', { atk: 5 }], kasa: ['唐傘札', '防禦 +4', { def: 4 }], chochin: ['提灯札', '暴擊 +10%', { crit: .1 }], tanuki: ['化け狸札', '掉寶率 +40%', { drop: .4 }], kappa: ['河童札', 'HP 上限 +60', { hp: 60 }], tengu: ['大天狗札', '攻擊 +20%・暴擊 +10%', { atkP: .2, crit: .1 }] };
+const CARD = { onibi: ['鬼火札', '攻擊 +5', { atk: 5 }], kasa: ['唐傘札', '防禦 +4', { def: 4 }], chochin: ['提灯札', '暴擊 +10%', { crit: .1 }], tanuki: ['化け狸札', '掉寶率 +40%', { drop: .4 }], kappa: ['河童札', 'HP 上限 +60', { hp: 60 }], tengu: ['大天狗札', '攻擊 +20%・暴擊 +10%', { atkP: .2, crit: .1 }], hitotsume: ['一つ目札', '暴擊 +15%', { crit: .15 }], rokuro: ['ろくろ首札', 'HP 上限 +120', { hp: 120 }], akaoni: ['赤鬼札', '攻擊 +18', { atk: 18 }], gaikotsu: ['骸骨武者札', '防禦 +12', { def: 12 }], shuten: ['酒呑童子札', '攻擊 +30%・HP +150', { atkP: .3, hp: 150 }] };
 // 武器：名, 攻擊, 插槽, 價格, 攻擊間隔(秒), 射程, 刀光顏色
-const WEAP = { boku: ['木刀', 6, 0, 0, .85, 1.6, '#fff4d8'], yari: ['竹槍', 11, 0, 180, .95, 2.5, '#d8ffd0'], uchi: ['打刀', 20, 1, 700, .78, 1.8, '#d8ecff'], ono: ['鉞', 31, 1, 1600, 1.1, 1.8, '#ffd0a0'], masa: ['名刀・正宗', 44, 2, 4200, .72, 1.9, '#bfe4ff'] };
+const WEAP = { boku: ['木刀', 6, 0, 0, .85, 1.6, '#fff4d8'], yari: ['竹槍', 11, 0, 180, .95, 2.5, '#d8ffd0'], uchi: ['打刀', 20, 1, 700, .78, 1.8, '#d8ecff'], ono: ['鉞', 31, 1, 1600, 1.1, 1.8, '#ffd0a0'], masa: ['名刀・正宗', 44, 2, 4200, .72, 1.9, '#bfe4ff'], mura: ['妖刀・村正', 64, 3, 12000, .66, 2.0, '#ff7a8a'] };
 // 出生點：[種類, x, z, 數量, 範圍]
 const SPAWN = [['onibi', -110, -100, 4, 9], ['kasa', -140, -102, 3, 9], ['onibi', -150, -96, 2, 6], ['chochin', -96, -120, 3, 8], ['tanuki', -132, -122, 3, 9], ['kasa', -76, -104, 2, 6],
   ['kappa', -84, -140, 4, 13], ['tanuki', -112, -146, 2, 7], ['chochin', -165, -120, 2, 7]];
 const BOSS_CYCLE = 600, BOSS_WIN = 360; // 每 10 分鐘的前 6 分鐘出現
+const CSPAWN = [['hitotsume', -121, -208, 4, 8], ['hitotsume', -140, -204, 2, 5], ['rokuro', -104, -204, 3, 5], ['rokuro', -146, -216, 2, 4], ['akaoni', -134, -234, 3, 6], ['akaoni', -98, -220, 2, 4], ['gaikotsu', -98, -240, 3, 5], ['gaikotsu', -146, -242, 2, 4]];
+const BOSS2_CYCLE = 900, BOSS2_WIN = 480; /* 酒呑童子：每 15 分鐘的前 8 分鐘 */
+const BTY_POOL = [['onibi', 'kasa', 'tanuki'], ['chochin', 'kappa', 'tanuki'], ['hitotsume', 'rokuro', 'akaoni', 'gaikotsu']], BTY_N = [8, 6, 5];
 
 let A, S, root, mobs = [], fx, sparks, drops = [], slashes = [], stomps = [], tgtRing, lay, hudEl, tgtEl, barEl;
-let hemi, inF = false, tgt = null, atkCd = 0, lunge = 9, warpCd = 0, combatT = 9, dead = 0, shake = 0, skCd = [0, 0], bossDay = -1, bossM = null, portalIn, portalOut, ffly;
+let croot, inC = false, bossC = null, bossDay2 = -1, portalC, portalCO, crys, hemi, inF = false, tgt = null, atkCd = 0, lunge = 9, warpCd = 0, combatT = 9, dead = 0, shake = 0, skCd = [0, 0], bossDay = -1, bossM = null, portalIn, portalOut, ffly;
 const st = () => S;
 function save() { A.store.set('adv', S); }
 const lv = () => (A.P.prog() ? A.P.prog().lv : 1);
@@ -80,7 +94,7 @@ function buildForest(scene) {
   // 池塘
   const pond = new THREE.Mesh(new THREE.CircleGeometry(POND.r, 40), new THREE.MeshStandardMaterial({ color: '#2a5058', roughness: .1, metalness: .2, transparent: true, opacity: .9 })); pond.rotation.x = -PI / 2; pond.position.set(POND.x, .05, POND.z); root.add(pond);
   // 杉樹（instanced）：邊界一圈密林＋場內散落
-  const trees = []; const ok = (x, z) => Math.hypot(x - CAMP.x, z - CAMP.z) > 9 && Math.hypot(x - POND.x, z - POND.z) > POND.r + 2.5 && Math.hypot(x - ARENA.x, z - ARENA.z) > 12 && Math.abs(x + 121) > 3 && SPAWN.every(q => Math.hypot(x - q[1], z - q[2]) > q[4] + 2);
+  const trees = []; const ok = (x, z) => Math.hypot(x - CAMP.x, z - CAMP.z) > 9 && Math.hypot(x - POND.x, z - POND.z) > POND.r + 2.5 && Math.hypot(x - ARENA.x, z - ARENA.z) > 12 && Math.abs(x + 121) > 3 && Math.hypot(x - C_IN.x, z - C_IN.z) > 5 && Math.hypot(x - BOARD.x, z - BOARD.z) > 4 && SPAWN.every(q => Math.hypot(x - q[1], z - q[2]) > q[4] + 2);
   for (let i = 0; i < 230; i++) { const side = i % 4, t = Math.random(); let x, z;
     if (side === 0) { x = FOREST.x0 + t * (FOREST.x1 - FOREST.x0); z = FOREST.z0 - 1 - Math.random() * 12; } else if (side === 1) { x = FOREST.x0 + t * (FOREST.x1 - FOREST.x0); z = FOREST.z1 + 1 + Math.random() * 10; if (Math.abs(x + 121) < 7) continue; }
     else if (side === 2) { z = FOREST.z0 + t * (FOREST.z1 - FOREST.z0); x = FOREST.x0 - 1 - Math.random() * 12; } else { z = FOREST.z0 + t * (FOREST.z1 - FOREST.z0); x = FOREST.x1 + 1 + Math.random() * 10; }
@@ -125,16 +139,60 @@ function buildForest(scene) {
   A.W.spots.push({ type: 'adv', k: 'card', x: -127, z: -88.5, label: '🃏 妖怪札（插卡・冒險紀錄）' });
   A.W.spots.push({ type: 'adv', k: 'out', x: P_OUT.x, z: P_OUT.z, label: '🌀 傳送陣：回神社' });
   A.W.spots.push({ type: 'adv', k: 'in', x: P_IN.x, z: P_IN.z, label: '🌀 傳送陣：妖怪の森' });
+  /* 討伐依頼板 */
+  const bd = new THREE.Group(); bd.position.set(BOARD.x, 0, BOARD.z); bd.rotation.y = -PI / 2;
+  for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(.14, 2.2, .14), wood); p.position.set(s * .8, 1.1, 0); bd.add(p); }
+  const bc = document.createElement('canvas'); bc.width = 256; bc.height = 160; const bg2 = bc.getContext('2d'); bg2.fillStyle = '#c8a87a'; bg2.fillRect(0, 0, 256, 160); bg2.fillStyle = '#3a2414'; bg2.font = 'bold 54px serif'; bg2.textAlign = 'center'; bg2.fillText('討伐依頼', 128, 64);
+  for (let i = 0; i < 3; i++) { bg2.fillStyle = '#f4ead0'; bg2.fillRect(18 + i * 80, 84, 64, 64); bg2.fillStyle = '#b03020'; bg2.beginPath(); bg2.arc(50 + i * 80, 104, 8, 0, TAU); bg2.fill(); }
+  const bt = new THREE.CanvasTexture(bc); bt.colorSpace = THREE.SRGBColorSpace; const pl = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.2, .08), [wood, wood, wood, wood, new THREE.MeshStandardMaterial({ map: bt, roughness: 1 }), wood]); pl.position.y = 1.55; bd.add(pl);
+  const rf2 = new THREE.Mesh(new THREE.BoxGeometry(2.2, .1, .5), red); rf2.position.y = 2.25; bd.add(rf2); root.add(bd); A.W.colliders.push({ x: BOARD.x, z: BOARD.z, r: .5 });
+  A.W.spots.push({ type: 'adv', k: 'bty', x: BOARD.x - 1.2, z: BOARD.z, label: '📜 討伐依頼（每日懸賞）' });
+  A.W.spots.push({ type: 'adv', k: 'cin', x: C_IN.x, z: C_IN.z, label: `🌀 紅色傳送陣：鬼ヶ洞（Lv${C_LV} 以上）` });
+  A.W.spots.push({ type: 'adv', k: 'cout', x: C_OUT.x, z: C_OUT.z, label: '🌀 傳送陣：回妖怪の森' });
+}
+/* ---------- 鬼ヶ洞（洞窟場景） ---------- */
+function buildCave(scene) {
+  croot = new THREE.Group(); croot.visible = false; scene.add(croot);
+  const W0 = CAVE.x1 - CAVE.x0 + 16, D0 = CAVE.z1 - CAVE.z0 + 16, cx = (CAVE.x0 + CAVE.x1) / 2, cz = (CAVE.z0 + CAVE.z1) / 2;
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.fillStyle = '#2a2630'; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 2200; i++) { const v = Math.random(); g.fillStyle = v < .45 ? 'rgba(60,54,66,.55)' : v < .8 ? 'rgba(22,20,26,.6)' : v < .93 ? 'rgba(80,60,50,.4)' : 'rgba(120,60,140,.25)'; const r = 1 + Math.random() * 5; g.beginPath(); g.ellipse(Math.random() * 256, Math.random() * 256, r, r * .7, Math.random() * 3, 0, TAU); g.fill(); }
+  const gt = new THREE.CanvasTexture(c); gt.wrapS = gt.wrapT = THREE.RepeatWrapping; gt.repeat.set(W0 / 9, D0 / 9); gt.colorSpace = THREE.SRGBColorSpace;
+  const gnd = new THREE.Mesh(new THREE.PlaneGeometry(W0, D0), new THREE.MeshStandardMaterial({ map: gt, roughness: 1 })); gnd.rotation.x = -PI / 2; gnd.position.set(cx, .03, cz); gnd.receiveShadow = true; croot.add(gnd);
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W0 + 30, D0 + 30), new THREE.MeshBasicMaterial({ color: '#0b0910' })); ceil.rotation.x = PI / 2; ceil.position.set(cx, 11, cz); croot.add(ceil);
+  /* 岩壁（instanced）：外圈＋柱子 */
+  const rocks = [];
+  for (let x = CAVE.x0 - 2; x <= CAVE.x1 + 2; x += 3.2) { rocks.push([x, CAVE.z0 - 2.6, 1]); rocks.push([x, CAVE.z1 + 2.6, 1]); }
+  for (let z = CAVE.z0; z <= CAVE.z1; z += 3.2) { rocks.push([CAVE.x0 - 2.6, z, 1]); rocks.push([CAVE.x1 + 2.6, z, 1]); }
+  for (const [x, z] of PILLARS) { rocks.push([x, z, .8]); A.W.colliders.push({ x, z, r: 1.9 }); }
+  const rk = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(2.4, 0), new THREE.MeshStandardMaterial({ color: '#3a3440', roughness: 1, flatShading: true }), rocks.length);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+  rocks.forEach((r, i) => { e.set(rnd(-.3, .3), Math.random() * TAU, rnd(-.3, .3)); q.setFromEuler(e); const s = r[2] * rnd(.9, 1.25); m4.compose(new THREE.Vector3(r[0], 4.5, r[1]), q, new THREE.Vector3(s, s * 2.4, s)); rk.setMatrixAt(i, m4); });
+  rk.castShadow = true; croot.add(rk);
+  /* 石筍 */
+  const sg = new THREE.ConeGeometry(.5, 2.4, 6); sg.translate(0, 1.2, 0); const stal = []; for (let i = 0; i < 300 && stal.length < 26; i++) { const x = rnd(CAVE.x0 + 3, CAVE.x1 - 3), z = rnd(CAVE.z0 + 3, CAVE.z1 - 3);
+    if (Math.abs(x - C_ARR.x) < 5 || Math.hypot(x - C_ARENA.x, z - C_ARENA.z) < 12 || PILLARS.some(p => Math.hypot(p[0] - x, p[1] - z) < 4) || CSPAWN.some(o => Math.hypot(x - o[1], z - o[2]) < o[4] + 1) || stal.some(t => Math.hypot(t[0] - x, t[1] - z) < 4)) continue; stal.push([x, z]); }
+  const sm = new THREE.InstancedMesh(sg, new THREE.MeshStandardMaterial({ color: '#4a4250', roughness: 1, flatShading: true }), Math.max(1, stal.length));
+  stal.forEach((t, i) => { const s = rnd(.7, 1.4); m4.compose(new THREE.Vector3(t[0], 0, t[1]), q.identity(), new THREE.Vector3(s, s, s)); sm.setMatrixAt(i, m4); A.W.colliders.push({ x: t[0], z: t[1], r: .45 * s }); }); sm.count = stal.length; sm.castShadow = true; croot.add(sm);
+  /* 發光水晶（自發光，不加真燈） */
+  const cg = new THREE.OctahedronGeometry(.45, 0); cg.scale(1, 2.2, 1); const cm = new THREE.MeshBasicMaterial({ color: '#b070ff' }); const cps = [];
+  for (let i = 0; i < 40; i++) { const side = i % 4, t = Math.random(); let x, z; if (side === 0) { x = CAVE.x0 + t * (CAVE.x1 - CAVE.x0); z = CAVE.z0 + .6; } else if (side === 1) { x = CAVE.x0 + .6; z = CAVE.z0 + t * (CAVE.z1 - CAVE.z0); } else if (side === 2) { x = CAVE.x1 - .6; z = CAVE.z0 + t * (CAVE.z1 - CAVE.z0); } else { const p = PILLARS[i % PILLARS.length]; x = p[0] + rnd(-2, 2); z = p[1] + 2; } cps.push([x, z]); }
+  crys = new THREE.InstancedMesh(cg, cm, cps.length); cps.forEach((p, i) => { e.set(rnd(-.4, .4), 0, rnd(-.4, .4)); q.setFromEuler(e); const s = rnd(.6, 1.3); m4.compose(new THREE.Vector3(p[0], .4 * s, p[1]), q, new THREE.Vector3(s, s, s)); crys.setMatrixAt(i, m4); }); croot.add(crys);
+  /* 松明（入口）＋酒呑童子的祭壇 */
+  const glow = new THREE.MeshBasicMaterial({ color: '#ffb050', transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false }), wd = new THREE.MeshStandardMaterial({ color: '#5a4030', roughness: 1 });
+  for (const [x, z] of [[-125, -200], [-117, -200], [-125, -214], [-117, -214], [-130, -230], [-112, -230]]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.08, .1, 1.8, 6), wd); p.position.set(x, .9, z); const f = new THREE.Mesh(new THREE.ConeGeometry(.2, .55, 8), glow); f.position.set(x, 2.05, z); croot.add(p, f); A.W.colliders.push({ x, z, r: .25 }); }
+  const sh = new THREE.Mesh(new THREE.RingGeometry(9.5, 10.2, 48), new THREE.MeshBasicMaterial({ color: '#a02020', transparent: true, opacity: .55, depthWrite: false })); sh.rotation.x = -PI / 2; sh.position.set(C_ARENA.x, .05, C_ARENA.z); croot.add(sh);
+  const tor = new THREE.Group(); tor.position.set(C_ARENA.x, 0, CAVE.z0 + 2); const blk = new THREE.MeshStandardMaterial({ color: '#2a1a1a', roughness: .8 });
+  for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.22, .26, 5, 10), blk); p.position.set(s * 2.6, 2.5, 0); tor.add(p); } const kb = new THREE.Mesh(new THREE.BoxGeometry(6.6, .35, .45), blk); kb.position.y = 5.1; tor.add(kb); croot.add(tor);
 }
 // RO 風格的藍色傳送陣（光圈＋往上飄的光點）
-function makePortal(scene, p) {
+function makePortal(scene, p, red) {
   const g = new THREE.Group(); g.position.set(p.x, 0, p.z);
   const mat = c => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: .7, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-  const r1 = new THREE.Mesh(new THREE.RingGeometry(.55, 1.05, 40), mat('#5ab8ff')); r1.rotation.x = -PI / 2; r1.position.y = .06; g.add(r1);
-  const r2 = new THREE.Mesh(new THREE.RingGeometry(.2, .45, 30), mat('#c0f0ff')); r2.rotation.x = -PI / 2; r2.position.y = .07; g.add(r2);
+  const r1 = new THREE.Mesh(new THREE.RingGeometry(.55, 1.05, 40), mat(red ? '#ff4a3a' : '#5ab8ff')); r1.rotation.x = -PI / 2; r1.position.y = .06; g.add(r1);
+  const r2 = new THREE.Mesh(new THREE.RingGeometry(.2, .45, 30), mat(red ? '#ffd0a0' : '#c0f0ff')); r2.rotation.x = -PI / 2; r2.position.y = .07; g.add(r2);
   const n = 40, pos = new Float32Array(n * 3), sd = []; for (let i = 0; i < n; i++) sd.push([Math.random() * TAU, .3 + Math.random() * .7, Math.random() * 2.4]);
   const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const pts = new THREE.Points(pg, new THREE.PointsMaterial({ color: '#9ad8ff', size: .12, transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false })); g.add(pts);
+  const pts = new THREE.Points(pg, new THREE.PointsMaterial({ color: red ? '#ff9a70' : '#9ad8ff', size: .12, transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false })); g.add(pts);
   g.userData = { r1, r2, pts, sd }; scene.add(g); return g;
 }
 function updPortal(g, dt, time) { if (!g || !g.visible) return; const { r1, r2, pts, sd } = g.userData; r1.rotation.z += dt * .8; r2.rotation.z -= dt * 1.6; r1.material.opacity = .55 + Math.sin(time * 3) * .15;
@@ -180,6 +238,37 @@ function build(kind) {
     const wg = geo('wing', () => { const s = new THREE.Shape(); s.moveTo(0, 0); s.lineTo(1.3, .5); s.lineTo(1.1, -.3); s.lineTo(.8, -.7); s.lineTo(0, -.4); return new THREE.ShapeGeometry(s); });
     for (const sx of [-1, 1]) { const w = add(wg, dark, sx * .2, 1.45, -.3); w.scale.x = sx; body.userData['w' + sx] = w; }
     const fan = add(geo('fan', () => new THREE.CircleGeometry(.35, 10, 0, PI)), std('#2e5a2a', { side: THREE.DoubleSide }), .55, 1.2, .2); fan.rotation.z = -.4;
+  } else if (kind === 'hitotsume') {
+    const sk = std('#f0d4b8'), robe = std('#5a6a8a'); const SP = geo('sph', () => new THREE.SphereGeometry(1, 16, 12));
+    add(geo('robe2', () => new THREE.CylinderGeometry(.26, .48, .8, 10)), robe, 0, .4, 0); add(SP, sk, 0, 1.08, 0).scale.set(.4, .42, .38);
+    add(SP, std('#ffffff'), 0, 1.12, .3).scale.set(.17, .2, .1); add(SP, std('#202060'), 0, 1.12, .38).scale.setScalar(.08);
+    const tg = add(geo('tongue', () => new THREE.BoxGeometry(.16, .4, .04)), std('#e05060'), 0, .82, .36); tg.rotation.x = -.5; add(geo('sash', () => new THREE.CylinderGeometry(.33, .33, .1, 10)), std('#c8a040'), 0, .58, 0);
+  } else if (kind === 'rokuro') {
+    const sk = std('#f4e0d0'), kim = std('#8a3a5a'), hair = std('#141014'); const SP = geo('sph', () => new THREE.SphereGeometry(1, 16, 12));
+    add(geo('kim', () => new THREE.CylinderGeometry(.24, .55, 1.3, 12)), kim, 0, .65, 0); add(geo('obi', () => new THREE.CylinderGeometry(.33, .36, .2, 12)), std('#d8b050'), 0, .85, 0);
+    const nk = add(geo('neck', () => { const c = new THREE.CylinderGeometry(.07, .08, 1, 8); c.translate(0, .5, 0); return c; }), sk, 0, 1.28, 0); body.userData.neck = nk;
+    const hd = new THREE.Group(); body.add(hd); body.userData.head = hd; const h = new THREE.Mesh(SP, sk); h.scale.setScalar(.26); hd.add(h); const hr = new THREE.Mesh(SP, hair); hr.scale.set(.29, .26, .28); hr.position.set(0, .07, -.05); hd.add(hr);
+    const bn = new THREE.Mesh(SP, hair); bn.scale.setScalar(.14); bn.position.set(0, .3, -.08); hd.add(bn); eyes(hd, .02, .22, .045, .09); mats.push(sk, kim);
+  } else if (kind === 'akaoni') {
+    const sk = std('#c83a2a'), tg = std('#e8b830'), dk = std('#1a1410'); const SP = geo('sph', () => new THREE.SphereGeometry(1, 16, 12));
+    add(geo('cap', () => new THREE.CapsuleGeometry(.36, .5, 4, 10)), sk, 0, .9, 0).scale.set(1.3, 1.1, 1); add(geo('pants', () => new THREE.CylinderGeometry(.5, .45, .35, 10)), tg, 0, .5, 0);
+    add(SP, sk, 0, 1.7, .05).scale.setScalar(.34); add(SP, dk, 0, 1.88, -.04).scale.set(.32, .18, .3); for (const x of [-.16, .16]) { const h = add(geo('horn', () => new THREE.ConeGeometry(.06, .3, 6)), std('#f0e8c8'), x, 2.02, .04); h.rotation.z = -x * 1.5; }
+    eyes(body, 1.75, .3, .06, .12); add(geo('fang', () => new THREE.ConeGeometry(.03, .1, 4)), std('#ffffff'), .08, 1.56, .3).rotation.x = PI;
+    for (const x of [-.55, .55]) add(SP, sk, x, 1.0, 0).scale.set(.13, .38, .13);
+    const club = add(geo('club', () => new THREE.CylinderGeometry(.13, .06, 1.4, 8)), std('#3a3438', { metalness: .4, flatShading: true }), .66, 1.1, .3); club.rotation.x = .5;
+  } else if (kind === 'gaikotsu') {
+    const bn = std('#e8e2d0'), ar = std('#5a1e22', { flatShading: true }), gd = std('#d8a840', { metalness: .5 }); const SP = geo('sph', () => new THREE.SphereGeometry(1, 16, 12));
+    add(geo('yoroi', () => new THREE.CylinderGeometry(.34, .44, .75, 8)), ar, 0, 1.05, 0); add(geo('kusa', () => new THREE.CylinderGeometry(.44, .52, .4, 8, 1, true)), ar, 0, .55, 0);
+    for (const x of [-.14, .14]) add(geo('bone', () => new THREE.CylinderGeometry(.05, .05, .55, 6)), bn, x, .27, 0);
+    add(SP, bn, 0, 1.68, .02).scale.set(.24, .27, .25); for (const x of [-.08, .08]) add(SP, std('#200000', { emissive: '#ff2010', emissiveIntensity: 1.4 }), x, 1.7, .2).scale.setScalar(.05);
+    add(geo('kabuto', () => new THREE.SphereGeometry(.3, 12, 8, 0, TAU, 0, PI / 2)), ar, 0, 1.78, 0); add(geo('kuwa', () => new THREE.TorusGeometry(.22, .025, 6, 16, PI)), gd, 0, 2.0, .2);
+    const kt = add(geo('katana', () => new THREE.BoxGeometry(.04, .05, 1.2)), std('#c8d0d8', { metalness: .8, roughness: .3 }), .42, 1.0, .45); kt.rotation.x = -.6;
+  } else if (kind === 'shuten') {
+    const sk = std('#e8a890'), robe = std('#6a2050'), hair = std('#2a1418'), gd = std('#d8a840', { metalness: .4 }); const SP = geo('sph', () => new THREE.SphereGeometry(1, 16, 12));
+    add(geo('robe', () => new THREE.CylinderGeometry(.35, .7, 1.4, 10)), robe, 0, .9, 0); add(geo('obi2', () => new THREE.CylinderGeometry(.5, .52, .18, 12)), gd, 0, .95, 0);
+    add(SP, sk, 0, 1.9, 0).scale.setScalar(.32); add(SP, hair, 0, 1.94, -.14).scale.set(.4, .42, .32); for (const x of [-.14, .14]) { const h = add(geo('horn2', () => new THREE.ConeGeometry(.05, .34, 6)), std('#f4ecd0'), x, 2.24, .06); h.rotation.z = -x * 1.2; }
+    eyes(body, 1.96, .27, .05, .12); for (const x of [-.18, .18]) add(SP, std('#ff9080'), x, 1.84, .25).scale.set(.06, .03, .02);
+    add(geo('cup', () => new THREE.CylinderGeometry(.42, .16, .12, 16)), std('#b02018', { roughness: .3 }), .62, 1.35, .3);
   }
   return { g, body, mats };
 }
@@ -191,8 +280,8 @@ function spawnMob(kind, x, z, rg) {
   // 頭上血條
   const bg = new THREE.Sprite(new THREE.SpriteMaterial({ color: '#201010', depthTest: false, transparent: true, opacity: .8 })), fg = new THREE.Sprite(new THREE.SpriteMaterial({ color: d.boss ? '#e8a030' : '#e04040', depthTest: false }));
   bg.center.set(.5, .5); fg.center.set(0, .5); bg.scale.set(1, .09, 1); fg.scale.set(.96, .06, 1); bg.renderOrder = fg.renderOrder = 20;
-  const hb = new THREE.Group(); hb.add(bg, fg); fg.position.x = -.48; hb.position.y = (kind === 'tengu' ? 2.7 : kind === 'kasa' || kind === 'chochin' || kind === 'kappa' ? 1.85 : 1.55); hb.visible = false; m.g.add(hb); m.hb = hb; m.hbF = fg;
-  root.add(m.g); mobs.push(m); return m;
+  const hb = new THREE.Group(); hb.add(bg, fg); fg.position.x = -.48; hb.position.y = d.hb || (kind === 'kasa' || kind === 'chochin' || kind === 'kappa' ? 1.85 : 1.55); hb.visible = false; m.g.add(hb); m.hb = hb; m.hbF = fg;
+  m.cave = walkCave(x, z); (m.cave ? croot : root).add(m.g); mobs.push(m); return m;
 }
 function hurtMob(m, dmg, crit, kb = .5) {
   if (m.st === 'dead') return; m.hp -= dmg; m.fl = 1; m.frz = crit ? .1 : .06; m.agg = true; m.hb.visible = true;
@@ -200,7 +289,7 @@ function hurtMob(m, dmg, crit, kb = .5) {
   num(m.x, (m.d.boss ? 3 : 1.6), m.z, crit ? dmg + '!' : dmg, crit ? 'crit' : ''); burst(m.x, .9 * m.sc, m.z, crit ? '#ffe070' : '#ffffff', crit ? 14 : 8, 3.5);
   SFX.hit(crit); if (crit) shake = Math.max(shake, .25);
   if (m.hp <= 0) killMob(m);
-  else if (m.d.boss && !m.summ && m.hp < m.d.hp / 2) { m.summ = 1; for (let i = 0; i < 3; i++) { const o = spawnMob('onibi', m.x + rnd(-3, 3), m.z + rnd(-3, 3), 4); o.agg = true; o.tmp = 1; } A.toast('大天狗：「出來吧，鬼火們！」', 2500); }
+  else if (m.d.boss && !m.summ && m.hp < m.d.hp / 2) { m.summ = 1; const sm = m.d.sum || ['onibi', '']; for (let i = 0; i < 3; i++) { let ox = m.x + rnd(-3, 3), oz = m.z + rnd(-3, 3); if (!wk(ox, oz)) { ox = m.x; oz = m.z; } const o = spawnMob(sm[0], ox, oz, 4); o.agg = true; o.tmp = 1; } A.toast(sm[1], 2500); }
 }
 function killMob(m) {
   m.st = 'dead'; m.deadT = 0; m.hp = 0; m.hb.visible = false; if (tgt === m) tgt = null; SFX.die(); burst(m.x, .8 * m.sc, m.z, '#a080d0', m.d.boss ? 40 : 16, 2.2, 1.4);
@@ -208,17 +297,17 @@ function killMob(m) {
   m.resp = d.boss ? -1 : rnd(9, 15);
   A.P.addXp(d.xp, d.n); const mon = Math.round(rnd(d.mon[0], d.mon[1])); A.addMoney(mon, d.n);
   S.kills[m.k] = (S.kills[m.k] || 0) + 1; S.tot = (S.tot || 0) + 1; save();
-  A.P.ev('kill', { dex: 'yokai', k: m.k });
+  A.P.ev('kill', { dex: 'yokai', k: m.k }); btyKill(m.k);
   if (Math.random() < d.mr * s.drop) dropItem(m.x, m.z, 'mat', d.mat, MAT[d.mat][0]);
   if (Math.random() < d.cr * s.drop) dropItem(m.x, m.z, 'card', m.k, '🃏');
   if (Math.random() < .08 && !d.boss) dropItem(m.x, m.z, 'pot', 'dango', '🍡');
-  if (d.boss) { bossM = null; S.boss = (S.boss || 0) + 1; save(); A.announce && A.announce(`🏆 MVP！${A.G.name || '旅人'} 討伐了大天狗！`, '妖怪の森'); for (let i = 0; i < 2; i++) dropItem(m.x + rnd(-1, 1), m.z + rnd(-1, 1), 'mat', 'hane', MAT.hane[0]); A.G.me && A.G.me.emoji('🏆'); }
+  if (d.boss) { if (m === bossC) { bossC = null; S.boss2 = (S.boss2 || 0) + 1; } else { bossM = null; S.boss = (S.boss || 0) + 1; } save(); A.announce && A.announce(`🏆 MVP！${A.G.name || '旅人'} 討伐了${d.n}！`, m.cave ? '鬼ヶ洞' : '妖怪の森'); for (let i = 0; i < 2; i++) dropItem(m.x + rnd(-1, 1), m.z + rnd(-1, 1), 'mat', d.mat, MAT[d.mat][0]); A.G.me && A.G.me.emoji('🏆'); }
 }
 function updMob(m, dt, time) {
   const G = A.G, d = m.d;
   if (m.st === 'dead') {
     m.deadT += dt; const k = Math.min(1, m.deadT / .6); m.g.visible = k < 1; m.body.scale.set(1 + k * .4, 1 - k * .9, 1 + k * .4); m.body.position.y = k * .4; m.body.rotation.y += dt * 12;
-    if (m.resp > 0 && m.deadT > m.resp) { const a = Math.random() * TAU, r = Math.random() * m.rg; m.x = m.hx + Math.cos(a) * r; m.z = m.hz + Math.sin(a) * r; if (!walkForest(m.x, m.z)) { m.x = m.hx; m.z = m.hz; }
+    if (m.resp > 0 && m.deadT > m.resp) { const a = Math.random() * TAU, r = Math.random() * m.rg; m.x = m.hx + Math.cos(a) * r; m.z = m.hz + Math.sin(a) * r; if (!wk(m.x, m.z)) { m.x = m.hx; m.z = m.hz; }
       m.hp = d.hp; m.st = 'spawn'; m.deadT = 0; m.agg = false; m.g.visible = true; m.body.scale.setScalar(.01); m.body.position.y = 0; m.body.rotation.y = 0; }
     return;
   }
@@ -227,9 +316,9 @@ function updMob(m, dt, time) {
   if (m.fl > 0) { m.fl = Math.max(0, m.fl - dt * 6); for (const mt of m.mats) if (mt.emissive) { if (!mt.userData.e0) mt.userData.e0 = mt.emissive.clone(); mt.emissive.copy(mt.userData.e0).lerp(_white, m.fl); } }
   if (m.frz > 0) { m.frz -= dt; return; } // 打擊停頓
   // 擊退（指數衰減，平順）
-  if (Math.abs(m.kbx) + Math.abs(m.kbz) > .01) { const nx = m.x + m.kbx * dt, nz = m.z + m.kbz * dt; if (walkForest(nx, nz)) { m.x = nx; m.z = nz; } const f = Math.exp(-dt * 9); m.kbx *= f; m.kbz *= f; }
+  if (Math.abs(m.kbx) + Math.abs(m.kbz) > .01) { const nx = m.x + m.kbx * dt, nz = m.z + m.kbz * dt; if (wk(nx, nz)) { m.x = nx; m.z = nz; } const f = Math.exp(-dt * 9); m.kbx *= f; m.kbz *= f; }
   const px = G.pos.x, pz = G.pos.z, dp = Math.hypot(px - m.x, pz - m.z), alive = inF && !dead && G.mode === 'walk';
-  if (!m.agg && d.agg && alive && dp < (d.boss ? 9 : 5.5) && (m.k !== 'chochin' || A.isNight() || dp < 3.5)) { m.agg = true; m.hb.visible = true; A.G.me && m === bossM && A.toast('大天狗：「人類，竟敢踏入吾之山！」', 2500); }
+  if (!m.agg && d.agg && alive && dp < (d.boss ? 9 : 5.5) && (m.k !== 'chochin' || A.isNight() || dp < 3.5)) { m.agg = true; m.hb.visible = true; A.G.me && d.boss && A.toast(d.say, 2500); }
   if (m.agg && (!alive || Math.hypot(m.x - m.hx, m.z - m.hz) > (d.boss ? 13 : m.rg + 10))) { m.agg = false; m.st = 'home'; m.wind = 0; }
   let mv = 0, sp = d.spd;
   if (m.st === 'home') { m.tx = m.hx; m.tz = m.hz; mv = 1; sp *= 1.4; m.hp = Math.min(d.hp, m.hp + d.hp * dt * .5); if (Math.hypot(m.x - m.hx, m.z - m.hz) < 1) { m.st = 'idle'; m.hp = d.hp; m.hb.visible = false; } }
@@ -241,20 +330,21 @@ function updMob(m, dt, time) {
     else { m.ac = (m.ac || 0) - dt; if (m.ac <= 0) { m.wind = d.boss ? .5 : .45; } }
     if (m.ac > 0 && dp <= reach) m.ac -= dt;
     // 大天狗：跺地（紅圈預警，閃得掉）
-    if (d.boss && alive) { m.sk = (m.sk || 4) - dt; if (m.sk <= 0) { m.sk = rnd(5, 7.5); stomps.push({ x: px, z: pz, t: 0, T: 1.3, r: 3.4, dmg: Math.round(d.atk * 1.8) }); A.G.me && A.G.me.say && 0; } }
+    if (d.boss && alive) { m.sk = (m.sk || 4) - dt; if (m.sk <= 0) { m.sk = rnd(5, 7.5); stomps.push({ x: px, z: pz, t: 0, T: 1.3, r: d.sr || 3.4, dmg: Math.round(d.atk * 1.8) }); A.G.me && A.G.me.say && 0; } }
   } else { // 閒晃
     m.wt -= dt; if (m.wt <= 0) { if (Math.random() < .55) { const a = Math.random() * TAU, r = Math.random() * m.rg; m.tx = m.hx + Math.cos(a) * r; m.tz = m.hz + Math.sin(a) * r; } else { m.tx = m.x; m.tz = m.z; } m.wt = rnd(2.5, 5); }
     if (Math.hypot(m.tx - m.x, m.tz - m.z) > .4) { mv = 1; sp *= .45; }
   }
   if (mv) { const dx = m.tx - m.x, dz = m.tz - m.z, dl = Math.hypot(dx, dz) || 1; const nx = m.x + dx / dl * sp * dt, nz = m.z + dz / dl * sp * dt;
-    if (walkForest(nx, nz)) { m.x = nx; m.z = nz; } else { m.tx = m.x; m.tz = m.z; } m.ry = angLerp(m.ry, Math.atan2(dx, dz), Math.min(1, dt * 8)); }
+    if (wk(nx, nz)) { m.x = nx; m.z = nz; } else { m.tx = m.x; m.tz = m.z; } m.ry = angLerp(m.ry, Math.atan2(dx, dz), Math.min(1, dt * 8)); }
   else if (m.agg) m.ry = angLerp(m.ry, Math.atan2(px - m.x, pz - m.z), Math.min(1, dt * 8));
   // 動畫（全部連續函數）
   m.ph += dt * (mv ? 7 : 2.4); const B = m.body, wd = m.wind > 0 ? 1 - m.wind / .45 : 0; let y = 0, sx = 1, sy = 1, lean = 0;
   if (m.k === 'onibi') { y = .25 + Math.sin(m.ph * .8) * .12; const fl = B.userData.flame; fl.scale.set(1 + Math.sin(time * 13 + m.ph) * .08, 1 + Math.sin(time * 9 + m.ph) * .15, 1); }
   else if (m.k === 'kasa') { const h = Math.abs(Math.sin(m.ph * .7)); y = mv ? h * .45 : h * .06; sy = mv ? (h < .15 ? .82 : 1.05) : 1; sx = 2 - sy; }
   else if (m.k === 'chochin') { y = .35 + Math.sin(m.ph * .6) * .15; lean = Math.sin(m.ph * .5) * .12; const lm = B.userData.lamp; lm.emissiveIntensity = .6 + Math.sin(time * 6 + m.ph) * .15 + (A.isNight() ? .5 : 0); }
-  else if (m.k === 'tanuki' || m.k === 'kappa') { y = mv ? Math.abs(Math.sin(m.ph * .5)) * .1 : 0; lean = mv ? Math.sin(m.ph * .5) * .1 : Math.sin(m.ph * .4) * .03; sy = 1 + Math.sin(m.ph * .8) * .03; sx = 2 - sy; }
+  else if (m.k === 'rokuro') { const L = .35 + (m.agg ? .9 + Math.sin(m.ph * .9) * .35 : Math.sin(m.ph * .5) * .2 + .2); B.userData.neck.scale.y = L; B.userData.head.position.set(Math.sin(m.ph * .7) * .15 * L, 1.32 + L, .05); y = mv ? Math.abs(Math.sin(m.ph * .5)) * .05 : 0; }
+  else if (m.k === 'tanuki' || m.k === 'kappa' || m.k === 'hitotsume' || m.k === 'akaoni' || m.k === 'gaikotsu' || m.k === 'shuten') { y = mv ? Math.abs(Math.sin(m.ph * .5)) * .1 : 0; lean = mv ? Math.sin(m.ph * .5) * .1 : Math.sin(m.ph * .4) * .03; sy = 1 + Math.sin(m.ph * .8) * .03; sx = 2 - sy; }
   else if (m.k === 'tengu') { y = .4 + Math.sin(m.ph * .4) * .15; for (const s of [-1, 1]) B.userData['w' + s].rotation.y = s * (Math.sin(time * (mv ? 9 : 4)) * .4 - .2); }
   if (wd > 0) { sy *= 1 - wd * .2; sx *= 1 + wd * .15; B.rotation.x = -wd * .35; } else B.rotation.x += (0 - B.rotation.x) * Math.min(1, dt * 12);
   if (m.wind <= 0 && m.ac > 1.15) { const k = (m.ac - 1.15) / .25; B.rotation.x = k * .5; } // 出手瞬間往前撲
@@ -301,7 +391,7 @@ function updNums(dt, camera) { for (const o of nums) { if (o.t > o.T) { if (o.el
   const sx = (_v.x * .5 + .5) * innerWidth, sy = (-_v.y * .5 + .5) * innerHeight, sc = k < .12 ? 1.6 - k / .12 * .6 : 1;
   o.el.style.transform = `translate(${sx}px,${sy}px) translate(-50%,-50%) scale(${sc})`; o.el.style.opacity = k > .7 ? (1 - k) / .3 : 1; } }
 function dropItem(x, z, kind, k, emo) {
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: etex(emo), transparent: true, depthWrite: false })); sp.scale.setScalar(kind === 'card' ? .7 : .5); root.add(sp);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: etex(emo), transparent: true, depthWrite: false })); sp.scale.setScalar(kind === 'card' ? .7 : .5); fx.add(sp);
   if (kind === 'card') { sp.material.color.set('#ffe9a0'); burst(x, 1, z, '#ffd040', 24, 3, 1); SFX.card(); }
   const a = Math.random() * TAU, r = rnd(.6, 1.4); drops.push({ sp, kind, k, x, z, tx: x + Math.cos(a) * r, tz: z + Math.sin(a) * r, t: 0 });
 }
@@ -310,7 +400,7 @@ function updDrops(dt, time) { const G = A.G; for (let i = drops.length - 1; i >=
   else if (d.t < 1.1 || dead) { x = d.tx; z = d.tz; y = .3 + Math.abs(Math.sin((d.t - .55) * 7)) * .12 * Math.max(0, 1 - (d.t - .55) * 2); }
   else { // 吸到玩家身上
     const px = G.pos.x, pz = G.pos.z, dx = px - d.tx, dz = pz - d.tz, dl = Math.hypot(dx, dz); const s = Math.min(dl, dt * (4 + (d.t - 1.1) * 14)); d.tx += dx / (dl || 1) * s; d.tz += dz / (dl || 1) * s; x = d.tx; z = d.tz; y = .3 + Math.min(1, (d.t - 1.1) * 3) * .7;
-    if (dl < .35 || dl > 40) { pick(d); root.remove(d.sp); d.sp.material.dispose(); drops.splice(i, 1); continue; } }
+    if (dl < .35 || dl > 40) { pick(d); fx.remove(d.sp); d.sp.material.dispose(); drops.splice(i, 1); continue; } }
   d.sp.position.set(x, y + (d.kind === 'card' ? Math.sin(time * 4) * .05 : 0), z); if (d.kind === 'card') d.sp.material.rotation = Math.sin(time * 3) * .2; } }
 function pick(d) { SFX.pick();
   if (d.kind === 'mat') { A.P.bagAdd('yokai', d.k, 1); A.log && A.log(`獲得 ${MAT[d.k][0]} ${MAT[d.k][1]}`); }
@@ -318,10 +408,10 @@ function pick(d) { SFX.pick();
   else if (d.kind === 'card') { S.cards[d.k] = (S.cards[d.k] || 0) + 1; save(); A.P.ev('card', { dex: 'card', k: d.k }); A.toast(`🃏✨ 獲得稀有的「${CARD[d.k][0]}」（${CARD[d.k][2] ? CARD[d.k][1] : ''}）！到營地巫女那裡插到武器上`, 6000); A.G.me && A.G.me.emoji('✨'); } }
 function updStomps(dt) { for (let i = stomps.length - 1; i >= 0; i--) { const s = stomps[i];
   if (!s.m) { s.m = new THREE.Mesh(new THREE.CircleGeometry(s.r, 36), new THREE.MeshBasicMaterial({ color: '#ff3020', transparent: true, opacity: .25, depthWrite: false })); s.m.rotation.x = -PI / 2; s.m.position.set(s.x, .06, s.z);
-    s.ring = new THREE.Mesh(new THREE.RingGeometry(s.r - .12, s.r, 36), new THREE.MeshBasicMaterial({ color: '#ff5030', transparent: true, opacity: .9, depthWrite: false })); s.ring.rotation.x = -PI / 2; s.ring.position.set(s.x, .07, s.z); root.add(s.m, s.ring); }
+    s.ring = new THREE.Mesh(new THREE.RingGeometry(s.r - .12, s.r, 36), new THREE.MeshBasicMaterial({ color: '#ff5030', transparent: true, opacity: .9, depthWrite: false })); s.ring.rotation.x = -PI / 2; s.ring.position.set(s.x, .07, s.z); fx.add(s.m, s.ring); }
   s.t += dt; const k = Math.min(1, s.t / s.T); s.m.scale.setScalar(Math.max(.01, k)); s.m.material.opacity = .15 + k * .25;
   if (k >= 1 && !s.hit) { s.hit = 1; SFX.stomp(); shake = .45; burst(s.x, .2, s.z, '#c8a070', 30, 4, .8); if (Math.hypot(A.G.pos.x - s.x, A.G.pos.z - s.z) < s.r && inF) hurtMe(s.dmg); }
-  if (s.t > s.T + .3) { root.remove(s.m, s.ring); s.m.geometry.dispose(); s.ring.geometry.dispose(); stomps.splice(i, 1); } } }
+  if (s.t > s.T + .3) { fx.remove(s.m, s.ring); s.m.geometry.dispose(); s.ring.geometry.dispose(); stomps.splice(i, 1); } } }
 
 // ---------- 玩家攻擊 ----------
 function canFight() { return inF && !dead && A.G.mode === 'walk' && !A.G.busy; }
@@ -384,12 +474,24 @@ export function openCards() {
   const pp = panel(`<h2>巫女 お鈴<small>妖怪札・冒險紀錄</small></h2><p class="sub">「打倒妖怪偶爾會掉出封印了妖力的札，插在有插槽的武器上就能借用那份力量。」</p>
     <p>🗡️ ${s.w[0]}：插槽 ${slots ? Array.from({ length: slots }, (_, i) => S.eq[i] ? `<b>[${CARD[S.eq[i]][0]}]</b>` : '[　空　]').join(' ') : '沒有插槽（打刀以上才有）'}</p>
     <div class="mlist">${Object.entries(CARD).map(([k, c]) => `<div class="mrow"><span>${S.cards[k] ? '🃏' : '❔'} ${S.cards[k] ? c[0] : '？？？'} <small>${S.cards[k] ? c[1] : MOB[k].n + ' 偶爾會掉'}</small></span><span>${S.cards[k] ? '×' + S.cards[k] : ''}</span><span></span>${S.cards[k] ? `<button data-c="${k}" ${!slots ? 'disabled' : ''}>${S.eq.includes(k) ? '拔下' : '插上'}</button>` : '<span></span>'}</div>`).join('')}</div>
-    <h4>📜 討伐紀錄</h4><p class="sub">${Object.entries(MOB).map(([k, d]) => `${d.n} ${S.kills[k] || 0}`).join('・')}　｜　大天狗 MVP ${S.boss || 0} 次</p>
+    <h4>📜 討伐紀錄</h4><p class="sub">${Object.entries(MOB).map(([k, d]) => `${d.n} ${S.kills[k] || 0}`).join('・')}　｜　大天狗 MVP ${S.boss || 0} 次・酒呑童子 MVP ${S.boss2 || 0} 次</p>
     <div class="btns"><button id="advHeal">⛩️ 請巫女祈禱（HP・SP 全滿，免費）</button></div>`);
   pp.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { const k = b.dataset.c; const i = S.eq.indexOf(k);
     if (i >= 0) S.eq.splice(i, 1); else { if (S.eq.length >= slots) return A.toast('插槽滿了，先拔下一張'); S.eq.push(k); } save(); hud(); openCards(); });
   pp.querySelector('#advHeal').onclick = () => { S.hp = s.hp; S.spv = s.sp; save(); hud(); burst(A.G.pos.x, 1, A.G.pos.z, '#ffffff', 20, 2); tone(880, 1320, .4, .08); A.toast('身體輕盈起來了！', 1500); };
 }
+
+/* ---------- 討伐依頼（每日懸賞：全員同一組，依日期決定） ---------- */
+const tdy = () => (A.P.today ? A.P.today() : new Date().toISOString().slice(0, 10));
+export function btyList() { const d = tdy(); let h = 7; for (const ch of d) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return BTY_POOL.map((p, i) => { const k = p[(h >>> (i * 4)) % p.length], n = BTY_N[i], m = MOB[k]; return { k, n, mon: Math.round((m.mon[0] + m.mon[1]) / 2 * n * 1.5), xp: Math.round(m.xp * n * .6) }; }); }
+function btyS() { const d = tdy(); if (!S.bty || S.bty.day !== d) S.bty = { day: d, p: [0, 0, 0], got: [0, 0, 0] }; return S.bty; }
+function btyKill(k) { const b = btyS(); btyList().forEach((q, i) => { if (q.k === k && !b.got[i] && b.p[i] < q.n) { b.p[i]++; if (b.p[i] === q.n) A.toast(`📜 討伐依頼「${MOB[k].n} ×${q.n}」完成！回營地的依頼板領賞`, 4000); } }); save(); }
+export function openBounty() { const L = btyList(), b = btyS();
+  const pp = panel(`<h2>📜 討伐依頼<small>每天換一組・全町共通</small></h2><p class="sub">「村裡的人被妖怪鬧得睡不著，誰能幫忙收拾，賞金照付！」</p>
+    <div class="mlist">${L.map((q, i) => `<div class="mrow"><span>${i === 2 ? '🕳️' : '🌲'} ${MOB[q.k].n} ×${q.n} <small>Lv.${MOB[q.k].lv}${i === 2 ? '・鬼ヶ洞' : ''}・${Math.min(b.p[i], q.n)} / ${q.n}</small></span><span>${q.xp} 經驗</span><span>${q.mon} 文</span><button data-b="${i}" ${b.got[i] || b.p[i] < q.n ? 'disabled' : ''}>${b.got[i] ? '已領' : '領賞'}</button></div>`).join('')}</div>
+    <p class="sub">鬼ヶ洞在森林東北角的紅色傳送陣（Lv${C_LV} 以上）。　酒呑童子 MVP ${S.boss2 || 0} 次</p>`);
+  pp.querySelectorAll('[data-b]').forEach(bt => bt.onclick = () => { const i = +bt.dataset.b, q = L[i]; if (b.got[i] || b.p[i] < q.n) return; b.got[i] = 1; A.addMoney(q.mon, '討伐依頼'); A.P.addXp(q.xp, '討伐依頼'); SFX.card(); save(); openBounty(); }); }
 
 // ---------- 進出森林 ----------
 function enter(on) { inF = on; document.body.classList.toggle('forest', on); hudEl.classList.toggle('hide', !on); if (!on) { tgt = null; updTgt(); if (A.G.me && A.G.me.mesh) A.G.me.mesh.position.z = 0; }
@@ -397,6 +499,9 @@ function enter(on) { inF = on; document.body.classList.toggle('forest', on); hud
 export function spot(s) {
   if (s.k === 'weap') return openShop(); if (s.k === 'card') return openCards();
   if (s.k === 'in') return warpTo(CAMP.x, CAMP.z + 2.5, '妖怪の森'); if (s.k === 'out') return warpTo(P_IN.x + 1.8, P_IN.z + 1.5, '神社');
+  if (s.k === 'bty') return openBounty();
+  if (s.k === 'cin') { if (lv() < C_LV) { warpCd = 2.5; return A.toast(`🔒 洞裡的妖氣太重了……要 Lv${C_LV} 以上才能進入鬼ヶ洞（目前 Lv${lv()}）`, 3500); } return warpTo(C_ARR.x, C_ARR.z, '鬼ヶ洞'); }
+  if (s.k === 'cout') return warpTo(C_IN.x - 2, C_IN.z + 2, '妖怪の森');
 }
 function warpTo(x, z, n) { if (warpCd > 0) return; warpCd = 2; SFX.warp(); const f = document.getElementById('advWarp'); if (f) { f.style.transition = 'opacity .18s'; f.style.opacity = '1'; }
   setTimeout(() => { A.warp(x, z); if (f) { f.style.transition = 'opacity .5s'; f.style.opacity = '0'; } A.toast(`🌀 傳送到「${n}」`, 1500); }, 200); }
@@ -408,8 +513,8 @@ export function initAdv(api) {
   A.P.addDexCat('card', '🃏 妖怪札', Object.entries(CARD).map(([k, c]) => ({ k, n: c[0] })));
   A.P.addQuest({ id: 'hunt', ev: 'kill', n: [5, 8], t: n => `到妖怪の森討伐 ${n} 隻妖怪（神社左後方的藍色傳送陣）`, rew: [80, 40] });
   A.P.EVL.push(t => { if (t === 'eat' && S) { const s = stats(); S.hp = Math.min(s.hp, S.hp + s.hp * .3); S.spv = Math.min(s.sp, S.spv + 15); hud(); } });
-  buildForest(A.scene); initFx(A.scene); portalIn = makePortal(A.scene, P_IN); portalOut = makePortal(A.scene, P_OUT);
-  for (const [k, x, z, n, r] of SPAWN) for (let i = 0; i < n; i++) { let px, pz, t = 0; do { const a = Math.random() * TAU, rr = Math.random() * r; px = x + Math.cos(a) * rr; pz = z + Math.sin(a) * rr; } while (!walkForest(px, pz) && ++t < 20); spawnMob(k, px, pz, r); }
+  buildForest(A.scene); buildCave(A.scene); initFx(A.scene); portalIn = makePortal(A.scene, P_IN); portalOut = makePortal(A.scene, P_OUT); portalC = makePortal(root, C_IN, 1); portalCO = makePortal(croot, C_OUT);
+  for (const [k, x, z, n, r] of SPAWN.concat(CSPAWN)) for (let i = 0; i < n; i++) { let px, pz, t = 0; do { const a = Math.random() * TAU, rr = Math.random() * r; px = x + Math.cos(a) * rr; pz = z + Math.sin(a) * rr; } while (!wk(px, pz) && ++t < 20); if (!wk(px, pz)) { px = x; pz = z; } spawnMob(k, px, pz, r); }
   lay = document.createElement('div'); lay.id = 'advLay'; document.body.appendChild(lay);
   const red = document.createElement('div'); red.id = 'advRed'; document.body.appendChild(red); const wp = document.createElement('div'); wp.id = 'advWarp'; document.body.appendChild(wp);
   hudEl = document.getElementById('adv'); barEl = document.getElementById('advBar'); tgtEl = document.getElementById('advTgt');
@@ -417,19 +522,28 @@ export function initAdv(api) {
   addEventListener('keydown', e => { if (!inF || A.typing()) return; if (e.code === 'KeyF') attackNearest(); else if (e.code === 'KeyQ') skill(0); else if (e.code === 'KeyR') skill(1); else if (e.code === 'KeyH') usePot(); });
 }
 export function inForest() { return inF; }
+export function inCave() { return inC; }
 export function updAdv(dt, time, camera) {
-  if (!A) return; const G = A.G; updPortal(portalIn, dt, time); if (inF) updPortal(portalOut, dt, time);
+  if (!A) return; const G = A.G; updPortal(portalIn, dt, time); if (inF) { updPortal(portalOut, dt, time); updPortal(inC ? portalCO : portalC, dt, time); }
   warpCd -= dt;
   // 踩進傳送陣自動傳送（RO 風格）
-  if (G.mode === 'walk' && warpCd <= 0) { if (Math.hypot(G.pos.x - P_IN.x, G.pos.z - P_IN.z) < .7) spot({ k: 'in' }); else if (inF && Math.hypot(G.pos.x - P_OUT.x, G.pos.z - P_OUT.z) < .7) spot({ k: 'out' }); }
-  const now = walkForest(G.pos.x, G.pos.z) || (inF && G.mode !== 'walk' && G.mode !== 'title'); if (now !== inF && G.mode !== 'title') enter(now);
+  if (G.mode === 'walk' && warpCd <= 0) { if (Math.hypot(G.pos.x - P_IN.x, G.pos.z - P_IN.z) < .7) spot({ k: 'in' }); else if (inF && Math.hypot(G.pos.x - P_OUT.x, G.pos.z - P_OUT.z) < .7) spot({ k: 'out' }); else if (inF && Math.hypot(G.pos.x - C_IN.x, G.pos.z - C_IN.z) < .7) spot({ k: 'cin' }); else if (inF && Math.hypot(G.pos.x - C_OUT.x, G.pos.z - C_OUT.z) < .7) spot({ k: 'cout' }); }
+  const now = wk(G.pos.x, G.pos.z) || (inF && G.mode !== 'walk' && G.mode !== 'title'); if (now !== inF && G.mode !== 'title') enter(now);
+  const nc = inF && (walkCave(G.pos.x, G.pos.z) || (inC && G.mode !== 'walk')); if (nc !== inC) { inC = nc; tgt = null; if (inC && !S.seenC) { S.seenC = 1; save(); A.toast('🕳️ 這裡是鬼ヶ洞……一つ目小僧、ろくろ首、赤鬼、骸骨武者都住在這。最深處的紅繩祭壇每 15 分鐘會出現酒呑童子！', 9000); } }
+  /* 酒呑童子週期：每 15 分鐘 */
+  { const t2 = (Date.now() / 1000) + (window.__boss2Off || 0), c2 = t2 % BOSS2_CYCLE, d2 = Math.floor(t2 / BOSS2_CYCLE);
+    if (c2 < BOSS2_WIN && bossDay2 !== d2) { bossDay2 = d2; if (!bossC) { bossC = spawnMob('shuten', C_ARENA.x, C_ARENA.z, 6); bossC.st = 'spawn'; bossC.body.scale.setScalar(.01); burst(C_ARENA.x, 1, C_ARENA.z, '#ff3050', 40, 5, 1.2); }
+      if (G.mode !== 'title' && lv() >= C_LV) A.toast(inC ? '🍶 洞窟深處傳來豪邁的笑聲……酒呑童子現身了！（最深處的紅繩祭壇）' : '🍶 鬼ヶ洞出現了酒呑童子！（妖怪の森東北角的紅色傳送陣）', 6000); }
+    if (c2 >= BOSS2_WIN && bossC && !bossC.agg) { croot.remove(bossC.g); mobs.splice(mobs.indexOf(bossC), 1); bossC = null; } }
   // 頭目週期：每 10 分鐘（全員同一時間）
   const cyc = ((Date.now() / 1000) + (window.__bossOff || 0)) % BOSS_CYCLE, day = Math.floor(((Date.now() / 1000) + (window.__bossOff || 0)) / BOSS_CYCLE);
   if (cyc < BOSS_WIN && bossDay !== day) { bossDay = day; if (!bossM) { bossM = spawnMob('tengu', ARENA.x, ARENA.z, 6); bossM.st = 'spawn'; bossM.body.scale.setScalar(.01); burst(ARENA.x, 1, ARENA.z, '#ff6040', 40, 5, 1.2); }
     if (G.mode !== 'title' && lv() >= 5) A.toast(inF ? '👺 森林深處傳來振翅聲……大天狗降臨了！（西北角的石圈）' : '👺 妖怪の森出現了大天狗！打倒它可得 MVP 大獎（神社左後方的傳送陣）', 6000); }
   if (cyc >= BOSS_WIN && bossM && !bossM.agg) { root.remove(bossM.g); mobs.splice(mobs.indexOf(bossM), 1); bossM = null; }
-  root.visible = inF || (G.pos.x < -88 && G.pos.z < -28); // 從千本鳥居就看得到森林邊
-  if (hemi) hemi.intensity += ((inF ? (A.isNight() ? 1.1 : .35) : 0) - hemi.intensity) * Math.min(1, dt * 2);
+  root.visible = (inF && !inC) || (!inF && G.pos.x < -88 && G.pos.z < -28); // 從千本鳥居就看得到森林邊
+  croot.visible = inC;
+  if (inC) { /* 洞窟：壓暗日光、濃霧 */ const W = A.W; if (W.sunLight) W.sunLight.intensity *= .3; if (W.hemi) W.hemi.intensity *= .5; if (A.scene.fog) { A.scene.fog.color.set('#141020'); A.scene.fog.density = .02; } if (W.skyMat) { const u = W.skyMat.uniforms; u.uTop.value.set('#050407'); u.uBot.value.set('#0d0b12'); u.uStars.value = 0; } }
+  if (hemi) { hemi.intensity += ((inC ? 2.2 : inF ? (A.isNight() ? 1.1 : .35) : 0) - hemi.intensity) * Math.min(1, dt * 2); if (inC) { hemi.color.set('#b090ff'); hemi.groundColor.set('#402040'); } else { hemi.color.set('#a8c8ff'); hemi.groundColor.set('#304028'); } }
   if (!inF) return;
   // 玩家：自動攻擊目標
   const s = stats(); atkCd -= dt; skCd[0] = Math.max(0, skCd[0] - dt); skCd[1] = Math.max(0, skCd[1] - dt); combatT += dt;
@@ -440,9 +554,10 @@ export function updAdv(dt, time, camera) {
   // 回復：營地快、離開戰鬥 4 秒後慢慢回
   const camp = Math.hypot(G.pos.x - CAMP.x, G.pos.z - CAMP.z) < 9, rg = camp ? 12 : combatT > 4 ? 1.5 + s.hp * .01 : 0;
   if (!dead) { S.hp = Math.min(s.hp, S.hp + rg * dt); S.spv = Math.min(s.sp, S.spv + (camp ? 8 : combatT > 4 ? 1.2 : .5) * dt); }
-  for (let i = mobs.length - 1; i >= 0; i--) { const m = mobs[i]; updMob(m, dt, time); if (m.resp === -1 && m.st === 'dead' && m.deadT > .7) { root.remove(m.g); mobs.splice(i, 1); } }
+  for (let i = mobs.length - 1; i >= 0; i--) { const m = mobs[i]; if (m.cave !== inC && m.st !== 'dead') continue; updMob(m, dt, time); if (m.resp === -1 && m.st === 'dead' && m.deadT > .7) { m.g.parent && m.g.parent.remove(m.g); mobs.splice(i, 1); } }
   updSparks(dt); updSlashes(dt); updDrops(dt, time); updStomps(dt); updNums(dt, camera);
   if (tgt) { tgtRing.visible = true; tgtRing.position.set(tgt.x, .05, tgt.z); tgtRing.scale.setScalar(tgt.sc * (1 + Math.sin(time * 6) * .06)); tgtRing.rotation.z += dt; } else tgtRing.visible = false;
+  if (inC && crys) crys.material.color.setHSL(.76 + Math.sin(time * .7) * .04, .9, .6 + Math.sin(time * 1.9) * .08);
   // 營火、螢火蟲
   const fl = root.userData.fire.userData.fl; fl.scale.set(1 + Math.sin(time * 11) * .1, 1 + Math.sin(time * 7.3) * .2, 1);
   if (ffly) { const P = ffly.geometry.attributes.position, b = ffly.userData.base; for (let i = 0; i < P.count; i++) P.setXYZ(i, b[i * 3] + Math.sin(time * .5 + i) * 1.2, b[i * 3 + 1] + Math.sin(time * .9 + i * 1.7) * .4, b[i * 3 + 2] + Math.cos(time * .4 + i * .7) * 1.2); P.needsUpdate = true; ffly.material.opacity = A.isNight() ? .95 : .35; }
@@ -450,4 +565,4 @@ export function updAdv(dt, time, camera) {
   if (shake > 0) { shake = Math.max(0, shake - dt * 1.6); const a = shake * shake * .5; camera.position.x += Math.sin(time * 71) * a; camera.position.y += Math.sin(time * 53) * a; }
   if ((hudT -= dt) < 0) { hudT = .1; hud(); updTgt(); }
 }
-export const __adv = { get mobs() { return mobs; }, get tgt() { return tgt; }, get S() { return S; }, get inF() { return inF; }, stats, refine, CAMP, P_IN, spawnMob, killMob, hurtMob, WEAP, CARD }; // 測試用
+export const __adv = { get mobs() { return mobs; }, get tgt() { return tgt; }, get S() { return S; }, get inF() { return inF; }, stats, refine, CAMP, P_IN, spawnMob, killMob, hurtMob, WEAP, CARD, get inC() { return inC; }, C_IN, C_ARR, C_LV, btyList, btyS, openBounty, get bossC() { return bossC; } }; // 測試用

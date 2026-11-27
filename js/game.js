@@ -5,28 +5,28 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { buildWorld, walkable, heightAt } from './world.js?v=202611260248';
-import { RIDE_Y } from './chara.js?v=202611260248';
-import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611260248';
-import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611260248';
-import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611260248';
-import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611260248';
-import { Net } from './net.js?v=202611260248';
-import { cleanText } from './filter.js?v=202611260248';
-import { SND } from './audio.js?v=202611260248';
-import * as TX from './tex.js?v=202611260248';
-import * as P from './prog.js?v=202611260248';
-import { initGuide, updGuide, guiding, __guide as GD } from './guide.js?v=202611260248';
-import * as AD from './adventure.js?v=202611260248';
-import { initWeather, updWeather, setPx, WX, BONUS } from './weather.js?v=202611260248';
-import * as F from './fishing.js?v=202611260248';
-import * as HM from './home.js?v=202611260248';
-import * as HN from './hanamachi.js?v=202611260248';
-import * as JB from './jobs.js?v=202611260248';
-import * as FM from './farm.js?v=202611260248';
-import * as ON from './onsen.js?v=202611260248';
-import * as SO from './social.js?v=202611260248';
-import { updBoats } from './kashi.js?v=202611260248';
+import { buildWorld, walkable, heightAt } from './world.js?v=202611271504';
+import { RIDE_Y } from './chara.js?v=202611271504';
+import { Chara, randomLook, KIMONO, OBI, PATTERNS, HAIRS, SKINS, EYES, BROWS, MOUTHS, CHEEKS, MOLES, FACES, OUTFITS, OUTER, FEATS } from './chara.js?v=202611271504';
+import { SChara, preloadSprites, spritesReady, setSprCam, SPR_LIGHT, ARCH_LIST, ARCH_NAME, AR2H, archOf } from './sprite.js?v=202611271504';
+import { SHOPS, FORTUNE, ACC, SLOT_NAME } from './shops.js?v=202611271504';
+import { initMatsuri, updMatsuri, FEST, nextFestIn } from './matsuri.js?v=202611271504';
+import { Net } from './net.js?v=202611271504';
+import { cleanText } from './filter.js?v=202611271504';
+import { SND } from './audio.js?v=202611271504';
+import * as TX from './tex.js?v=202611271504';
+import * as P from './prog.js?v=202611271504';
+import { initGuide, updGuide, guiding, __guide as GD } from './guide.js?v=202611271504';
+import * as AD from './adventure.js?v=202611271504';
+import { initWeather, updWeather, setPx, WX, BONUS } from './weather.js?v=202611271504';
+import * as F from './fishing.js?v=202611271504';
+import * as HM from './home.js?v=202611271504';
+import * as HN from './hanamachi.js?v=202611271504';
+import * as JB from './jobs.js?v=202611271504';
+import * as FM from './farm.js?v=202611271504';
+import * as ON from './onsen.js?v=202611271504';
+import * as SO from './social.js?v=202611271504';
+import { updBoats } from './kashi.js?v=202611271504';
 
 const SERVER = new URLSearchParams(location.search).has('test') ? '' : (new URLSearchParams(location.search).get('server') || window.EDO_SERVER || '');
 const QS = new URLSearchParams(location.search);
@@ -754,6 +754,7 @@ function announce(s, n) { const b = $('#banner'); b.innerHTML = `<small>📜 ${e
 const ROOM_ZH = { edo1: '一丁目', edo2: '二丁目', edo3: '三丁目', edo4: '四丁目', edo5: '五丁目' };
 const GMS = { tab: 'all', q: '', rooms: null, timer: null, open: new Set() };
 function placeName(x, z) {
+  if (x >= -152 && x <= -90 && z >= -248 && z <= -196) return '鬼ヶ洞';
   if (x >= -178 && x <= -64 && z >= -156 && z <= -84) return '妖怪の森';
   if (x < -200) return '江戶城'; if (x < -100 && z > 22) { if (z > 80 && x > -142) return '不忍池'; if (x < -160 && z < 90) return '中村座'; if (x < -150 && z > 95) return '回向院相撲'; return '名所南區'; }
   if (x > 84 && x < 119 && z < -36) return '隅田川河岸';
@@ -1651,7 +1652,7 @@ function update(dt) {
     SND.update(dt, tday(), W.night || 0, Math.max(0, Math.abs(G.pos.x - 125) - 13), near, Math.abs(G.pos.z) < 12 && G.pos.x > -100 && G.pos.x < 104);
     callTick(dt); peddlerTick(dt); updMatsuri(dt); festNotice();
   }
-  updBoats(W, dt); FM.farmUpdate(dt); ON.onsenUpdate(dt); if (G.mode !== 'title') JB.jobUpdate(dt); W.update(dt, time, tday(), G.me ? G.me.root.position : new THREE.Vector3(), camera.position, quality); updWeather(dt, time, W, scene, camera, false); updGuide(dt, time); AD.updAdv(dt, time, camera);
+  updBoats(W, dt); FM.farmUpdate(dt); ON.onsenUpdate(dt); if (G.mode !== 'title') JB.jobUpdate(dt); W.update(dt, time, tday(), G.me ? G.me.root.position : new THREE.Vector3(), camera.position, quality); updWeather(dt, time, W, scene, camera, AD.inCave()); updGuide(dt, time); AD.updAdv(dt, time, camera);
   { const n = W.night || 0; SPR_LIGHT.value.setRGB(1.02 - .5 * n, 1 - .52 * n, .97 - .42 * n); } // 立繪亮度跟晝夜
   if (bloom) bloom.strength = .18 + W.night * .55;
 }
@@ -1697,7 +1698,7 @@ function drawMini(cv) {
   mg.fillStyle = '#c8402c'; mg.fillRect(X(-101) - 2, Z(-3), 4, 6 * sx);
   for (const s of W.shops) { mg.fillStyle = G.owners[s.def.id] ? '#c8322a' : '#5a4636'; mg.fillRect(X(s.def.x - s.def.w / 2), Z(s.def.side * 7) - (s.def.side < 0 ? 9 * sx : 0), s.def.w * sx, 9 * sx); }
   mg.fillStyle = '#7fb8b4'; mg.beginPath(); mg.arc(X(160), Z(14), 3.4 * sx, 0, 7); mg.fill();
-  mg.fillStyle = '#7d9a6c'; mg.fillRect(X(-178), Z(-156), 114 * sx, 72 * sx); mg.fillStyle = '#3a8ae8'; mg.beginPath(); mg.arc(X(-137), Z(-19.5), 2.6, 0, 7); mg.fill(); // 妖怪の森＋傳送陣
+  mg.fillStyle = '#7d9a6c'; mg.fillRect(X(-178), Z(-156), 114 * sx, 72 * sx); mg.fillStyle = '#3a8ae8'; mg.beginPath(); mg.arc(X(-137), Z(-19.5), 2.6, 0, 7); mg.fill(); mg.fillStyle = '#e04030'; mg.beginPath(); mg.arc(X(-100), Z(-150), 2.6, 0, 7); mg.fill(); /* 妖怪の森＋傳送陣（紅＝鬼ヶ洞） */
   // 名所南區・江戶城・金閣寺・千本鳥居
   mg.fillStyle = '#d9d2c2'; mg.fillRect(X(-205), Z(44), 105 * sx, 96 * sx); mg.fillRect(X(-127), Z(23), 4 * sx, 21 * sx); mg.fillRect(X(140), Z(38), 76 * sx, 74 * sx); mg.fillRect(X(-126), Z(-76), 2 * sx, 53 * sx);
   mg.fillStyle = '#6aa0b8'; mg.fillRect(X(-287), Z(57), 70 * sx, 70 * sx); mg.beginPath(); mg.ellipse(X(-122), Z(102), 15 * sx, 11 * sx, 0, 0, 7); mg.fill(); mg.beginPath(); mg.ellipse(X(180), Z(78), 21 * sx, 15 * sx, 0, 0, 7); mg.fill();
@@ -1835,6 +1836,7 @@ if (isTouch) document.body.classList.add('touch');
   if (QS.has('chat')) setTimeout(() => { openChat(); onChat(G.myId, '你好！一起去吃糰子吧'); }, 1500);
   if (QS.has('demo')) setTimeout(() => {
     const d = QS.get('demo');
+    if (d === 'cave') { G.pos.set(-121, 0, -224); cam.tx = -121; cam.tz = -224; cam.yaw = PI; cam.dist = 6; cam.pitch = .25; setTimeout(() => { const ks = ['akaoni', 'rokuro', 'gaikotsu', 'hitotsume']; ks.forEach((k, i) => { const m = AD.__adv.mobs.find(m => m.k === k && m.cave && !m.demo); if (!m) return; m.demo = 1; m.x = m.hx = -124 + i * 2; m.z = m.hz = -228.5 - (i % 2); m.d = { ...m.d, hp: 1e5 }; m.hp = 1e5; m.agg = true; }); }, 2500); }
     if (d === 'forest') { G.pos.set(-112, 0, -104); cam.tx = -112; cam.tz = -104; cam.yaw = .6; setTimeout(() => { const m = AD.__adv.mobs.find(m => m.k === 'kasa'); if (!m) return; m.x = m.hx = -112; m.z = m.hz = -101.5; m.d = { ...m.d, hp: 1e5 }; m.hp = 1e5; AD.attackNearest(); cam.yaw = 2.6; }, 3000); }
     if (d === 'menu') { const sh = W.shops.find(x => x.def.id === 'soba'); G.pos.set(sh.front.x, 0, sh.front.z); openShop(sh); $('#bCust').click(); }
     if (d === 'sit') { const sh = W.shops.find(x => x.def.id === 'soba'); G.pos.set(sh.front.x, 0, sh.front.z); openShop(sh); $('#bCust').click(); closePanels(); cam.yaw = sh.rot + 2.1; cam.pitch = .12; cam.dist = 3.2; }
@@ -2008,7 +2010,15 @@ async function runTest() {
       ok(AD.attackNearest() && AV.tgt === m, '鎖定最近的鬼火'); ok(await until(() => m.st === 'dead', 20000), '自動走過去打倒鬼火'); ok((AV.S.kills.onibi || 0) === k0 + 1, '討伐紀錄＋1');
       { const m0 = G.money; addMoney(5000, 'test'); const a0 = AD.stats().atk; for (let i = 0; i < 4; i++) AV.refine(); ok(AD.stats().r === 4 && AD.stats().atk === a0 + 12 && AD.stats().wn.startsWith('+4'), '武器精煉 +4 攻擊 +12'); AV.S.rf = {}; setMoney(m0); }
       const hp0 = AV.S.hp; AV.S.pot = 1; AV.S.hp = 5; AD.usePot(); ok(AV.S.hp > 5 && AV.S.pot === 0, '吃藥草團子回血'); AV.S.hp = hp0;
-      await sleep(2100); G.pos.set(AV.CAMP.x, 0, -87.4); ok(await until(() => !AV.inF, 5000) && Math.abs(G.pos.z) < 24, '傳送陣回神社'); }
+      { const L = AV.btyList(); ok(L.length === 3 && ['hitotsume', 'rokuro', 'akaoni', 'gaikotsu'].includes(L[2].k), '討伐依頼 3 項（第 3 項在鬼ヶ洞）'); const p0 = AV.btyS().p[0]; const mm = AV.mobs.find(x => x.k === L[0].k && x.st !== 'dead' && !x.cave); AV.killMob(mm); ok(AV.btyS().p[0] === Math.min(L[0].n, p0 + 1), '討伐依頼進度＋1'); AV.openBounty(); ok($('#panel').textContent.includes('討伐依頼'), '依頼板面板'); closePanels(); }
+      await sleep(2100); { const pg = P.prog(), l0 = pg.lv; pg.lv = 1; G.pos.set(AV.C_IN.x, 0, AV.C_IN.z); await sleep(700); ok(!AV.inC, '等級不足擋在鬼ヶ洞外'); pg.lv = l0; G.pos.set(AV.CAMP.x, 0, AV.CAMP.z + 3); await sleep(600); }
+      { const pg = P.prog(), lv0 = pg.lv; pg.lv = Math.max(lv0, 20); await sleep(2700); G.pos.set(AV.C_IN.x + .2, 0, AV.C_IN.z); ok(await until(() => AV.inC && G.pos.z < -190, 5000), '紅色傳送陣進入鬼ヶ洞'); await sleep(400); ok(placeName(G.pos.x, G.pos.z) === '鬼ヶ洞' && okAt(G.pos.x, G.pos.z), '鬼ヶ洞可走 ' + G.pos.x.toFixed(1) + ',' + G.pos.z.toFixed(1));
+        ok(AV.mobs.filter(x => x.cave).length >= 20 && ['hitotsume', 'rokuro', 'akaoni', 'gaikotsu'].every(k => AV.mobs.some(x => x.k === k)), '洞窟妖怪 4 種 ' + AV.mobs.filter(x => x.cave).length);
+        const m2 = AV.mobs.find(x => x.k === 'hitotsume' && x.st === 'idle'); const k2 = AV.S.kills.hitotsume || 0; AV.hurtMob(m2, 9999, false); ok((AV.S.kills.hitotsume || 0) === k2 + 1, '打倒一つ目小僧');
+        window.__boss2Off = 900 - (Date.now() / 1000) % 900 + 1; ok(await until(() => AV.bossC, 4000), '酒呑童子降臨'); const bc = AV.bossC; bc.st = 'idle'; AV.hurtMob(bc, 9e5, false); ok(!AV.bossC && (AV.S.boss2 || 0) > 0, '討伐酒呑童子 MVP'); window.__boss2Off = 0;
+        ok(AV.WEAP.mura && AV.CARD.shuten, '妖刀・村正＋酒呑童子札'); pg.lv = lv0;
+        await sleep(2600); G.pos.set(-121, 0, -198.5); ok(await until(() => !AV.inC && AV.inF, 5000), '傳送陣回妖怪の森'); }
+      await sleep(2600); G.pos.set(AV.CAMP.x, 0, -87.4); ok(await until(() => !AV.inF, 5000) && Math.abs(G.pos.z) < 24, '傳送陣回神社'); }
   } catch (e) { if (!e.done) ok(false, 'EXC ' + e.message); }
   document.title = (fail ? 'FAIL ' : 'PASS ') + log.length;
   window.__testDone = true;

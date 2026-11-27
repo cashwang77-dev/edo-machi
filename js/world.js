@@ -1,17 +1,17 @@
 // 江戶町 3D 世界
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import * as TX from './tex.js?v=202611260248';
-import { SHOPS, STREET } from './shops.js?v=202611260248';
-import { buildTemple } from './temple.js?v=202611260248';
-import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611260248';
-import { buildMeisho2, walkSouth } from './meisho2.js?v=202611260248';
-import { buildKashi, walkKashi } from './kashi.js?v=202611260248';
-import { buildHomeArea, walkHome } from './home.js?v=202611260248';
-import { buildHana, walkHana } from './hanamachi.js?v=202611260248';
-import { walkForest } from './adventure.js?v=202611260248';
-import { buildFarm, walkFarm } from './farm.js?v=202611260248';
-import { buildOnsen, buildYoichi, walkOnsen } from './onsen.js?v=202611260248';
+import * as TX from './tex.js?v=202611271504';
+import { SHOPS, STREET } from './shops.js?v=202611271504';
+import { buildTemple } from './temple.js?v=202611271504';
+import { buildMeisho, KINKAKU_POND } from './meisho.js?v=202611271504';
+import { buildMeisho2, walkSouth } from './meisho2.js?v=202611271504';
+import { buildKashi, walkKashi } from './kashi.js?v=202611271504';
+import { buildHomeArea, walkHome } from './home.js?v=202611271504';
+import { buildHana, walkHana } from './hanamachi.js?v=202611271504';
+import { walkForest, walkCave } from './adventure.js?v=202611271504';
+import { buildFarm, walkFarm } from './farm.js?v=202611271504';
+import { buildOnsen, buildYoichi, walkOnsen } from './onsen.js?v=202611271504';
 
 const PI = Math.PI;
 export const ARCH = x => (x > 110 && x < 140) ? 1.7 * Math.sin(PI * (x - 110) / 30) : 0;
@@ -718,7 +718,7 @@ export function buildWorld(scene) {
     const cm = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, side: THREE.DoubleSide });
     const clouds = new THREE.Mesh(mergeGeometries(geos), cm); clouds.renderOrder = -0.5; clouds.frustumCulled = false; scene.add(clouds); W.clouds = clouds;
   }
-  W.hemi = hemi; W.petals = petals; W.skyMat = skyMat; // 給 weather.js 疊天氣用
+  W.hemi = hemi; W.petals = petals; W.skyMat = skyMat; W.sunLight = sun; /* 給 weather.js 疊天氣用 */
   let lt = 0; const sunDir = new THREE.Vector3(); const tmp = new THREE.Vector3();
   W.update = (dt, time, tday, focus, camPos, quality) => {
     const D = sampleDay(tday);
@@ -753,7 +753,7 @@ export function buildWorld(scene) {
 
 // 可走區域
 export function walkable(x, z) {
-  if (walkForest(x, z)) return true;
+  if (walkForest(x, z) || walkCave(x, z)) return true;
   if (x > -100 && x < 106 && Math.abs(z) < 6.9) return true;
   if (x >= -150 && x <= -98 && Math.abs(z) < 23.5) return x > -129.6 || Math.abs(z) > 7.5 || true;
   if (x >= 103 && x <= 111.6 && Math.abs(z) < 40) return true;
